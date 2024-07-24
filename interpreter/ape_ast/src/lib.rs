@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     /// !
     Not,
@@ -165,14 +165,14 @@ pub enum TokenType {
     AnyIdent,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum FuncValueType {
     Func,
     Std,
     Callback,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Base {
     // 0b prefix
     Binary = 2,
@@ -184,7 +184,7 @@ pub enum Base {
     Hexadecimal = 16,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum LiteralType {
     // 3.1415, 663, 0b1101, 17e6
     Number(f32),
@@ -206,7 +206,7 @@ pub enum LiteralType {
     Func(FuncValueType),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum LiteralKind {
     /*
         f32 number
@@ -240,7 +240,7 @@ pub enum LiteralKind {
     },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token: TokenType,
     pub len: u32,
@@ -267,7 +267,7 @@ impl Token {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
     // [expr, expr, epxr]
     Array {
@@ -396,7 +396,7 @@ pub enum Expression {
     },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum CallType {
     Func,
     Var,
@@ -404,7 +404,7 @@ pub enum CallType {
     Enum,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
     Expression {
         expr: Expression,
@@ -576,7 +576,7 @@ pub enum Statement {
     },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum FuncBody {
     Statements(Vec<Statement>),
     Expression(Box<Expression>),

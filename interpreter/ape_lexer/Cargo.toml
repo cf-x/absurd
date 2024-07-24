@@ -1,6 +1,8 @@
 [package]
 name = "ape_lexer"
+description = "lexical analysis for Aperture programming language"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+ape_ast = "0.1.0"
