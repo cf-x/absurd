@@ -4,13 +4,13 @@ version = 3
 
 [[package]]
 name = "ape_ast"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d43d6914128e2a399642e3257144a3756081df0ddb363325e31bb1be8674ec2e"
+checksum = "1682ccf90c8a32a49f0241e822c4f5dcffef5ba7852112b11ac2975daa2f072d"
 
 [[package]]
 name = "ape_lexer"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ape_ast",
 ]

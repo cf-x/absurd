@@ -1,3 +1,5 @@
+#[cfg(test)]
+mod tests;
 use std::collections::HashMap;
 
 use ape_ast::{
@@ -95,96 +97,151 @@ impl Lexer {
                 self.push_token(Queston, None);
             }
             '!' => {
-                let tt = match self.first() {
-                    '!' => NotNot,
-                    '=' => NotEq,
+                let tt = match self.peek() {
+                    '!' => {
+                        self.crnt += 1;
+                        NotNot
+                    }
+                    '=' => {
+                        self.crnt += 1;
+                        NotEq
+                    }
                     _ => Not,
                 };
                 self.push_token(tt, None)
             }
             '&' => {
-                let tt = match self.first() {
-                    '&' => AndAnd,
+                let tt = match self.peek() {
+                    '&' => {
+                        self.crnt += 1;
+                        AndAnd
+                    }
                     _ => And,
                 };
                 self.push_token(tt, None)
             }
             '+' => {
-                let tt = match self.first() {
-                    '+' => Increment,
-                    '=' => PlusEq,
+                let tt = match self.peek() {
+                    '+' => {
+                        self.crnt += 1;
+                        Increment
+                    }
+                    '=' => {
+                        self.crnt += 1;
+                        PlusEq
+                    }
                     _ => Plus,
                 };
                 self.push_token(tt, None)
             }
             '-' => {
-                let tt = match self.first() {
-                    '>' => Arrow,
-                    '-' => Decr,
-                    '=' => MinEq,
+                let tt = match self.peek() {
+                    '>' => {
+                        self.crnt += 1;
+                        Arrow
+                    }
+                    '-' => {
+                        self.crnt += 1;
+                        Decr
+                    }
+                    '=' => {
+                        self.crnt += 1;
+                        MinEq
+                    }
                     _ => Minus,
                 };
+
                 self.push_token(tt, None)
             }
             '*' => {
-                let tt = match self.first() {
-                    '*' => Square,
-                    '=' => MultEq,
+                let tt = match self.peek() {
+                    '*' => {
+                        self.crnt += 1;
+                        Square
+                    }
+                    '=' => {
+                        self.crnt += 1;
+                        MultEq
+                    }
                     _ => Mult,
                 };
                 self.push_token(tt, None)
             }
             '=' => {
-                let tt = match self.first() {
-                    '=' => Eq,
+                let tt = match self.peek() {
+                    '=' => {
+                        self.crnt += 1;
+                        Eq
+                    }
                     _ => Assign,
                 };
                 self.push_token(tt, None)
             }
             '|' => {
-                let tt = match self.first() {
-                    '|' => Or,
+                let tt = match self.peek() {
+                    '|' => {
+                        self.crnt += 1;
+                        Or
+                    }
                     _ => Pipe,
                 };
                 self.push_token(tt, None)
             }
             '.' => {
-                let tt = match self.first() {
-                    '.' => DotDot,
+                let tt = match self.peek() {
+                    '.' => {
+                        self.crnt += 1;
+                        DotDot
+                    }
                     _ => Dot,
                 };
                 self.push_token(tt, None)
             }
             '<' => {
-                let tt = match self.first() {
-                    '=' => LessOrEq,
+                let tt = match self.peek() {
+                    '=' => {
+                        self.crnt += 1;
+                        LessOrEq
+                    }
                     _ => Less,
                 };
                 self.push_token(tt, None)
             }
             '>' => {
-                let tt = match self.first() {
-                    '=' => GreaterOrEq,
+                let tt = match self.peek() {
+                    '=' => {
+                        self.crnt += 1;
+                        GreaterOrEq
+                    }
                     _ => Greater,
                 };
                 self.push_token(tt, None)
             }
             '\\' => {
-                let tt = match self.first() {
-                    '{' => StartParse,
-                    '}' => EndParse,
+                let tt = match self.peek() {
+                    '{' => {
+                        self.crnt += 1;
+                        StartParse
+                    }
+                    '}' => {
+                        self.crnt += 1;
+                        EndParse
+                    }
                     _ => Escape,
                 };
                 self.push_token(tt, None)
             }
             '/' => {
-                if self.first() == '/' {
+                if self.peek() == '/' {
                     self.comment();
-                } else if self.first() == '*' {
+                } else if self.peek() == '*' {
                     self.block_comment();
                 } else {
-                    let tt = match self.first() {
-                        '=' => DivEq,
+                    let tt = match self.peek() {
+                        '=' => {
+                            self.crnt += 1;
+                            DivEq
+                        }
                         _ => Divide,
                     };
                     self.push_token(tt, None)
@@ -212,13 +269,19 @@ impl Lexer {
     }
     fn block_comment(&mut self) {
         loop {
-            if self.peek() == '*' || self.is_eof() {
+            if self.is_eof() {
+                break;
+            }
+
+            if self.peek() == '*' {
                 self.advance();
-                if self.peek() == '/' || self.is_eof() {
+                if self.peek() == '/' {
+                    self.advance();
                     break;
                 }
+            } else {
+                self.advance();
             }
-            self.advance();
         }
     }
 
@@ -250,8 +313,13 @@ impl Lexer {
             // @error unterminated string
         }
         self.advance();
-        let value = &self.source[self.start + 1..self.crnt - 1];
-        self.push_token(StringLit, Some(LiteralKind::String { value }))
+        let value = &self.source[self.start + 1..self.crnt - 1].to_string();
+        self.push_token(
+            StringLit,
+            Some(LiteralKind::String {
+                value: value.clone(),
+            }),
+        )
     }
 
     fn ident(&mut self) {
@@ -264,14 +332,19 @@ impl Lexer {
     }
 
     fn number(&mut self, c: char) {
-        let mut base = Base::Decimal;
         if c == '0' {
-            match self.first() {
+            match self.peek() {
                 'b' => self.parse_binary(),
                 'o' => self.parse_octal(),
                 'x' => self.parse_hexadecimal(),
                 '0'..='9' | '_' | '.' => self.parse_decimal(),
-                _ => self.push_token(NumberLit, Some(LiteralKind::Number { base, value: 0.0 })),
+                _ => self.push_token(
+                    NumberLit,
+                    Some(LiteralKind::Number {
+                        base: Base::Decimal,
+                        value: 0.0,
+                    }),
+                ),
             }
         } else {
             self.parse_decimal()
@@ -282,17 +355,18 @@ impl Lexer {
         while self.peek().is_digit(10) {
             self.advance();
         }
-        if self.peek().is_digit(10) {
+        if self.peek() == '.' && self.peek_next().is_digit(10) {
             self.advance();
             while self.peek().is_digit(10) {
                 self.advance();
             }
         }
+
         let sub = &self.source[self.start..self.crnt];
         let val = sub.parse::<f32>();
         match val {
             Ok(value) => self.push_token(
-                NumberIdent,
+                NumberLit,
                 Some(LiteralKind::Number {
                     base: Base::Decimal,
                     value,
@@ -305,17 +379,21 @@ impl Lexer {
     }
 
     fn parse_binary(&mut self) {
+        self.advance();
+        self.advance();
+
         while self.peek().is_digit(2) {
             self.advance();
         }
+
         let sub = &self.source[self.start..self.crnt];
-        let val = sub.parse::<f32>();
+        let val = i32::from_str_radix(&sub[2..], 2);
         match val {
             Ok(value) => self.push_token(
-                NumberIdent,
+                NumberLit,
                 Some(LiteralKind::Number {
                     base: Base::Binary,
-                    value,
+                    value: value as f32,
                 }),
             ),
             Err(_) => {
@@ -325,37 +403,44 @@ impl Lexer {
     }
 
     fn parse_octal(&mut self) {
+        self.advance();
+        self.advance();
+
         while self.peek().is_digit(8) {
             self.advance();
         }
+
         let sub = &self.source[self.start..self.crnt];
-        let val = sub.parse::<f32>();
+        let val = i32::from_str_radix(&sub[2..], 8);
         match val {
             Ok(value) => self.push_token(
-                NumberIdent,
+                NumberLit,
                 Some(LiteralKind::Number {
                     base: Base::Octal,
-                    value,
+                    value: value as f32,
                 }),
             ),
             Err(_) => {
-                // @error failed to parse an octal number: sub
+                // Handle error: failed to parse an octal number
             }
         }
     }
 
     fn parse_hexadecimal(&mut self) {
+        self.advance();
+        self.advance();
+
         while self.peek().is_digit(16) {
             self.advance();
         }
         let sub = &self.source[self.start..self.crnt];
-        let val = sub.parse::<f32>();
+        let val = i32::from_str_radix(&sub[2..], 16);
         match val {
             Ok(value) => self.push_token(
-                NumberIdent,
+                NumberLit,
                 Some(LiteralKind::Number {
                     base: Base::Hexadecimal,
-                    value,
+                    value: value as f32,
                 }),
             ),
             Err(_) => {
@@ -381,21 +466,19 @@ impl Lexer {
         })
     }
 
-    fn first(&self) -> char {
-        self.source.chars().clone().next().unwrap_or('\0')
-    }
-
-    fn second(&self) -> char {
-        let mut c = self.source.chars().clone();
-        c.next();
-        c.next().unwrap_or('\0')
-    }
-
     fn peek(&self) -> char {
         if self.is_eof() {
             return '\0';
         }
         self.source.chars().nth(self.crnt).unwrap()
+    }
+
+    fn peek_next(&self) -> char {
+        if self.crnt + 1 >= self.source.len() {
+            '\0'
+        } else {
+            self.source.chars().nth(self.crnt + 1).unwrap_or('\0')
+        }
     }
 }
 
