@@ -1,6 +1,7 @@
 [package]
 name = "ape_lexer"
 description = "lexical analysis for Aperture programming language"
+license="MIT"
 version = "0.1.1"
 edition = "2021"
 
