@@ -1,6 +1,3 @@
-#[cfg(test)]
-mod tests;
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     /// !
@@ -61,10 +58,12 @@ pub enum TokenType {
     Semi,
     /// :
     Colon,
-    /// '
+    /// char
     CharLit,
-    /// "
+    /// string
     StringLit,
+    /// number
+    NumberLit,
     /// <
     Less,
     /// <=
@@ -97,12 +96,6 @@ pub enum TokenType {
     Or,
     /// identifier
     Ident,
-    /// unknown character
-    Unknown,
-    /// unknown prefix
-    UnknownPrefix,
-    /// invalid prefix
-    InvalidPrefix,
     /// end of file
     Eof,
     /// variable (let)
@@ -218,26 +211,18 @@ pub enum LiteralKind {
         suports exponents:
         - 3e3 same as 3000
     */
-    Number {
-        base: Base,
-        empty_expo: bool,
-    },
+    Number { base: Base, value: f32 },
     /*
        "normal string"
        supports parsing:
        - "\{expression\}"
        - "username \{name\}" same as "username john doe"
     */
-    String {
-        terminated: bool,
-        exprs: Vec<Expression>,
-    },
+    String { value: String },
     /*
         'c', '💙'
     */
-    Char {
-        terminated: bool,
-    },
+    Char { value: char },
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -247,24 +232,6 @@ pub struct Token {
     pub lexeme: String,
     pub value: Option<LiteralKind>,
     pub line: usize,
-}
-
-impl Token {
-    fn new(
-        token: TokenType,
-        len: u32,
-        lexeme: String,
-        value: Option<LiteralKind>,
-        line: usize,
-    ) -> Token {
-        Token {
-            token,
-            len,
-            lexeme,
-            value,
-            line,
-        }
-    }
 }
 
 #[derive(Debug, PartialEq, Clone)]

@@ -5,4 +5,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-ape_ast = "0.1.0"
+ape_ast = "0.1.1"
