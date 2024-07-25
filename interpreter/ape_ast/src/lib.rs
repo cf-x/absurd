@@ -515,8 +515,10 @@ pub enum Statement {
     Struct {
         name: Token,
         // (identifier, type token, is_public)
-        structs: Vec<(Token, Token, bool)>,
+        structs: Vec<(Token, TokenType, bool)>,
         is_pub: bool,
+        // (function name, is_public)
+        methods: Vec<(Expression, bool)>,
     },
     /*
         impl name { /* body */ }

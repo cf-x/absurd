@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.1.3 - 26/07/24
+
+- update struct
+
 ### 0.1.2 - 25/07/24
 
 - update token kinds
