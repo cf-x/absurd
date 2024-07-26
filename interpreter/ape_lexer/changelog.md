@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2 - 26/07/24
+
+- update pubs
+
 ## 0.1.1 - 25/07/24
 
 - complete the lexer

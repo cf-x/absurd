@@ -10,7 +10,7 @@ checksum = "1682ccf90c8a32a49f0241e822c4f5dcffef5ba7852112b11ac2975daa2f072d"
 
 [[package]]
 name = "ape_lexer"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "ape_ast",
 ]

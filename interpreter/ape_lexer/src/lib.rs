@@ -4,17 +4,8 @@ use std::collections::HashMap;
 
 use ape_ast::{
     Base, LiteralKind,
-    TokenType::{self, *},
+    TokenType::{self, *}, Token
 };
-
-#[derive(Debug, PartialEq, Clone)]
-pub(crate) struct Token {
-    pub token: TokenType,
-    pub len: u32,
-    pub lexeme: String,
-    pub value: Option<LiteralKind>,
-    pub line: usize,
-}
 
 #[derive(Debug, Clone)]
 pub struct Lexer {
@@ -27,7 +18,7 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub(crate) fn new(source: String) -> Self {
+    pub fn new(source: String) -> Self {
         Self {
             source,
             tokens: vec![],
@@ -38,7 +29,7 @@ impl Lexer {
         }
     }
 
-    pub(crate) fn lex(&mut self) -> Vec<Token> {
+    pub fn lex(&mut self) -> Vec<Token> {
         while !self.is_eof() {
             self.start = self.crnt;
             self.advance_token()
