@@ -82,7 +82,7 @@ impl Lexer {
                 self.push_token(Colon, None);
             }
             ',' => {
-                self.push_token(Colon, None);
+                self.push_token(Comma, None);
             }
             '?' => {
                 self.push_token(Queston, None);

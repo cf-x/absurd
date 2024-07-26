@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4 - 26/07/24
+
+- fix comma detection
+
 ## 0.1.3 - 26/07/24
 
 - add variable keyword
