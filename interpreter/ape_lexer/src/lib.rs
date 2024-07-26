@@ -3,8 +3,8 @@ mod tests;
 use std::collections::HashMap;
 
 use ape_ast::{
-    Base, LiteralKind,
-    TokenType::{self, *}, Token
+    Base, LiteralKind, Token,
+    TokenType::{self, *},
 };
 
 #[derive(Debug, Clone)]
@@ -475,6 +475,7 @@ impl Lexer {
 
 pub fn kwds() -> HashMap<&'static str, TokenType> {
     HashMap::from([
+        ("let", Let),
         ("if", If),
         ("else", Else),
         ("else if", ElseIf),

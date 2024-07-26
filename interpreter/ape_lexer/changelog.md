@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3 - 26/07/24
+
+- add variable keyword
+
 ## 0.1.2 - 26/07/24
 
 - update pubs

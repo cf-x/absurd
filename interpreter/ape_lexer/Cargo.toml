@@ -2,8 +2,8 @@
 name = "ape_lexer"
 description = "lexical analysis for Aperture programming language"
 license="MIT"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 
 [dependencies]
-ape_ast = "0.1.2"
+ape_ast = "0.1.3"
