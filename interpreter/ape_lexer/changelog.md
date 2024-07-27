@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5 - 27/07/24
+
+- added keywords: self, true, false, null
+- added tokens: `::` and `=>`
+
 ## 0.1.4 - 26/07/24
 
 - fix comma detection

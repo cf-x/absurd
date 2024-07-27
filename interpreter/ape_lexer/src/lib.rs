@@ -78,14 +78,21 @@ impl Lexer {
             ';' => {
                 self.push_token(Semi, None);
             }
-            ':' => {
-                self.push_token(Colon, None);
-            }
             ',' => {
                 self.push_token(Comma, None);
             }
             '?' => {
                 self.push_token(Queston, None);
+            }
+            ':' => {
+                let tt = match self.peek() {
+                    ':' => {
+                        self.crnt += 1;
+                        DblColon
+                    }
+                    _ => Colon,
+                };
+                self.push_token(tt, None);
             }
             '!' => {
                 let tt = match self.peek() {
@@ -163,6 +170,10 @@ impl Lexer {
                     '=' => {
                         self.crnt += 1;
                         Eq
+                    }
+                    '>' => {
+                        self.crnt += 1;
+                        ArrowBig
                     }
                     _ => Assign,
                 };
@@ -496,6 +507,10 @@ pub fn kwds() -> HashMap<&'static str, TokenType> {
         ("pub", Pub),
         ("mut", Mut),
         ("func", Func),
+        ("self", Slf),
+        ("true", TrueLit),
+        ("false", FalseLit),
+        ("null", NullLit),
         ("number", NumberIdent),
         ("string", StringIdent),
         ("char", CharIdent),
