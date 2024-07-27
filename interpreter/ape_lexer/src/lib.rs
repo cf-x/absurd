@@ -12,7 +12,7 @@ pub struct Lexer {
     source: String,
     tokens: Vec<Token>,
     kwds: HashMap<&'static str, TokenType>,
-    line: usize,u
+    line: usize,
     start: usize,
     crnt: usize,
 }
