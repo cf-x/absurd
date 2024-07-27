@@ -12,7 +12,7 @@ pub struct Lexer {
     source: String,
     tokens: Vec<Token>,
     kwds: HashMap<&'static str, TokenType>,
-    line: usize,
+    line: usize,u
     start: usize,
     crnt: usize,
 }
@@ -489,7 +489,7 @@ pub fn kwds() -> HashMap<&'static str, TokenType> {
         ("let", Let),
         ("if", If),
         ("else", Else),
-        ("else if", ElseIf),
+        ("elif", ElseIf),
         ("return", Return),
         ("while", While),
         ("loop", Loop),

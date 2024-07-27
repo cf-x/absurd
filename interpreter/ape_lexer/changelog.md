@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6 - 27/07/24
+
+- change "else if" to "elif"
+
 ## 0.1.5 - 27/07/24
 
 - added keywords: self, true, false, null
