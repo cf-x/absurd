@@ -26,6 +26,8 @@ pub enum TokenType {
     Decr,
     /// ->
     Arrow,
+    /// =>
+    ArrowBig,
     /// _
     Underscore,
     /// +
@@ -58,12 +60,20 @@ pub enum TokenType {
     Semi,
     /// :
     Colon,
+    /// ::
+    DblColon,
     /// char
     CharLit,
     /// string
     StringLit,
     /// number
     NumberLit,
+    /// true
+    TrueLit,
+    /// false
+    FalseLit,
+    /// null
+    NullLit,
     /// <
     Less,
     /// <=
@@ -126,6 +136,8 @@ pub enum TokenType {
     From,
     /// struct
     Struct,
+    /// self
+    Slf,
     /// impl
     Impl,
     /// enum
@@ -223,6 +235,14 @@ pub enum LiteralKind {
         'c', '💙'
     */
     Char { value: char },
+    /*
+        true / false
+    */
+    Bool { value: bool },
+    /*
+        null
+    */
+    Null,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -441,9 +461,9 @@ pub enum Statement {
     */
     If {
         cond: Expression,
-        body: Box<Statement>,
-        else_if_branches: Vec<(Vec<Expression>, Box<Statement>)>,
-        else_branch: Option<Box<Statement>>,
+        body: Vec<Statement>,
+        else_if_branches: Vec<(Vec<Expression>, Vec<Statement>)>,
+        else_branch: Option<Vec<Statement>>,
     },
     /*
         return expression;
@@ -456,7 +476,7 @@ pub enum Statement {
     */
     While {
         cond: Expression,
-        body: Box<Statement>,
+        body: Vec<Statement>,
     },
     /*
            loop {}
@@ -464,7 +484,7 @@ pub enum Statement {
     */
     Loop {
         iter: Option<usize>,
-        body: Box<Statement>,
+        body: Vec<Statement>,
     },
     /*
         break;

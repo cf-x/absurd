@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.1.4 - 27/07/24
+
+- added new tokens: Slf, DblColon, ArrowBig, TrueLit, FalseLit, NullLit
+- added new literal kinds: Bool, Null
+- fixed block types
+
 ### 0.1.3 - 26/07/24
 
 - update struct
