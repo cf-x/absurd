@@ -1,12 +1,10 @@
 #[cfg(test)]
 mod tests;
-
-use std::process::exit;
-
 use ape_ast::{
-    CallType, Expression, FuncBody, LiteralType, Statement, Token,
+    CallType, Expression, FuncBody, LiteralKind, LiteralType, Statement, Token,
     TokenType::{self, *},
 };
+use std::process::exit;
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -25,7 +23,7 @@ impl Parser {
 
     pub fn parse(&mut self) -> Vec<Statement> {
         let mut stmts = vec![];
-        while !self.is_token(Eof) {
+        while !self.check(Eof) {
             let stmt = self.stmt();
             stmts.push(stmt);
         }
@@ -33,7 +31,8 @@ impl Parser {
     }
 
     fn stmt(&mut self) -> Statement {
-        match self.peek().token {
+        self.advance();
+        match self.prev(1).token {
             Let => self.var_stmt(),
             Func => self.func_stmt(),
             If => self.if_stmt(),
@@ -53,37 +52,42 @@ impl Parser {
     }
 
     fn var_stmt(&mut self) -> Statement {
+        let mut names: Vec<Token> = vec![];
+        let mut pub_names: Vec<Token> = vec![];
         let mut is_mut = false;
         let mut is_pub = false;
         let mut is_null = false;
-        let mut names: Vec<Token> = vec![];
-        let mut pub_names: Vec<Token> = vec![];
 
-        if self.is_token(Mut) {
+        if self.if_token_consume(Mut) {
             is_mut = true;
-        } else if self.is_token(Pub) {
+        } else if self.if_token_consume(Pub) {
             is_pub = true;
-            if self.is_token(LeftParen) {
+            if self.if_token_consume(LeftParen) {
                 loop {
                     let name = self.consume(Ident);
                     pub_names.push(name);
                     if !self.is_token(Comma) || self.is_token(RightParen) {
                         break;
                     }
+                    self.advance();
                 }
+                self.consume(RightParen);
             }
         }
 
         loop {
             let name = self.consume(Ident);
             names.push(name);
-            if self.check(Semi) {
+
+            if self.is_token(Semi) {
                 is_null = true;
                 break;
             }
+
             if !self.is_token(Comma) || self.is_token(Colon) {
                 break;
             }
+            self.advance();
         }
 
         let null_var = Statement::Var {
@@ -106,22 +110,20 @@ impl Parser {
         };
 
         if is_null {
+            self.advance();
             return null_var;
         }
 
-        let value_type = if self.is_type_ident() {
-            self.prev(1)
-        } else {
-            // @error invalid value type
-            exit(1);
-        };
+        self.consume(Colon);
+        let value_type = self.consume_type_ident();
+        self.advance();
 
         if value_type.token == NullIdent {
             return null_var;
         }
 
         self.consume(Assign);
-        let is_func = self.check(Pipe);
+        let is_func = self.is_token(Pipe);
         let value = self.expr();
         self.consume(Semi);
 
@@ -137,57 +139,53 @@ impl Parser {
     }
 
     fn func_stmt(&mut self) -> Statement {
+        let mut params: Vec<(Token, Token)> = vec![];
         let mut is_async = false;
         let mut is_pub = false;
         let mut is_impl = false;
         let mut is_mut = false;
-        let mut params: Vec<(Token, Token)> = vec![];
 
-        if self.is_token(Async) {
-            is_async = true;
+        if self.if_token_consume(Pub) {
+            is_pub = true;
+            if self.if_token_consume(Async) {
+                is_async = true;
+            }
         }
 
-        if self.is_token(Pub) {
-            is_pub = true;
+        if self.if_token_consume(Async) {
+            is_async = true;
+            if self.if_token_consume(Pub) {
+                is_pub = true;
+            }
         }
 
         let name = self.consume(Ident);
-        self.consume(LeftParen);
 
+        self.consume(LeftParen);
         while !self.is_token(RightParen) {
             if self.is_token(Ident) {
-                let param_name = self.prev(1);
+                let param_name = self.consume(Ident);
                 self.consume(Colon);
-                let param_type = if self.is_type_ident() {
-                    self.prev(1)
-                } else {
-                    // @error invalid value type
-                    exit(1);
-                };
+                let param_type = self.consume_type_ident();
                 params.push((param_name, param_type))
-            } else if self.is_token(Mut) {
+            } else if self.if_token_consume(Mut) {
+                // @todo replace Impl with Self
+                self.consume(Impl);
                 is_mut = true;
                 is_impl = true;
-                // replace Impl with Self
-                self.consume(Impl);
-            } else if self.is_token(Impl) {
+            } else if self.if_token_consume(Impl) {
                 is_impl = true;
-            } else if !self.is_token(Comma) && !self.is_token(RightBrace) {
+            } else if self.if_token_consume(Comma) {
+            } else if !self.is_token(RightParen) {
                 // @error unexpected token
-                exit(1);
+                panic!("@error unexpected token '{}'", self.prev(1).lexeme);
             }
-            self.consume(Comma);
         }
-
+        self.consume(RightParen);
         self.consume(Arrow);
-        let value_type = if self.is_type_ident() {
-            self.prev(1)
-        } else {
-            // @error invalid value type
-            exit(1);
-        };
+        let value_type = self.consume_type_ident();
 
-        if self.is_token(Assign) {
+        if self.if_token_consume(Assign) {
             let body = self.expr();
             self.consume(Semi);
             return Statement::Func {
@@ -210,6 +208,7 @@ impl Parser {
                 exit(0);
             }
         };
+        self.consume(RightBrace);
 
         Statement::Func {
             name,
@@ -279,7 +278,7 @@ impl Parser {
         }
     }
 
-    fn break_stmt(&self) -> Statement {
+    fn break_stmt(&mut self) -> Statement {
         self.prev(1);
         Statement::Break {}
     }
@@ -288,8 +287,9 @@ impl Parser {
         let cond = self.expr();
         self.consume(LeftBrace);
         let mut cases = vec![];
-        while self.is_literal() || self.check(Ident) {
+        while self.is_literal() || self.is_token(Ident) {
             let expr = self.expr();
+            // @todo replace with => ArrowBig
             self.consume(Arrow);
             if self.is_token(LeftBrace) {
                 let body = match self.block_stmt() {
@@ -307,6 +307,8 @@ impl Parser {
             }
         }
         self.consume(Underscore);
+        // @todo replace with => ArrowBig
+        self.consume(Arrow);
         let stmt = if self.is_token(LeftBrace) {
             let body = match self.block_stmt() {
                 Statement::Block { stmts } => stmts,
@@ -358,7 +360,7 @@ impl Parser {
     fn struct_stmt(&mut self) -> Statement {
         let mut is_pub = false;
 
-        if self.is_token(Pub) {
+        if self.if_token_consume(Pub) {
             is_pub = true;
         }
 
@@ -369,7 +371,7 @@ impl Parser {
         while !self.is_token(RightBrace) {
             let mut struct_is_pub = false;
 
-            if self.is_token(Pub) {
+            if self.if_token_consume(Pub) {
                 struct_is_pub = true;
             }
 
@@ -411,7 +413,7 @@ impl Parser {
     fn enum_stmt(&mut self) -> Statement {
         let mut is_pub = false;
 
-        if self.is_token(Pub) {
+        if self.if_token_consume(Pub) {
             is_pub = true;
         }
 
@@ -450,11 +452,8 @@ impl Parser {
         Statement::Expression { expr }
     }
 
-    fn expr(&self) -> Expression {
-        Expression::Value {
-            id: self.id,
-            value: LiteralType::Null,
-        }
+    fn expr(&mut self) -> Expression {
+        self.binary()
     }
 
     fn binary(&mut self) -> Expression {
@@ -480,6 +479,7 @@ impl Parser {
             Square,
             And,
         ]) {
+            self.advance();
             let operator = self.prev(1);
             let rhs = self.unary();
             expr = Expression::Binary {
@@ -494,6 +494,7 @@ impl Parser {
 
     fn unary(&mut self) -> Expression {
         if self.are_tokens(vec![Not, NotNot, Queston, Decr, Increment]) {
+            self.advance();
             let operator = self.prev(1);
             let rhs = self.unary();
             Expression::Unary {
@@ -508,14 +509,15 @@ impl Parser {
 
     fn call(&mut self) -> Expression {
         let mut expr = self.primary();
+        // @todo add whole structure calls
         loop {
-            if self.is_token(Dot) {
+            if self.if_token_consume(Dot) {
                 expr = self.struct_call();
-            } else if self.is_token(Colon) {
+            } else if self.if_token_consume(Colon) {
                 expr = self.enum_call();
-            } else if self.is_token(LeftParen) {
+            } else if self.if_token_consume(LeftParen) {
                 expr = self.func_call();
-            } else if self.is_token(Ident) {
+            } else if self.if_token_consume(Ident) {
                 expr = self.call();
             } else {
                 break;
@@ -540,8 +542,10 @@ impl Parser {
         }
     }
 
+    // @todo add :: DblColon
     fn enum_call(&mut self) -> Expression {
-        let name = self.prev(2);
+        self.consume(Colon);
+        let name = self.prev(3);
         let mut args = vec![];
         let arg = self.expr();
         args.push(arg);
@@ -578,7 +582,7 @@ impl Parser {
 
     fn primary(&mut self) -> Expression {
         let token = self.peek();
-        match token.token {
+        match token.clone().token {
             Ident => {
                 self.advance();
                 let mut expr = Expression::Var {
@@ -586,7 +590,7 @@ impl Parser {
                     name: self.prev(1),
                 };
 
-                if self.is_token(LeftBracket) {
+                if self.if_token_consume(LeftBracket) {
                     expr = self.arr_expr()
                 }
                 return expr;
@@ -603,9 +607,50 @@ impl Parser {
             Match => return self.match_expr(),
             Await => return self.await_expr(),
             _ => {
+                if self.is_literal() {
+                    self.advance();
+                    return Expression::Value {
+                        id: self.id(),
+                        value: self.to_value_type(token),
+                    };
+                }
                 // @error unexpected token token.lexeme
-                exit(1);
+                panic!("@error unexpected token '{}'", token.lexeme);
             }
+        }
+    }
+
+    fn to_value_type(&mut self, token: Token) -> LiteralType {
+        match token.token {
+            NumberLit => {
+                let number = match token.value {
+                    Some(LiteralKind::Number { value, .. }) => value,
+                    _ => {
+                        panic!("@error failed to unwrap a number");
+                    }
+                };
+
+                LiteralType::Number(number)
+            }
+            StringLit => {
+                let string = match token.value {
+                    Some(LiteralKind::String { value }) => value,
+                    _ => {
+                        panic!("@error failed to unwrap a number");
+                    }
+                };
+                LiteralType::String(string)
+            }
+            CharLit => {
+                let char = match token.value {
+                    Some(LiteralKind::Char { value }) => value,
+                    _ => {
+                        panic!("@error failed to unwrap a number");
+                    }
+                };
+                LiteralType::Char(char)
+            }
+            _ => LiteralType::Any,
         }
     }
 
@@ -663,10 +708,12 @@ impl Parser {
         self.call()
     }
 
+    /// checks if current token is literal value
     fn is_literal(&self) -> bool {
         self.are_tokens(vec![NumberLit, StringLit, CharLit])
     }
 
+    /// checks if current token is type identifier
     fn is_type_ident(&self) -> bool {
         self.are_tokens(vec![
             AnyIdent,
@@ -680,74 +727,117 @@ impl Parser {
         ])
     }
 
-    fn is_keyword(&self) -> bool {
-        self.are_tokens(vec![
-            Let, If, Else, ElseIf, Return, While, Loop, Break, Match, Mod, Use, As, From, Struct,
-            Impl, Enum, Async, Await, Pub, Mut, Func,
-        ]) || self.is_type_ident()
+    /// consumes if token matches
+    fn if_token_consume(&mut self, token: TokenType) -> bool {
+        if self.is_token(token.clone()) {
+            self.consume(token);
+            return true;
+        }
+        false
     }
 
+    /// advances if token matches
+    fn if_token_advance(&mut self, token: TokenType) -> bool {
+        if self.is_token(token) {
+            self.advance();
+            return true;
+        }
+        false
+    }
+
+    /// advances if token is type identifier
+    fn consume_type_ident(&mut self) -> Token {
+        self.consume_some(vec![
+            AnyIdent,
+            BoolIdent,
+            CharIdent,
+            NullIdent,
+            VoidIdent,
+            ArrayIdent,
+            NumberIdent,
+            StringIdent,
+        ])
+    }
+
+    /// advances if one of the input tokens matches
+    fn consume_some(&mut self, ts: Vec<TokenType>) -> Token {
+        for t in ts {
+            if self.if_token_advance(t) {
+                return self.prev(1);
+            }
+        }
+        let token = self.prev(1);
+        // @error expected token.lexeme, at token.line
+        eprintln!("expected '{}', at {}", token.lexeme, token.line);
+        token
+    }
+
+    /// advances if input token matches
+    fn consume(&mut self, t: TokenType) -> Token {
+        if self.if_token_advance(t) {
+            return self.prev(1);
+        }
+        let token = self.prev(1);
+        // @error expected token.lexeme, at token.line
+        eprintln!("expected '{}', at {}", token.lexeme, token.line);
+        token
+    }
+
+    /// increases current position by 1
+    /// and returns advanced token
+    fn advance(&mut self) -> Token {
+        if !self.is_token(Eof) {
+            self.crnt += 1;
+        }
+        self.prev(1)
+    }
+
+    /// returns previous token
+    fn prev(&self, back: usize) -> Token {
+        if self.crnt < back {
+            return Token {
+                token: Eof,
+                lexeme: "\0".to_string(),
+                line: 0,
+                len: 0,
+                value: None,
+            };
+        }
+        self.tokens[self.crnt - back].clone()
+    }
+
+    /// bulk checks if one of the token matches current token
     fn are_tokens(&self, tokens: Vec<TokenType>) -> bool {
         for token in tokens {
-            if self.is_token(token) {
+            if self.is_token(token.clone()) {
                 return true;
             }
         }
         false
     }
 
+    /// checks if token matches current token and
+    /// handles EoF
     fn is_token(&self, token: TokenType) -> bool {
         if !self.check(Eof) && self.check(token) {
-            true
-        } else {
-            false
+            return true;
         }
+        false
     }
 
-    fn consume(&mut self, t: TokenType) -> Token {
-        let token = self.peek();
-        if token.token == t {
-            self.advance();
-            return self.prev(1);
-        }
-
-        // @error expected token.lexeme, at token.line
-        eprintln!("expected '{}', at {}", token.lexeme, token.line);
-        token.clone()
-    }
-
-    fn advance(&mut self) -> Token {
-        if !self.check(Eof) {
-            self.crnt += 1;
-        }
-        self.prev(1)
-    }
-
-    fn prev(&self, back: usize) -> Token {
-        if self.crnt < back {
-            Token {
-                token: Eof,
-                lexeme: "\0".to_string(),
-                line: 0,
-                len: 0,
-                value: None,
-            }
-        } else {
-            self.tokens[self.crnt - back].clone()
-        }
-    }
-
+    /// checks if token matches current token
     fn check(&self, token: TokenType) -> bool {
         self.peek().token == token
     }
 
+    /// returns current token
     fn peek(&self) -> Token {
         self.tokens[self.crnt].clone()
     }
 
+    /// increases id count, and returns previous id
     fn id(&mut self) -> usize {
-        let id = self.id;
         self.id += 1;
-        id
+        self.id - 1
     }
 }

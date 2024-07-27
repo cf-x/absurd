@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2 - 27/07/24
+
+- fixed inft loop bug
+- fixed variables and functions
+- fixed error handling
+- added more unit tests
+
 ## 0.1.1 [pre] - 26/07/24
 
 - completed parser

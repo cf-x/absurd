@@ -10,16 +10,16 @@ checksum = "989e229d2fafd0342db7f39e98cabee15509acc7f7015694c6c6124e224b081c"
 
 [[package]]
 name = "ape_lexer"
-version = "0.1.2"
+version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66940a54a1750b68e6de7100a82400f9846dacd611d20588ab4c803e1b1a3819"
+checksum = "4cb9bc98b450b1d647fb3b80138206ad1a6d0907388b681a702a7670ecf03563"
 dependencies = [
  "ape_ast",
 ]
 
 [[package]]
 name = "ape_parser"
-version = "0.1.0"
+version = "0.1.2"
 dependencies = [
  "ape_ast",
  "ape_lexer",
