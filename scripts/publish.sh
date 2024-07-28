@@ -30,14 +30,16 @@ done < "$path"
 
 if [ ! -s "$tmp_file" ]; then
     rm "$tmp_file"
-    echo "No version line found in $path."
+    echo "no version line found in $path."
     exit 1
 fi
 
 mv "$tmp_file" "$path"
 
-git add .
+git add ./interpreter/ape_$crate
 git commit -m "ape_$crate: $version"
 git push -u origin main
 
+
+cd ./interpreter/ape_$crate
 cargo publish
