@@ -1,6 +1,9 @@
 [package]
 name = "ape_errors"
-version = "0.1.0"
+description = "error handlers for Aperture programming language"
+license = "MIT"
+version = "0.1.1"
 edition = "2021"
 
 [dependencies]
+colored = "2.1.0"
