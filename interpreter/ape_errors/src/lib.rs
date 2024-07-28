@@ -165,11 +165,17 @@ pub fn e0x203(line: usize, subject: String) {
 ///
 /// `parser error (E0x204): expected a token '{', at line 15`
 pub fn e0x204(line: usize, token: String) {
-    throw_err(
+    throw_light_err(
         "parser",
         204,
         format!("expected a token '{}', at line {}", token, line),
     );
+}
+
+fn throw_light_err(kind: &str, code: usize, msg: String) {
+    let err_code = format!("E0x{}", code).yellow();
+    let head = format!("{} error ({}):", kind, err_code);
+    eprintln!("{} {}", head.red().bold(), msg.red());
 }
 
 fn throw_err(kind: &str, code: usize, msg: String) {
