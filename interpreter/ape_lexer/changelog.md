@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.8 - 28/07/24
+
+- implemented `ape_errors`
+- optimized tests
+
 ## 0.1.7 - 28/07/24
 
 - fixed `_`

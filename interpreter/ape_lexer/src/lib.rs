@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests;
 use std::collections::HashMap;
-
 use ape_ast::{
     Base, LiteralKind, Token,
     TokenType::{self, *},
 };
+use ape_errors::{e0x101, e0x102, e0x103, e0x104};
 
 #[derive(Debug, Clone)]
 pub struct Lexer {
@@ -82,9 +82,7 @@ impl Lexer {
             '"' => self.string(),
             c if c.is_ascii_digit() => self.number(c),
             c if c.is_alphabetic() || c == '_' => self.ident(),
-            _ => {
-                // @error unknown character: c
-            }
+            _ => e0x101(self.line, c),
         };
     }
 
@@ -299,11 +297,11 @@ impl Lexer {
             self.advance();
             c
         } else {
-            // @error empty or unterminated character
+            e0x102(self.line);
             return;
         };
         if self.peek() != '\'' {
-            // @error untermianted character
+            e0x102(self.line);
             return;
         }
         self.advance();
@@ -318,7 +316,7 @@ impl Lexer {
             self.advance();
         }
         if self.is_eof() {
-            // @error unterminated string
+            e0x103(self.line);
         }
         self.advance();
         let value = &self.source[self.start + 1..self.crnt - 1].to_string();
@@ -380,9 +378,7 @@ impl Lexer {
                     value,
                 }),
             ),
-            Err(_) => {
-                // @error failed to parse a number: sub
-            }
+            Err(_) => e0x104(self.line, "decimal", sub),
         }
     }
 
@@ -404,9 +400,7 @@ impl Lexer {
                     value: value as f32,
                 }),
             ),
-            Err(_) => {
-                // @error failed to parse a binary number: sub
-            }
+            Err(_) => e0x104(self.line, "binary", sub),
         }
     }
 
@@ -428,9 +422,7 @@ impl Lexer {
                     value: value as f32,
                 }),
             ),
-            Err(_) => {
-                // Handle error: failed to parse an octal number
-            }
+            Err(_) => e0x104(self.line, "octal", sub),
         }
     }
 
@@ -451,9 +443,7 @@ impl Lexer {
                     value: value as f32,
                 }),
             ),
-            Err(_) => {
-                // @error failed to parse a hexadecimal number: sub
-            }
+            Err(_) => e0x104(self.line, "hexadecimal", sub),
         }
     }
 
