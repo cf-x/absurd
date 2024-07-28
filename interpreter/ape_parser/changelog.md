@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4 - 28/07/24
+
+- implemented `ape_errors`
+
 ## 0.1.3 - 28/07/24
 
 - fixed every statement parser

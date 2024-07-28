@@ -4,7 +4,7 @@ use ape_ast::{
     CallType, Expression, FuncBody, LiteralKind, LiteralType, Statement, Token,
     TokenType::{self, *},
 };
-use core::panic;
+use ape_errors::{e0x201, e0x202, e0x203, e0x204};
 use std::process::exit;
 
 pub struct Parser {
@@ -177,8 +177,7 @@ impl Parser {
                 is_impl = true;
             } else if self.if_token_consume(Comma) {
             } else if !self.is_token(RightParen) {
-                // @error unexpected token
-                panic!("@error unexpected token '{}'", self.prev(1).lexeme);
+                e0x201(self.peek().line, self.peek().lexeme);
             }
         }
         self.consume(RightParen);
@@ -266,7 +265,8 @@ impl Parser {
             let num = match self.consume(NullLit).value {
                 Some(LiteralKind::Number { value, .. }) => value,
                 _ => {
-                    panic!("@error failed to unwrap a number");
+                    e0x202(self.peek().line, self.peek().lexeme);
+                    exit(1);
                 }
             };
             Some(num as usize)
@@ -371,8 +371,7 @@ impl Parser {
             structs.push((struct_name, struct_type, struct_is_pub));
 
             if !self.if_token_consume(Comma) && !self.is_token(RightBrace) {
-                // @error unexpected token
-                panic!("@error unexpected token '{}'", self.peek().lexeme);
+                e0x201(self.peek().line, self.peek().lexeme);
             }
         }
         Statement::Struct {
@@ -411,8 +410,7 @@ impl Parser {
             let enm = self.consume(Ident);
             enums.push(enm);
             if !self.if_token_consume(Comma) && !self.is_token(RightBrace) {
-                // @error unexpected token
-                panic!("@error unexpected token '{}'", self.peek().lexeme);
+                e0x201(self.peek().line, self.peek().lexeme);
             }
         }
         Statement::Enum {
@@ -429,8 +427,8 @@ impl Parser {
                 return stmts;
             }
             _ => {
-                // @error failed to parse
-                panic!("@error failed to parse a block statement")
+                e0x203(self.peek().line, "a block statement".to_string());
+                exit(1)
             }
         }
     }
@@ -563,8 +561,7 @@ impl Parser {
             let arg = self.expr();
             args.push(arg);
             if !self.is_token(Comma) && !self.is_token(RightBrace) {
-                // @error unexpected token
-                exit(1);
+                e0x201(self.peek().line, self.peek().lexeme);
             }
             self.consume(Comma);
         }
@@ -610,8 +607,8 @@ impl Parser {
                         value: self.to_value_type(token),
                     };
                 }
-                // @error unexpected token token.lexeme
-                panic!("@error unexpected token '{}'", token.lexeme);
+                e0x201(self.peek().line, self.peek().lexeme);
+                exit(1)
             }
         }
     }
@@ -622,7 +619,8 @@ impl Parser {
                 let number = match token.value {
                     Some(LiteralKind::Number { value, .. }) => value,
                     _ => {
-                        panic!("@error failed to unwrap a number");
+                        e0x202(self.peek().line, self.peek().lexeme);
+                        exit(1)
                     }
                 };
 
@@ -632,7 +630,8 @@ impl Parser {
                 let string = match token.value {
                     Some(LiteralKind::String { value }) => value,
                     _ => {
-                        panic!("@error failed to unwrap a number");
+                        e0x202(self.peek().line, self.peek().lexeme);
+                        exit(1)
                     }
                 };
                 LiteralType::String(string)
@@ -641,7 +640,8 @@ impl Parser {
                 let char = match token.value {
                     Some(LiteralKind::Char { value }) => value,
                     _ => {
-                        panic!("@error failed to unwrap a number");
+                        e0x202(self.peek().line, self.peek().lexeme);
+                        exit(1)
                     }
                 };
                 LiteralType::Char(char)
@@ -660,7 +660,7 @@ impl Parser {
             let item = match item_expr {
                 Expression::Value { value, .. } => value,
                 _ => {
-                    // @error expected a value expression
+                    e0x203(self.peek().line, "an array expression".to_string());
                     exit(1)
                 }
             };
@@ -754,8 +754,7 @@ impl Parser {
             }
         }
         let token = self.prev(1);
-        // @error expected token.lexeme, at token.line
-        eprintln!("expected '{}', at {}", token.lexeme, token.line);
+        e0x204(token.clone().line, token.clone().lexeme);
         token
     }
 
@@ -765,8 +764,7 @@ impl Parser {
             return self.prev(1);
         }
         let token = self.prev(1);
-        // @error expected token.lexeme, at token.line
-        eprintln!("expected '{}', at {}", token.lexeme, token.line);
+        e0x204(token.clone().line, token.clone().lexeme);
         token
     }
 
