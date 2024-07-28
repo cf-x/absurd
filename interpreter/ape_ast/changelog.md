@@ -1,5 +1,11 @@
 # Changelog
 
+### 0.1.5 - 29/07/24
+
+- fixed if statement
+- fixed expressions
+- added new call types
+
 ### 0.1.4 - 27/07/24
 
 - added new tokens: Slf, DblColon, ArrowBig, TrueLit, FalseLit, NullLit

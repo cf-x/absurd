@@ -2,7 +2,7 @@
 name = "ape_ast"
 description = "abstract syntax tree for Aperture programming language"
 license = "MIT"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 
 [dependencies]

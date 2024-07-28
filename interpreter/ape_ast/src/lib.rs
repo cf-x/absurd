@@ -191,57 +191,23 @@ pub enum Base {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum LiteralType {
-    // 3.1415, 663, 0b1101, 17e6
     Number(f32),
-    // "john doe", "welcome back \{username\}"
     String(String),
-    // 'c', '💙'
     Char(char),
-    // true, false
     Boolean(bool),
-    // null
     Null,
-    // void
     Void,
-    // any
     Any,
-    // [1, 2, 3, 4, 5]
     Array(Vec<LiteralType>),
-    // |a: number, b: number| a + b
     Func(FuncValueType),
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum LiteralKind {
-    /*
-        f32 number
-        supports bases:
-        - 3, 4.23, 13_324 // base 10
-        - 0b01 // base 2
-        - 0o012345678 // base 8
-        - 0x0123456789abcdef // base 16
-        suports exponents:
-        - 3e3 same as 3000
-    */
     Number { base: Base, value: f32 },
-    /*
-       "normal string"
-       supports parsing:
-       - "\{expression\}"
-       - "username \{name\}" same as "username john doe"
-    */
     String { value: String },
-    /*
-        'c', '💙'
-    */
     Char { value: char },
-    /*
-        true / false
-    */
     Bool { value: bool },
-    /*
-        null
-    */
     Null,
 }
 
@@ -256,7 +222,6 @@ pub struct Token {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
-    // [expr, expr, epxr]
     Array {
         id: usize,
         items: Vec<LiteralType>,
@@ -265,19 +230,6 @@ pub enum Expression {
         id: usize,
         name: Token,
     },
-    /*
-        call_function();
-        call_function(arg1, arg2);
-        call_function(param2: arg2, param1: arg1);
-        // name: call_variable, arg: none
-        call_variable;
-        // name: call, arg: structure
-        call.structure;
-        // name: call, arg: enum
-        call::enum;
-        // name: call, args: enum1, enum2
-        call::{enum1, enum2}
-    */
     Call {
         id: usize,
         // identifier
@@ -307,13 +259,6 @@ pub enum Expression {
         id: usize,
         value: LiteralType,
     },
-    /*
-    let name: |bool| -> bool = | init: bool | init!;
-     | | {/* body */}
-     | | expression
-     | param: type | {}
-     | async, param: type | {}
-    */
     Func {
         id: usize,
         // inherited
@@ -327,50 +272,23 @@ pub enum Expression {
         is_pub: bool,
         // can't be muttated and implemented
     },
-    /*
-        body must return a value
-
-        if expr {}
-        if expr {} else {}
-        if expr {} else if expr {} else {}
-    */
     If {
         id: usize,
         cond: Box<Expression>,
-        body: FuncBody,
-        else_if_branches: Vec<(Vec<Expression>, Box<Statement>)>,
-        else_branch: Option<Box<Statement>>,
+        body: Vec<Expression>,
+        else_if_branches: Vec<(Expression, Vec<Statement>)>,
+        else_branch: Box<Statement>,
     },
-    /*
-      body must return a value
-
-      while expr {}
-    */
     While {
         id: usize,
         cond: Box<Expression>,
-        body: FuncBody,
+        body: Vec<Statement>,
     },
-    /*
-      body must return a value
-
-      loop {}
-      loop iter {}
-    */
     Loop {
         id: usize,
         iter: Option<usize>,
-        body: FuncBody,
+        body: Vec<Statement>,
     },
-    /*
-      body must return a value
-
-        match expr {
-        value1 => {} // opt
-        value2 => {} // opt
-        _ => {} // req
-        }
-    */
     Match {
         id: usize,
         cond: Box<Expression>,
@@ -388,6 +306,8 @@ pub enum CallType {
     Func,
     Var,
     Struct,
+    OpenStruct,
+    Method,
     Enum,
 }
 
@@ -399,17 +319,6 @@ pub enum Statement {
     Block {
         stmts: Vec<Statement>,
     },
-    /*
-    variables:
-
-    let name: type = expression;
-    let name1, name2: type = expression;
-    let name;
-    let mut name: type = expression;
-    let pub name: type = expression;
-    let pub(name1) name: type = expression;
-    let pub(name1, name2) name3, name4: type = expression;
-    */
     Var {
         // identifiers
         names: Vec<Token>,
@@ -425,18 +334,6 @@ pub enum Statement {
         // if has callback, is function
         is_func: bool,
     },
-    /*
-    functions:
-
-    fn name() -> type {/* block */}
-    fn name() -> type = expression;
-    fn name(param_1: type, param_2: type) -> type {}
-    fn name(self, param_1: type) -> type {}
-    fn name(mut self, param_1: type1) -> type {}
-    fn async name() -> type {}
-    fn pub name() -> type {}
-    fn pub async name() -> type {}
-    */
     Func {
         // identifier
         name: Token,
@@ -454,84 +351,36 @@ pub enum Statement {
         // if implementing, if `self` is mutable: `mut self`
         is_mut: bool,
     },
-    /*
-        if expression {/* body */}
-        if expression {} else {}
-        if expression {} else if expression {} else {}
-    */
     If {
         cond: Expression,
         body: Vec<Statement>,
-        else_if_branches: Vec<(Vec<Expression>, Vec<Statement>)>,
+        else_if_branches: Vec<(Expression, Vec<Statement>)>,
         else_branch: Option<Vec<Statement>>,
     },
-    /*
-        return expression;
-    */
     Return {
         expr: Expression,
     },
-    /*
-        while expression {/* body */}
-    */
     While {
         cond: Expression,
         body: Vec<Statement>,
     },
-    /*
-           loop {}
-           loop iteration {/* */}
-    */
     Loop {
         iter: Option<usize>,
         body: Vec<Statement>,
     },
-    /*
-        break;
-    */
     Break {},
-    /*
-        match expression {
-        _ => {/* block */}
-        }
-        match expression {
-        _ => expression
-        }
-        match expression {
-        value1 => expr, // req comma if expression
-        value2 => {}
-        value3 => {}
-        _ => {}
-        }
-    */
     Match {
         cond: Expression,
         cases: Vec<(Expression, FuncBody)>,
         def_case: FuncBody,
     },
-    /*
-        mod "./file.ape"
-    */
     Mod {
         src: String,
     },
-    /*
-        use name from "./file.ape";
-        use name1 as name2 from "./file.ape";
-        use name1, name2, name3 from "./file.ape";
-        use name1 as name2, name3 from "./file.ape";
-    */
     Use {
         src: String,
         names: Vec<(Token, Option<Token>)>,
     },
-    /*
-        struct name {
-            name1: value,
-            pub name2: value,
-        }
-        struct pub name {}
-    */
     Struct {
         name: Token,
         // (identifier, type token, is_public)
@@ -540,22 +389,11 @@ pub enum Statement {
         // (function name, is_public)
         methods: Vec<(Expression, bool)>,
     },
-    /*
-        impl name { /* body */ }
-    */
     Impl {
         name: Token,
         // functions-only
         body: Vec<Statement>,
     },
-    /*
-        enum name {
-            Name1,
-            Name2,
-            Name3,
-        }
-        enum pub name {}
-    */
     Enum {
         // identifier
         name: Token,
