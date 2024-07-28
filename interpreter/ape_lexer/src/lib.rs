@@ -51,204 +51,31 @@ impl Lexer {
     fn advance_token(&mut self) {
         let c = self.advance();
         match c {
-            '~' => {
-                self.push_token(Tilde, None);
-            }
-            '%' => {
-                self.push_token(Percent, None);
-            }
-            '(' => {
-                self.push_token(LeftParen, None);
-            }
-            ')' => {
-                self.push_token(RightParen, None);
-            }
-            '{' => {
-                self.push_token(LeftBrace, None);
-            }
-            '}' => {
-                self.push_token(RightBrace, None);
-            }
-            '[' => {
-                self.push_token(LeftBracket, None);
-            }
-            ']' => {
-                self.push_token(RightBracket, None);
-            }
-            ';' => {
-                self.push_token(Semi, None);
-            }
-            ',' => {
-                self.push_token(Comma, None);
-            }
-            '?' => {
-                self.push_token(Queston, None);
-            }
-            ':' => {
-                let tt = match self.peek() {
-                    ':' => {
-                        self.crnt += 1;
-                        DblColon
-                    }
-                    _ => Colon,
-                };
-                self.push_token(tt, None);
-            }
-            '!' => {
-                let tt = match self.peek() {
-                    '!' => {
-                        self.crnt += 1;
-                        NotNot
-                    }
-                    '=' => {
-                        self.crnt += 1;
-                        NotEq
-                    }
-                    _ => Not,
-                };
-                self.push_token(tt, None)
-            }
-            '&' => {
-                let tt = match self.peek() {
-                    '&' => {
-                        self.crnt += 1;
-                        AndAnd
-                    }
-                    _ => And,
-                };
-                self.push_token(tt, None)
-            }
-            '+' => {
-                let tt = match self.peek() {
-                    '+' => {
-                        self.crnt += 1;
-                        Increment
-                    }
-                    '=' => {
-                        self.crnt += 1;
-                        PlusEq
-                    }
-                    _ => Plus,
-                };
-                self.push_token(tt, None)
-            }
-            '-' => {
-                let tt = match self.peek() {
-                    '>' => {
-                        self.crnt += 1;
-                        Arrow
-                    }
-                    '-' => {
-                        self.crnt += 1;
-                        Decr
-                    }
-                    '=' => {
-                        self.crnt += 1;
-                        MinEq
-                    }
-                    _ => Minus,
-                };
-
-                self.push_token(tt, None)
-            }
-            '*' => {
-                let tt = match self.peek() {
-                    '*' => {
-                        self.crnt += 1;
-                        Square
-                    }
-                    '=' => {
-                        self.crnt += 1;
-                        MultEq
-                    }
-                    _ => Mult,
-                };
-                self.push_token(tt, None)
-            }
-            '=' => {
-                let tt = match self.peek() {
-                    '=' => {
-                        self.crnt += 1;
-                        Eq
-                    }
-                    '>' => {
-                        self.crnt += 1;
-                        ArrowBig
-                    }
-                    _ => Assign,
-                };
-                self.push_token(tt, None)
-            }
-            '|' => {
-                let tt = match self.peek() {
-                    '|' => {
-                        self.crnt += 1;
-                        Or
-                    }
-                    _ => Pipe,
-                };
-                self.push_token(tt, None)
-            }
-            '.' => {
-                let tt = match self.peek() {
-                    '.' => {
-                        self.crnt += 1;
-                        DotDot
-                    }
-                    _ => Dot,
-                };
-                self.push_token(tt, None)
-            }
-            '<' => {
-                let tt = match self.peek() {
-                    '=' => {
-                        self.crnt += 1;
-                        LessOrEq
-                    }
-                    _ => Less,
-                };
-                self.push_token(tt, None)
-            }
-            '>' => {
-                let tt = match self.peek() {
-                    '=' => {
-                        self.crnt += 1;
-                        GreaterOrEq
-                    }
-                    _ => Greater,
-                };
-                self.push_token(tt, None)
-            }
-            '\\' => {
-                let tt = match self.peek() {
-                    '{' => {
-                        self.crnt += 1;
-                        StartParse
-                    }
-                    '}' => {
-                        self.crnt += 1;
-                        EndParse
-                    }
-                    _ => Escape,
-                };
-                self.push_token(tt, None)
-            }
-            '/' => {
-                if self.peek() == '/' {
-                    self.comment();
-                } else if self.peek() == '*' {
-                    self.block_comment();
-                } else {
-                    let tt = match self.peek() {
-                        '=' => {
-                            self.crnt += 1;
-                            DivEq
-                        }
-                        _ => Divide,
-                    };
-                    self.push_token(tt, None)
-                }
-            }
+            '_' => self.push_token(Underscore, None),
+            '~' => self.push_token(Tilde, None),
+            '%' => self.push_token(Percent, None),
+            '(' => self.push_token(LeftParen, None),
+            ')' => self.push_token(RightParen, None),
+            '{' => self.push_token(LeftBrace, None),
+            '}' => self.push_token(RightBrace, None),
+            '[' => self.push_token(LeftBracket, None),
+            ']' => self.push_token(RightBracket, None),
+            ';' => self.push_token(Semi, None),
+            ',' => self.push_token(Comma, None),
+            '?' => self.push_token(Queston, None),
+            ':' => self.handle_colon(),
+            '!' => self.handle_not(),
+            '&' => self.handle_and(),
+            '+' => self.handle_plus(),
+            '-' => self.handle_minus(),
+            '*' => self.handle_mult(),
+            '=' => self.handle_eq(),
+            '|' => self.handle_pipe(),
+            '.' => self.handle_dot(),
+            '<' => self.handle_ls(),
+            '>' => self.handle_gr(),
+            '\\' => self.handle_esc(),
+            '/' => self.handle_div(),
             ' ' | '\t' | '\r' => {}
             '\n' => self.line += 1,
             '\'' => self.char(),
@@ -261,6 +88,184 @@ impl Lexer {
         };
     }
 
+    fn handle_colon(&mut self) {
+        let tt = match self.peek() {
+            ':' => {
+                self.crnt += 1;
+                DblColon
+            }
+            _ => Colon,
+        };
+        self.push_token(tt, None);
+    }
+
+    fn handle_not(&mut self) {
+        let tt = match self.peek() {
+            '!' => {
+                self.crnt += 1;
+                NotNot
+            }
+            '=' => {
+                self.crnt += 1;
+                NotEq
+            }
+            _ => Not,
+        };
+        self.push_token(tt, None)
+    }
+
+    fn handle_and(&mut self) {
+        let tt = match self.peek() {
+            '&' => {
+                self.crnt += 1;
+                AndAnd
+            }
+            _ => And,
+        };
+        self.push_token(tt, None)
+    }
+
+    fn handle_plus(&mut self) {
+        let tt = match self.peek() {
+            '+' => {
+                self.crnt += 1;
+                Increment
+            }
+            '=' => {
+                self.crnt += 1;
+                PlusEq
+            }
+            _ => Plus,
+        };
+        self.push_token(tt, None)
+    }
+
+    fn handle_minus(&mut self) {
+        let tt = match self.peek() {
+            '>' => {
+                self.crnt += 1;
+                Arrow
+            }
+            '-' => {
+                self.crnt += 1;
+                Decr
+            }
+            '=' => {
+                self.crnt += 1;
+                MinEq
+            }
+            _ => Minus,
+        };
+
+        self.push_token(tt, None)
+    }
+
+    fn handle_mult(&mut self) {
+        let tt = match self.peek() {
+            '*' => {
+                self.crnt += 1;
+                Square
+            }
+            '=' => {
+                self.crnt += 1;
+                MultEq
+            }
+            _ => Mult,
+        };
+        self.push_token(tt, None)
+    }
+
+    fn handle_eq(&mut self) {
+        let tt = match self.peek() {
+            '=' => {
+                self.crnt += 1;
+                Eq
+            }
+            '>' => {
+                self.crnt += 1;
+                ArrowBig
+            }
+            _ => Assign,
+        };
+        self.push_token(tt, None)
+    }
+
+    fn handle_pipe(&mut self) {
+        let tt = match self.peek() {
+            '|' => {
+                self.crnt += 1;
+                Or
+            }
+            _ => Pipe,
+        };
+        self.push_token(tt, None)
+    }
+
+    fn handle_dot(&mut self) {
+        let tt = match self.peek() {
+            '.' => {
+                self.crnt += 1;
+                DotDot
+            }
+            _ => Dot,
+        };
+        self.push_token(tt, None)
+    }
+
+    fn handle_ls(&mut self) {
+        let tt = match self.peek() {
+            '=' => {
+                self.crnt += 1;
+                LessOrEq
+            }
+            _ => Less,
+        };
+        self.push_token(tt, None)
+    }
+
+    fn handle_gr(&mut self) {
+        let tt = match self.peek() {
+            '=' => {
+                self.crnt += 1;
+                GreaterOrEq
+            }
+            _ => Greater,
+        };
+        self.push_token(tt, None)
+    }
+
+    fn handle_esc(&mut self) {
+        let tt = match self.peek() {
+            '{' => {
+                self.crnt += 1;
+                StartParse
+            }
+            '}' => {
+                self.crnt += 1;
+                EndParse
+            }
+            _ => Escape,
+        };
+        self.push_token(tt, None)
+    }
+
+    fn handle_div(&mut self) {
+        if self.peek() == '/' {
+            self.comment();
+        } else if self.peek() == '*' {
+            self.block_comment();
+        } else {
+            let tt = match self.peek() {
+                '=' => {
+                    self.crnt += 1;
+                    DivEq
+                }
+                _ => Divide,
+            };
+            self.push_token(tt, None)
+        }
+    }
+
     fn comment(&mut self) {
         loop {
             if self.peek() == '\n' || self.is_eof() {
@@ -269,6 +274,7 @@ impl Lexer {
             self.advance();
         }
     }
+
     fn block_comment(&mut self) {
         loop {
             if self.is_eof() {

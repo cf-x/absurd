@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.7 - 28/07/24
+
+- fixed `_`
+- minor optimizations
+
 ## 0.1.6 - 27/07/24
 
 - change "else if" to "elif"
