@@ -4,6 +4,7 @@ use ape_ast::{
     CallType, Expression, FuncBody, LiteralKind, LiteralType, Statement, Token,
     TokenType::{self, *},
 };
+use core::panic;
 use std::process::exit;
 
 pub struct Parser {
@@ -169,11 +170,10 @@ impl Parser {
                 let param_type = self.consume_type_ident();
                 params.push((param_name, param_type))
             } else if self.if_token_consume(Mut) {
-                // @todo replace Impl with Self
-                self.consume(Impl);
+                self.consume(Slf);
                 is_mut = true;
                 is_impl = true;
-            } else if self.if_token_consume(Impl) {
+            } else if self.if_token_consume(Slf) {
                 is_impl = true;
             } else if self.if_token_consume(Comma) {
             } else if !self.is_token(RightParen) {
@@ -201,14 +201,7 @@ impl Parser {
         }
 
         self.consume(LeftBrace);
-        let body = match self.block_stmt() {
-            Statement::Block { stmts } => stmts,
-            _ => {
-                // @error failed to parse
-                exit(0);
-            }
-        };
-        self.consume(RightBrace);
+        let body = self.block_stmts();
 
         Statement::Func {
             name,
@@ -224,62 +217,69 @@ impl Parser {
 
     fn if_stmt(&mut self) -> Statement {
         let cond = self.expr();
-        let body = self.stmt();
+        let body = self.block_stmts();
         let mut else_if_branches = vec![];
 
-        while self.is_token(ElseIf) {
-            let mut elif_preds = vec![];
-            loop {
-                let elif_pred = self.expr();
-                elif_preds.push(elif_pred);
-                if !self.is_token(Comma) {
-                    break;
-                }
-            }
-            let elif_stmt = Box::new(self.stmt());
+        while self.if_token_consume(ElseIf) {
+            // @todo remove Vec from ElseIf pred type
+            let elif_preds = vec![self.expr()];
+            let elif_stmt = self.block_stmts();
             else_if_branches.push((elif_preds, elif_stmt))
         }
 
-        let else_branch = if self.is_token(Else) {
-            Some(Box::new(self.stmt()))
+        let else_branch = if self.if_token_consume(Else) {
+            Some(self.block_stmts())
         } else {
             None
         };
 
         Statement::If {
             cond,
-            body: Box::new(body),
+            body,
             else_if_branches,
             else_branch,
         }
     }
 
     fn return_stmt(&mut self) -> Statement {
-        self.prev(1);
-        let expr = self.expr();
+        let expr;
+        if self.is_token(Semi) {
+            expr = Expression::Value {
+                id: self.id(),
+                value: LiteralType::Null,
+            }
+        } else {
+            expr = self.expr()
+        }
         self.consume(Semi);
         Statement::Return { expr }
     }
 
     fn while_stmt(&mut self) -> Statement {
         let cond = self.expr();
-        let body = self.block_stmt();
-        Statement::While {
-            cond,
-            body: Box::new(body),
-        }
+        let body = self.block_stmts();
+        Statement::While { cond, body }
     }
 
     fn loop_stmt(&mut self) -> Statement {
-        let body = self.stmt();
-        Statement::Loop {
-            iter: Some(1),
-            body: Box::new(body),
-        }
+        let iter = if self.if_token_consume(NumberLit) {
+            let num = match self.consume(NullLit).value {
+                Some(LiteralKind::Number { value, .. }) => value,
+                _ => {
+                    panic!("@error failed to unwrap a number");
+                }
+            };
+            Some(num as usize)
+        } else {
+            None
+        };
+
+        let body = self.block_stmts();
+        Statement::Loop { iter, body }
     }
 
     fn break_stmt(&mut self) -> Statement {
-        self.prev(1);
+        self.consume(Semi);
         Statement::Break {}
     }
 
@@ -287,18 +287,13 @@ impl Parser {
         let cond = self.expr();
         self.consume(LeftBrace);
         let mut cases = vec![];
+
         while self.is_literal() || self.is_token(Ident) {
             let expr = self.expr();
-            // @todo replace with => ArrowBig
-            self.consume(Arrow);
-            if self.is_token(LeftBrace) {
-                let body = match self.block_stmt() {
-                    Statement::Block { stmts } => stmts,
-                    _ => {
-                        // @error failed to parse
-                        exit(0);
-                    }
-                };
+            self.consume(ArrowBig);
+            if self.if_token_advance(LeftBrace) {
+                let body = self.block_stmts();
+                self.consume(RightBrace);
                 cases.push((expr, FuncBody::Statements(body)))
             } else {
                 let body = self.expr();
@@ -306,17 +301,12 @@ impl Parser {
                 cases.push((expr, FuncBody::Expression(Box::new(body))))
             }
         }
+
         self.consume(Underscore);
-        // @todo replace with => ArrowBig
-        self.consume(Arrow);
-        let stmt = if self.is_token(LeftBrace) {
-            let body = match self.block_stmt() {
-                Statement::Block { stmts } => stmts,
-                _ => {
-                    // @error failed to parse
-                    exit(0);
-                }
-            };
+        self.consume(ArrowBig);
+
+        let stmt = if self.if_token_consume(LeftBrace) {
+            let body = self.block_stmts();
             Statement::Match {
                 cond,
                 cases,
@@ -336,59 +326,54 @@ impl Parser {
     }
 
     fn mod_stmt(&mut self) -> Statement {
-        self.prev(1);
         let src = self.consume(StringLit).lexeme;
+        self.consume(Semi);
         Statement::Mod { src }
     }
 
     fn use_stmt(&mut self) -> Statement {
         let mut names: Vec<(Token, Option<Token>)> = vec![];
-        while !self.is_token(From) {
+        while !self.if_token_advance(From) {
             let name = self.consume(Ident);
-            if self.is_token(As) {
-                names.push((name, None))
-            } else {
+            if self.if_token_consume(As) {
                 let as_name = self.consume(Ident);
                 names.push((name, Some(as_name)))
+            } else {
+                names.push((name, None))
             }
             self.consume(Comma);
         }
+
         let src = self.consume(StringLit).lexeme;
+        self.consume(Semi);
         Statement::Use { src, names }
     }
 
+    // @todo handle uppercase names
     fn struct_stmt(&mut self) -> Statement {
         let mut is_pub = false;
-
         if self.if_token_consume(Pub) {
             is_pub = true;
         }
 
         let name = self.consume(Ident);
-        self.consume(LeftBracket);
-
+        self.consume(LeftBrace);
         let mut structs: Vec<(Token, TokenType, bool)> = vec![];
-        while !self.is_token(RightBrace) {
+        while !self.if_token_consume(RightBrace) {
             let mut struct_is_pub = false;
-
             if self.if_token_consume(Pub) {
                 struct_is_pub = true;
             }
 
             let struct_name = self.consume(Ident);
             self.consume(Colon);
-            let struct_type = if self.is_type_ident() {
-                self.prev(1).token
-            } else {
-                // @error invalid value type
-                exit(1);
-            };
+            let struct_type = self.consume_type_ident().token;
             structs.push((struct_name, struct_type, struct_is_pub));
-            if !self.is_token(Comma) && !self.is_token(RightBrace) {
+
+            if !self.if_token_consume(Comma) && !self.is_token(RightBrace) {
                 // @error unexpected token
-                exit(1);
+                panic!("@error unexpected token '{}'", self.peek().lexeme);
             }
-            self.consume(Comma);
         }
         Statement::Struct {
             name,
@@ -402,7 +387,8 @@ impl Parser {
         let name = self.consume(Ident);
         self.consume(LeftBrace);
         let mut body: Vec<Statement> = vec![];
-        while !self.is_token(RightBrace) && !self.is_token(Eof) {
+        while !self.if_token_consume(RightBrace) && !self.is_token(Eof) {
+            self.advance();
             let func = self.func_stmt();
             body.push(func);
         }
@@ -418,22 +404,34 @@ impl Parser {
         }
 
         let name = self.consume(Ident);
-        self.consume(LeftBracket);
+        self.consume(LeftBrace);
 
         let mut enums: Vec<Token> = vec![];
-        while !self.is_token(RightBrace) {
+        while !self.if_token_consume(RightBrace) {
             let enm = self.consume(Ident);
             enums.push(enm);
-            if !self.is_token(Comma) && !self.is_token(RightBrace) {
+            if !self.if_token_consume(Comma) && !self.is_token(RightBrace) {
                 // @error unexpected token
-                exit(1);
+                panic!("@error unexpected token '{}'", self.peek().lexeme);
             }
-            self.consume(Comma);
         }
         Statement::Enum {
             name,
             enums,
             is_pub,
+        }
+    }
+
+    fn block_stmts(&mut self) -> Vec<Statement> {
+        match self.block_stmt() {
+            Statement::Block { stmts } => {
+                self.consume(RightBrace);
+                return stmts;
+            }
+            _ => {
+                // @error failed to parse
+                panic!("@error failed to parse a block statement")
+            }
         }
     }
 
@@ -513,7 +511,7 @@ impl Parser {
         loop {
             if self.if_token_consume(Dot) {
                 expr = self.struct_call();
-            } else if self.if_token_consume(Colon) {
+            } else if self.if_token_consume(DblColon) {
                 expr = self.enum_call();
             } else if self.if_token_consume(LeftParen) {
                 expr = self.func_call();
@@ -542,9 +540,7 @@ impl Parser {
         }
     }
 
-    // @todo add :: DblColon
     fn enum_call(&mut self) -> Expression {
-        self.consume(Colon);
         let name = self.prev(3);
         let mut args = vec![];
         let arg = self.expr();
@@ -650,6 +646,9 @@ impl Parser {
                 };
                 LiteralType::Char(char)
             }
+            TrueLit => LiteralType::Boolean(true),
+            FalseLit => LiteralType::Boolean(false),
+            NullLit => LiteralType::Null,
             _ => LiteralType::Any,
         }
     }
@@ -710,20 +709,8 @@ impl Parser {
 
     /// checks if current token is literal value
     fn is_literal(&self) -> bool {
-        self.are_tokens(vec![NumberLit, StringLit, CharLit])
-    }
-
-    /// checks if current token is type identifier
-    fn is_type_ident(&self) -> bool {
         self.are_tokens(vec![
-            AnyIdent,
-            BoolIdent,
-            CharIdent,
-            NullIdent,
-            VoidIdent,
-            ArrayIdent,
-            NumberIdent,
-            StringIdent,
+            NumberLit, StringLit, CharLit, TrueLit, FalseLit, NullLit,
         ])
     }
 

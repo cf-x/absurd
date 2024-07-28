@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3 - 28/07/24
+
+- fixed every statement parser
+- finished main parser
+- improved testing
+
 ## 0.1.2 - 27/07/24
 
 - fixed inft loop bug
