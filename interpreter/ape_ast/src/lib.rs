@@ -270,12 +270,12 @@ pub enum Expression {
         is_async: bool,
         // inherited
         is_pub: bool,
-        // can't be muttated and implemented
+        // can't be muttated or implemented
     },
     If {
         id: usize,
         cond: Box<Expression>,
-        body: Vec<Expression>,
+        body: Vec<Statement>,
         else_if_branches: Vec<(Expression, Vec<Statement>)>,
         else_branch: Box<Statement>,
     },

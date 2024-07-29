@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.1.6 - 29/07/24
+
+- fixed if expression
+
 ### 0.1.5 - 29/07/24
 
 - fixed if statement
