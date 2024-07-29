@@ -10,17 +10,17 @@ fn stmt_4() {
         body: vec![Statement::Block { stmts: vec![] }],
         else_if_branches: vec![
             (
-                vec![Expression::Value {
+                Expression::Value {
                     id: 1,
                     value: LiteralType::Boolean(false),
-                }],
+                },
                 vec![Statement::Block { stmts: vec![] }],
             ),
             (
-                vec![Expression::Value {
+                Expression::Value {
                     id: 2,
                     value: LiteralType::Number(1.0),
-                }],
+                },
                 vec![Statement::Block { stmts: vec![] }],
             ),
         ],
@@ -43,10 +43,10 @@ fn stmt_3() {
         },
         body: vec![Statement::Block { stmts: vec![] }],
         else_if_branches: vec![(
-            vec![Expression::Value {
+            Expression::Value {
                 id: 1,
                 value: LiteralType::Boolean(false),
-            }],
+            },
             vec![Statement::Block { stmts: vec![] }],
         )],
         else_branch: None,

@@ -67,10 +67,9 @@ impl Parser {
                 loop {
                     let name = self.consume(Ident);
                     pub_names.push(name);
-                    if !self.is_token(Comma) || self.is_token(RightParen) {
+                    if !self.if_token_consume(Comma) || self.is_token(RightParen) {
                         break;
                     }
-                    self.advance();
                 }
                 self.consume(RightParen);
             }
@@ -220,8 +219,7 @@ impl Parser {
         let mut else_if_branches = vec![];
 
         while self.if_token_consume(ElseIf) {
-            // @todo remove Vec from ElseIf pred type
-            let elif_preds = vec![self.expr()];
+            let elif_preds = self.expr();
             let elif_stmt = self.block_stmts();
             else_if_branches.push((elif_preds, elif_stmt))
         }
@@ -288,7 +286,7 @@ impl Parser {
         self.consume(LeftBrace);
         let mut cases = vec![];
 
-        while self.is_literal() || self.is_token(Ident) {
+        while self.is_literal() || self.is_uppercase_ident() {
             let expr = self.expr();
             self.consume(ArrowBig);
             if self.if_token_advance(LeftBrace) {
@@ -349,14 +347,13 @@ impl Parser {
         Statement::Use { src, names }
     }
 
-    // @todo handle uppercase names
     fn struct_stmt(&mut self) -> Statement {
         let mut is_pub = false;
         if self.if_token_consume(Pub) {
             is_pub = true;
         }
 
-        let name = self.consume(Ident);
+        let name = self.consume_uppercase_ident();
         self.consume(LeftBrace);
         let mut structs: Vec<(Token, TokenType, bool)> = vec![];
         while !self.if_token_consume(RightBrace) {
@@ -383,7 +380,7 @@ impl Parser {
     }
 
     fn impl_stmt(&mut self) -> Statement {
-        let name = self.consume(Ident);
+        let name = self.consume_uppercase_ident();
         self.consume(LeftBrace);
         let mut body: Vec<Statement> = vec![];
         while !self.if_token_consume(RightBrace) && !self.is_token(Eof) {
@@ -402,7 +399,7 @@ impl Parser {
             is_pub = true;
         }
 
-        let name = self.consume(Ident);
+        let name = self.consume_uppercase_ident();
         self.consume(LeftBrace);
 
         let mut enums: Vec<Token> = vec![];
@@ -505,7 +502,6 @@ impl Parser {
 
     fn call(&mut self) -> Expression {
         let mut expr = self.primary();
-        // @todo add whole structure calls
         loop {
             if self.if_token_consume(Dot) {
                 expr = self.struct_call();
@@ -522,54 +518,47 @@ impl Parser {
         expr
     }
 
-    // @todo add method type
     fn struct_call(&mut self) -> Expression {
         let name = self.prev(2);
-        let mut args = vec![];
-        let arg = self.expr();
-        args.push(arg);
-        let call_type = CallType::Struct;
+        let args = vec![self.expr()];
 
         Expression::Call {
             id: self.id(),
             name: Box::new(name),
             args,
-            call_type,
+            call_type: CallType::Struct,
         }
     }
 
     fn enum_call(&mut self) -> Expression {
-        let name = self.prev(3);
+        let name = self.prev(2);
         let mut args = vec![];
         let arg = self.expr();
         args.push(arg);
-        let call_type = CallType::Enum;
 
         Expression::Call {
             id: self.id(),
             name: Box::new(name),
             args,
-            call_type,
+            call_type: CallType::Enum,
         }
     }
 
     fn func_call(&mut self) -> Expression {
         let name = self.prev(2);
         let mut args = vec![];
-        let call_type = CallType::Func;
-        while !self.is_token(RightParen) && !self.is_token(Eof) {
+        while !self.if_token_consume(RightParen) {
             let arg = self.expr();
             args.push(arg);
-            if !self.is_token(Comma) && !self.is_token(RightBrace) {
+            if !self.if_token_consume(Comma) && !self.is_token(RightParen) {
                 e0x201(self.peek().line, self.peek().lexeme);
             }
-            self.consume(Comma);
         }
         Expression::Call {
             id: self.id(),
             name: Box::new(name),
             args,
-            call_type,
+            call_type: CallType::Func,
         }
     }
 
@@ -655,7 +644,7 @@ impl Parser {
 
     fn arr_expr(&mut self) -> Expression {
         let mut items = vec![];
-        while !self.is_token(RightBracket) && !self.is_token(Eof) {
+        while !self.if_token_consume(RightBracket) {
             let item_expr = self.expr();
             let item = match item_expr {
                 Expression::Value { value, .. } => value,
@@ -665,8 +654,8 @@ impl Parser {
                 }
             };
             items.push(item);
-            if !self.is_token(Comma) {
-                break;
+            if !self.if_token_consume(Comma) && !self.is_token(RightBracket) {
+                e0x201(self.peek().line, self.peek().lexeme);
             }
         }
         Expression::Array {
@@ -685,12 +674,9 @@ impl Parser {
         }
     }
 
-    // @todo add after adding callback literal types
     fn func_expr(&mut self) -> Expression {
         self.call()
     }
-
-    // @todo add after fixing expression ast-s
     fn if_expr(&mut self) -> Expression {
         self.call()
     }
@@ -732,18 +718,72 @@ impl Parser {
         false
     }
 
+    fn is_uppercase_ident(&mut self) -> bool {
+        let token = self.peek();
+        let first_char = token.lexeme.chars().nth(0).unwrap();
+        if first_char.is_uppercase() {
+            return true;
+        }
+        false
+    }
+
+    /// consumes identifiers with Uppercase lexeme
+    fn consume_uppercase_ident(&mut self) -> Token {
+        let token = self.peek();
+        if self.is_uppercase_ident() {
+            self.consume(Ident);
+            return token;
+        }
+        // @error expected uppercase identifier
+        e0x204(token.clone().line, "Uppercase Ident".to_string());
+        token
+    }
+
     /// advances if token is type identifier
     fn consume_type_ident(&mut self) -> Token {
-        self.consume_some(vec![
-            AnyIdent,
-            BoolIdent,
-            CharIdent,
-            NullIdent,
-            VoidIdent,
-            ArrayIdent,
-            NumberIdent,
-            StringIdent,
-        ])
+        if self.if_token_consume(Less) {
+            let typ = self.consume_type_ident();
+            self.consume(Greater);
+            // @todo add ArrayLit
+            // @todo add Array Literal Type
+            Token {
+                token: ArrayIdent,
+                lexeme: typ.lexeme,
+                len: typ.len,
+                value: None,
+                line: self.peek().line,
+            }
+        } else if self.if_token_consume(Pipe) {
+            let mut args = vec![];
+            while !self.if_token_consume(Pipe) {
+                let arg = self.consume_type_ident();
+                args.push(arg);
+                if !self.if_token_consume(Comma) && !self.is_token(Pipe) {
+                    e0x201(self.peek().line, self.peek().lexeme);
+                }
+            }
+            let typ = self.consume_type_ident();
+            // @todo add CallbackLit token type
+            // @todo add Callback Literal type
+            Token {
+                token: ArrayIdent,
+                lexeme: typ.lexeme,
+                len: typ.len,
+                value: None,
+                line: self.peek().line,
+            }
+        } else {
+            self.consume_some(vec![
+                AnyIdent,
+                BoolIdent,
+                CharIdent,
+                NullIdent,
+                VoidIdent,
+                ArrayIdent,
+                NumberIdent,
+                StringIdent,
+            ])
+        }
     }
 
     /// advances if one of the input tokens matches

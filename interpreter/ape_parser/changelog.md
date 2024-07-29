@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.5 - 29/07/24
+
+- implemnted uppercase rules
+- added complex array and callback types
+- supported method calls
+- fixed bugs
+
 ## 0.1.4 - 28/07/24
 
 - implemented `ape_errors`
