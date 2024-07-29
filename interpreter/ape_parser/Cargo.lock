@@ -4,9 +4,9 @@ version = 3
 
 [[package]]
 name = "ape_ast"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b0d22766607c0ae876cfdae19b3d4dae04d50e34341491a37cb8fb1b9e3f7302"
+checksum = "1a2f72143b38ec3b90fc4c4677e8843b6fa4a6e8c192915f5ace3f94523df464"
 
 [[package]]
 name = "ape_errors"
@@ -29,7 +29,7 @@ dependencies = [
 
 [[package]]
 name = "ape_parser"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "ape_ast",
  "ape_errors",

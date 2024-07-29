@@ -2,7 +2,7 @@
 name = "ape_parser"
 description = "syntax analysis for Aperture programming language"
 license="MIT"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 
 [dependencies]

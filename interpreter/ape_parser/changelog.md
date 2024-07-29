@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.6 - 29/07/24
+
+- added function expression
+- removed support for: match, while, loop and if expressions
+- fixed bugs
+
 ## 0.1.5 - 29/07/24
 
 - implemnted uppercase rules

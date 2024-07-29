@@ -116,12 +116,10 @@ impl Parser {
 
         self.consume(Colon);
         let value_type = self.consume_type_ident();
-        self.advance();
 
         if value_type.token == NullIdent {
             return null_var;
         }
-
         self.consume(Assign);
         let is_func = self.is_token(Pipe);
         let value = self.expr();
@@ -162,7 +160,7 @@ impl Parser {
         let name = self.consume(Ident);
 
         self.consume(LeftParen);
-        while !self.is_token(RightParen) {
+        while !self.if_token_consume(RightParen) {
             if self.is_token(Ident) {
                 let param_name = self.consume(Ident);
                 self.consume(Colon);
@@ -179,7 +177,6 @@ impl Parser {
                 e0x201(self.peek().line, self.peek().lexeme);
             }
         }
-        self.consume(RightParen);
         self.consume(Arrow);
         let value_type = self.consume_type_ident();
 
@@ -583,10 +580,6 @@ impl Parser {
             }
             LeftParen => return self.group_expr(),
             Pipe => return self.func_expr(),
-            If => return self.if_expr(),
-            While => return self.while_expr(),
-            Loop => return self.loop_expr(),
-            Match => return self.match_expr(),
             Await => return self.await_expr(),
             _ => {
                 if self.is_literal() {
@@ -675,22 +668,69 @@ impl Parser {
     }
 
     fn func_expr(&mut self) -> Expression {
-        self.call()
+        self.advance();
+        let value_type = self.prev(3);
+        let mut params: Vec<(Token, Token)> = vec![];
+        let is_async = false;
+        let mut is_pub = false;
+        let add = if params.len() > 1 {
+            params.len() * 2 - 1
+        } else {
+            params.len()
+        };
+
+        if self.prev(9 + add).token == Pub {
+            is_pub = true;
+        }
+        let name = self.prev(8 + add);
+        self.consume(Pipe);
+        if self.if_token_consume(Underscore) {
+            self.consume(Pipe);
+        } else {
+            while !self.if_token_consume(Pipe) {
+                if self.is_token(Ident) {
+                    let param_name = self.consume(Ident);
+                    self.consume(Colon);
+                    let param_type = self.consume_type_ident();
+                    params.push((param_name, param_type))
+                } else if self.if_token_consume(Comma) {
+                } else if !self.is_token(Pipe) {
+                    e0x201(self.peek().line, self.peek().lexeme);
+                }
+            }
+        }
+        if self.if_token_consume(Colon) {
+            let body = self.expr();
+            self.consume(Semi);
+            return Expression::Func {
+                id: self.id(),
+                name,
+                value_type,
+                body: FuncBody::Expression(Box::new(body)),
+                params,
+                is_async,
+                is_pub,
+            };
+        }
+        self.consume(LeftBrace);
+        let body = self.block_stmts();
+        Expression::Func {
+            id: self.id(),
+            name,
+            value_type,
+            body: FuncBody::Statements(body),
+            params,
+            is_async,
+            is_pub,
+        }
     }
-    fn if_expr(&mut self) -> Expression {
-        self.call()
-    }
-    fn while_expr(&mut self) -> Expression {
-        self.call()
-    }
-    fn loop_expr(&mut self) -> Expression {
-        self.call()
-    }
-    fn match_expr(&mut self) -> Expression {
-        self.call()
-    }
+
     fn await_expr(&mut self) -> Expression {
-        self.call()
+        let expr = self.expr();
+        Expression::Await {
+            id: self.id(),
+            expr: Box::new(expr),
+        }
     }
 
     /// checks if current token is literal value
@@ -755,11 +795,15 @@ impl Parser {
             }
         } else if self.if_token_consume(Pipe) {
             let mut args = vec![];
-            while !self.if_token_consume(Pipe) {
-                let arg = self.consume_type_ident();
-                args.push(arg);
-                if !self.if_token_consume(Comma) && !self.is_token(Pipe) {
-                    e0x201(self.peek().line, self.peek().lexeme);
+            if self.if_token_consume(Underscore) {
+                self.consume(Pipe);
+            } else {
+                while !self.if_token_consume(Pipe) {
+                    let arg = self.consume_type_ident();
+                    args.push(arg);
+                    if !self.if_token_consume(Comma) && !self.is_token(Pipe) {
+                        e0x201(self.peek().line, self.peek().lexeme);
+                    }
                 }
             }
             let typ = self.consume_type_ident();
