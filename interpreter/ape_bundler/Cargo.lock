@@ -10,7 +10,7 @@ checksum = "d774b83ac39a6d384e7cd89a0551d40ab053c995331a4133bd98b7c806b6c659"
 
 [[package]]
 name = "ape_bundler"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "ape_ast",
  "ape_errors",
