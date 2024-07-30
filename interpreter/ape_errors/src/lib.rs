@@ -4,118 +4,61 @@ mod msgs;
 
 #[derive(Debug, Clone)]
 pub enum ErrorCode {
-    /// ## cause
-    /// unrecognized character detected by lexer
-    ///
-    /// ## possible solutions
-    /// - remove the character from the source
-    /// - add character to the literal types and handle it
-    ///
     /// ## message
-    /// `lexer error (E0x101): unknown character: '{1}', at line {0}`
-    /// - {0}: usize, line
-    /// - {1}: char, character
+    /// `lexer error (E0x101): unknown character: '{0}'`
+    /// - {0}: char, character
     /// example:
     ///
     /// `lexer error (E0x101): unknown character: '💙', at line 32`
     E0x101,
-    /// ## cause
-    /// char type isn't closed by `'`, or has invalid charatet inside
-    ///
-    /// ## possible solutions
-    /// - close the character literal by adding `'` at the end
-    ///
     /// ## message
-    /// `lexer error (E0x102): malformed or unterminated char, at line {0}`
-    /// - {0}: usize, line
+    /// `lexer error (E0x102): malformed or unterminated char`
     /// example:
     ///
-    /// `lexer error (E0x102): malformed or unterminated char, at line 5`
+    /// `lexer error (E0x102): malformed or unterminated char`
     E0x102,
-    /// ## cause
-    /// string type isn't closed by `"`
-    ///
-    /// ## possible solutions
-    /// - close the string literal by adding `"` at the end
-    ///
     /// ## message
-    /// `lexer error (E0x103): unterminated string, at line {0}`
-    /// - {0}: usize, line
+    /// `lexer error (E0x103): unterminated string`
     /// example:
     ///
-    /// `lexer error (E0x103): unterminated string, at line 53`
+    /// `lexer error (E0x103): unterminated string`
     E0x103,
-    /// ## cause
-    /// number might contain invalid characters or a digit from the different base
-    ///
-    /// ## possible solutions
-    /// - ensure that number is written in the right base
-    ///
     /// ## message
-    /// `lexer error (E0x104): failed to parse {1} base number '{2}', at line {0}`
-    /// - {0}: usize, line
-    /// - {1}: string, base
-    /// - {2}: string, substring
+    /// `lexer error (E0x104): failed to parse {1} base number '{2}'`
+    /// - {0}: string, base
+    /// - {1}: string, substring
     /// example:
     ///
-    /// `lexer error (E0x104): failed to parse binary base number '0b13', at line 42
+    /// `lexer error (E0x104): failed to parse binary base number '0b13'
     E0x104,
-    /// ## cause
-    /// unexpected token found inside the statement
-    ///
-    /// ## possible solutions
-    /// - identify and remove the unexpected token
-    ///
     /// ## message
-    /// `parser error (E0x201): unexpected token '{1}', at line {0}`
-    /// - {0}: line
-    /// - {1}: token
+    /// `parser error (E0x201): unexpected token '{0}'`
+    /// - {0}: token
     /// example:
     ///
-    /// `parser error (E0x201): unexpected token '{', at line 84`
+    /// `parser error (E0x201): unexpected token '{'`
     E0x201,
-    /// ## cause
-    /// invalid number type
-    ///
-    /// ## possible solutions
-    /// - replace with valid number
-    ///
     /// ## message
-    /// `parser error (E0x202): failed to unwrap a number '{1}', at line {0}`
+    /// `parser error (E0x202): failed to unwrap a number '{0}'`
     /// - {0}: line
     /// - {1}: number
     /// example:
     ///
-    /// `parser error (E0x202): failed to unwrap a number 'iter', at line 12`
+    /// `parser error (E0x202): failed to unwrap a number 'iter'`
     E0x202,
-    /// ## cause
-    /// invalid tokens, token types or statement/expression structure
-    ///
-    /// ## possible solutions
-    /// - try to match the required structure
-    ///
     /// ## message
-    /// `parser error (E0x203): failed to parse {1}, at line {0}`
-    /// - {0}: line
-    /// - {1}: subject
+    /// `parser error (E0x203): failed to parse {0}`
+    /// - {0}: subject
     /// example:
     ///
-    /// `parser error (E0x203): failed to parse a block statement, at line 5`
+    /// `parser error (E0x203): failed to parse a block statement`
     E0x203,
-    /// ## cause
-    /// didn't receive expected token
-    ///
-    /// ## possible solutions
-    /// - try to match the required structure
-    ///
     /// ## message
-    /// `parser error (E0x204): expected a token '{1}', at line {0}`
-    /// - {0}: line
-    /// - {1}: token
-    ///
+    /// `parser error (E0x204): expected a token '{0}'`
+    /// - {0}: token
     /// example:
     ///
-    /// `parser error (E0x204): expected a token '{', at line 15`
+    /// `parser error (E0x204): expected a token '{'`
     E0x204,
 }
 
@@ -131,20 +74,20 @@ impl Error {
         }
     }
 
-    pub fn throw(&self, code: ErrorCode, line: usize, args: Vec<String>) {
+    pub fn throw(&self, code: ErrorCode, line: usize, pos: (usize, usize), args: Vec<String>) {
         match code {
-            E0x101 => self.e101(line, args),
-            E0x102 => self.e102(line, args),
-            E0x103 => self.e103(line, args),
-            E0x104 => self.e104(line, args),
-            E0x201 => self.e201(line, args),
-            E0x202 => self.e202(line, args),
-            E0x203 => self.e203(line, args),
-            E0x204 => self.e204(line, args),
+            E0x101 => self.e101(line, pos, args),
+            E0x102 => self.e102(line, pos, args),
+            E0x103 => self.e103(line, pos, args),
+            E0x104 => self.e104(line, pos, args),
+            E0x201 => self.e201(line, pos, args),
+            E0x202 => self.e202(line, pos, args),
+            E0x203 => self.e203(line, pos, args),
+            E0x204 => self.e204(line, pos, args),
         };
     }
 
-    pub fn print_lines(&self, line: usize) {
+    pub fn print_lines(&self, line: usize, pos: (usize, usize)) {
         let lines: Vec<&str> = self.source.lines().collect();
 
         if line > 1 {
@@ -154,11 +97,19 @@ impl Error {
                 &lines[line - 2].red()
             );
         }
+        
+        let before = &lines[line - 1][..pos.0 - 1];
+        let to_underscore = &lines[line - 1][pos.0 - 1..pos.1 - 1];
+        let after = &lines[line - 1][pos.1 - 1..];
+
         eprintln!(
-            "{} | {}",
+            "{} | {}{}{}",
             line.to_string().yellow(),
-            &lines[line - 1].red().bold()
+            before.red().bold(),
+            to_underscore.red().bold().underline(),
+            after.red().bold()
         );
+
         if line < lines.len() {
             eprintln!(
                 "{} | {}",

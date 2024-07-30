@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6 - 30/07/24
+
+- implmeneted new token coordination system
+- update snippets
 
 ## 0.1.5 - 30/07/24
 

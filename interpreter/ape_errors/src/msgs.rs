@@ -1,81 +1,96 @@
 use crate::Error;
 
 impl Error {
-    pub fn e101(&self, line: usize, args: Vec<String>) {
+    pub fn e101(&self, line: usize, pos: (usize, usize), args: Vec<String>) {
+        if pos != (0, 0) {
+            if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        }
         self.panic(
             "syntax",
             101,
-            format!("unknown character '{}', at line {}", args[0], line),
+            format!("unknown character '{}', at {}:{}-{}", args[0], line, pos.0, pos.1),
         );
-        self.print_lines(line);
     }
 
-    pub fn e102(&self, line: usize, args: Vec<String>) {
+    pub fn e102(&self, line: usize, pos: (usize, usize), _args: Vec<String>) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
         self.panic(
             "syntax",
-            101,
+            102,
+            format!("malformed or unterminated char, at {}:{}-{}", line, pos.0, pos.1),
+        );
+    }
+
+    pub fn e103(&self, line: usize, pos: (usize, usize), _args: Vec<String>) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.panic(
+            "syntax",
+            103,
+            format!("unterminated string, at {}:{}-{}", line, pos.0, pos.1),
+        );
+    }
+
+    pub fn e104(&self, line: usize, pos: (usize, usize), args: Vec<String>) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.panic(
+            "syntax",
+            104,
             format!(
-                "malformed or unterminated char '{}', at line {}",
-                args[0], line
+                "failed to parse {} base number '{}', at {}:{}-{}",
+                args[0], args[1], line, pos.0, pos.1
             ),
         );
-        self.print_lines(line);
     }
 
-    pub fn e103(&self, line: usize, args: Vec<String>) {
+    pub fn e201(&self, line: usize, pos: (usize, usize), args: Vec<String>) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
         self.panic(
             "syntax",
-            101,
-            format!("unterminated string '{}', at line {}", args[0], line),
+            201,
+            format!("unexpected token '{}', at {}:{}-{}", args[0], line, pos.0, pos.1),
         );
-        self.print_lines(line);
     }
 
-    pub fn e104(&self, line: usize, args: Vec<String>) {
+    pub fn e202(&self, line: usize, pos: (usize, usize), args: Vec<String>) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
         self.panic(
             "syntax",
-            101,
-            format!(
-                "failed to parse {} base number '{}', at line {}",
-                args[0], args[1], line
-            ),
+            202,
+            format!("failed to unwrap a number '{}', at {}:{}-{}", args[0], line, pos.0, pos.1),
         );
-        self.print_lines(line);
     }
 
-    pub fn e201(&self, line: usize, args: Vec<String>) {
+    pub fn e203(&self, line: usize, pos: (usize, usize), args: Vec<String>) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
         self.panic(
             "syntax",
-            101,
-            format!("unexpected token '{}', at line {}", args[0], line),
+            203,
+            format!("failed to parse '{}', at {}:{}-{}", args[0], line, pos.0, pos.1),
         );
-        self.print_lines(line);
     }
 
-    pub fn e202(&self, line: usize, args: Vec<String>) {
-        self.panic(
-            "syntax",
-            101,
-            format!("failed to unwrap a number '{}', at line {}", args[0], line),
-        );
-        self.print_lines(line);
-    }
-
-    pub fn e203(&self, line: usize, args: Vec<String>) {
-        self.panic(
-            "syntax",
-            101,
-            format!("failed to parse '{}', at line {}", args[0], line),
-        );
-        self.print_lines(line);
-    }
-
-    pub fn e204(&self, line: usize, args: Vec<String>) {
+    pub fn e204(&self, line: usize, pos: (usize, usize), args: Vec<String>) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
         self.eprintln(
             "syntax",
-            101,
-            format!("expeted a token '{}', at line {}", args[0], line),
+            204,
+            format!("expeted a token '{}', at {}:{}-{}", args[0], line, pos.0, pos.1),
         );
-        self.print_lines(line);
     }
 }
