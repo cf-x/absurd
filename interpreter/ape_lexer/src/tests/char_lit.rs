@@ -1,4 +1,10 @@
 use super::*;
+/*
+tests::char_lit.rs
+
+Unit tests for character literals:
+- 'c'
+*/
 
 #[test]
 fn char_lit_1() {
@@ -8,7 +14,7 @@ fn char_lit_1() {
             token: CharLit,
             lexeme: "'c'".to_string(),
             line: 1,
-            len: 3,
+            pos: (1, 4),
             value: Some(LiteralKind::Char { value: 'c' }),
         }],
         1,

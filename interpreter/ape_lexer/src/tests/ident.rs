@@ -1,5 +1,12 @@
 use super::*;
+/*
+tests::ident.rs
 
+Unit tests for identifiers:
+- name
+- na_me
+- name1
+*/
 #[test]
 fn test_ident_1() {
     let right = get_tokens("name");
@@ -8,7 +15,7 @@ fn test_ident_1() {
             token: Ident,
             lexeme: "name".to_string(),
             line: 1,
-            len: 4,
+            pos: (1, 5),
             value: None,
         }],
         1,
@@ -24,7 +31,7 @@ fn test_ident_2() {
             token: Ident,
             lexeme: "na_me".to_string(),
             line: 1,
-            len: 5,
+            pos: (1, 6),
             value: None,
         }],
         1,
@@ -40,7 +47,7 @@ fn test_ident_3() {
             token: Ident,
             lexeme: "name1".to_string(),
             line: 1,
-            len: 5,
+            pos: (1, 6),
             value: None,
         }],
         1,

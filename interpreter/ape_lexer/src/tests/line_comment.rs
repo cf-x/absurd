@@ -1,4 +1,12 @@
 use super::*;
+/*
+tests::line_comments.rs
+
+Unit tests for single line comments:
+- // hi
+- // hi \n ;
+- ; \n // hi;
+*/
 
 #[test]
 fn test_line_comment_1() {
@@ -15,7 +23,7 @@ fn test_line_comment_2() {
             token: Semi,
             lexeme: ";".to_string(),
             line: 2,
-            len: 1,
+            pos: (2, 3),
             value: None,
         }],
         2,
@@ -31,7 +39,7 @@ fn test_line_comment_3() {
             token: Semi,
             lexeme: ";".to_string(),
             line: 1,
-            len: 1,
+            pos: (1, 2),
             value: None,
         }],
         2,

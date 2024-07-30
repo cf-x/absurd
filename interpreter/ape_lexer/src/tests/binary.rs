@@ -1,4 +1,12 @@
 use super::*;
+/*
+tests::binary.rs
+
+Unit tests for binary number literals:
+- 0b11
+- 0b0101
+- 0b111
+*/
 
 #[test]
 fn test_binary_1() {
@@ -8,7 +16,7 @@ fn test_binary_1() {
             token: NumberLit,
             lexeme: "0b11".to_string(),
             line: 1,
-            len: 4,
+            pos: (1, 5),
             value: Some(LiteralKind::Number {
                 base: Base::Binary,
                 value: 3.0,
@@ -27,7 +35,7 @@ fn test_binary_2() {
             token: NumberLit,
             lexeme: "0b0101".to_string(),
             line: 1,
-            len: 6,
+            pos: (1, 7),
             value: Some(LiteralKind::Number {
                 base: Base::Binary,
                 value: 5.0,
@@ -46,7 +54,7 @@ fn test_binary_3() {
             token: NumberLit,
             lexeme: "0b111".to_string(),
             line: 1,
-            len: 5,
+            pos: (1, 6),
             value: Some(LiteralKind::Number {
                 base: Base::Binary,
                 value: 7.0,

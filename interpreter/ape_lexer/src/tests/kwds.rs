@@ -1,4 +1,12 @@
 use super::*;
+/*
+tests::kwds.rs
+
+Unit tests for keywords:
+- func
+- as
+- impl
+*/
 
 #[test]
 fn test_kwds_1() {
@@ -8,7 +16,7 @@ fn test_kwds_1() {
             token: Func,
             lexeme: "func".to_string(),
             line: 1,
-            len: 4,
+            pos: (1, 5),
             value: None,
         }],
         1,
@@ -24,7 +32,7 @@ fn test_kwds_2() {
             token: As,
             lexeme: "as".to_string(),
             line: 1,
-            len: 2,
+            pos: (1, 3),
             value: None,
         }],
         1,
@@ -40,7 +48,7 @@ fn test_kwds_3() {
             token: Impl,
             lexeme: "impl".to_string(),
             line: 1,
-            len: 4,
+            pos: (1, 5),
             value: None,
         }],
         1,

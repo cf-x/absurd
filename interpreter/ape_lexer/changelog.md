@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.9 - 30/07/24
+
+- new token coordination system
+- updated error handling
+- better unit testing
+
 ## 0.1.8 - 28/07/24
 
 - implemented `ape_errors`

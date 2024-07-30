@@ -1,4 +1,15 @@
 use super::*;
+/*
+tests::integer.rs
+
+Unit tests for integer number literals:
+- 2
+- 0
+- 2342
+todo:
+- 3_342 // separators for better readiblity
+- 44e6 // exponentials
+*/
 
 #[test]
 fn test_integer_1() {
@@ -8,7 +19,7 @@ fn test_integer_1() {
             token: NumberLit,
             lexeme: "2".to_string(),
             line: 1,
-            len: 1,
+            pos: (1, 2),
             value: Some(LiteralKind::Number {
                 base: Base::Decimal,
                 value: 2.0,
@@ -27,7 +38,7 @@ fn test_integer_2() {
             token: NumberLit,
             lexeme: "0".to_string(),
             line: 1,
-            len: 1,
+            pos: (1, 2),
             value: Some(LiteralKind::Number {
                 base: Base::Decimal,
                 value: 0.0,
@@ -46,7 +57,7 @@ fn test_integer_3() {
             token: NumberLit,
             lexeme: "2342".to_string(),
             line: 1,
-            len: 4,
+            pos: (1, 5),
             value: Some(LiteralKind::Number {
                 base: Base::Decimal,
                 value: 2342.0,

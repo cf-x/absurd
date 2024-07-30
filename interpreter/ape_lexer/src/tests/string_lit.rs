@@ -1,4 +1,12 @@
 use super::*;
+/*
+tests::string_lit.rs
+
+Unit tests for string literals:
+- "hi"
+- "3 2"
+- "h \n i"
+*/
 
 #[test]
 fn test_string_lit_1() {
@@ -8,7 +16,7 @@ fn test_string_lit_1() {
             token: StringLit,
             lexeme: "\"hi\"".to_string(),
             line: 1,
-            len: 4,
+            pos: (1, 5),
             value: Some(LiteralKind::String {
                 value: "hi".to_string(),
             }),
@@ -26,7 +34,7 @@ fn test_string_lit_2() {
             token: StringLit,
             lexeme: "\"3 2\"".to_string(),
             line: 1,
-            len: 5,
+            pos: (1, 6),
             value: Some(LiteralKind::String {
                 value: "3 2".to_string(),
             }),
@@ -44,7 +52,7 @@ fn test_string_lit_3() {
             token: StringLit,
             lexeme: "\"h\ni\"".to_string(),
             line: 2,
-            len: 5,
+            pos: (1, 6),
             value: Some(LiteralKind::String {
                 value: "h\ni".to_string(),
             }),

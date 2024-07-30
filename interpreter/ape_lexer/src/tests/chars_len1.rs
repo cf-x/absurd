@@ -1,4 +1,12 @@
 use super::*;
+/*
+tests::chars_len1.rs
+
+Unit tests for 1 character length tokens:
+- ";"
+- "-"
+- "\\"
+*/
 
 #[test]
 fn test_char_len1_1() {
@@ -8,7 +16,7 @@ fn test_char_len1_1() {
             token: Semi,
             lexeme: ";".to_string(),
             line: 1,
-            len: 1,
+            pos: (1, 2),
             value: None,
         }],
         1,
@@ -24,7 +32,7 @@ fn test_char_len1_2() {
             token: Minus,
             lexeme: "-".to_string(),
             line: 1,
-            len: 1,
+            pos: (1, 2),
             value: None,
         }],
         1,
@@ -40,7 +48,7 @@ fn test_char_len1_3() {
             token: Escape,
             lexeme: "\\".to_string(),
             line: 1,
-            len: 1,
+            pos: (1, 2),
             value: None,
         }],
         1,

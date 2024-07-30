@@ -1,11 +1,11 @@
 #[cfg(test)]
 mod tests;
-use std::collections::HashMap;
 use ape_ast::{
     Base, LiteralKind, Token,
     TokenType::{self, *},
 };
-use ape_errors::{e0x101, e0x102, e0x103, e0x104};
+use ape_errors::{Error, ErrorCode::*};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Lexer {
@@ -13,17 +13,21 @@ pub struct Lexer {
     tokens: Vec<Token>,
     kwds: HashMap<&'static str, TokenType>,
     line: usize,
+    pos: usize,
     start: usize,
     crnt: usize,
+    err: Error,
 }
 
 impl Lexer {
-    pub fn new(source: String) -> Self {
+    pub fn new(source: String, err: Error) -> Self {
         Self {
             source,
+            err,
             tokens: vec![],
             kwds: kwds(),
             line: 1,
+            pos: 1,
             start: 0,
             crnt: 0,
         }
@@ -36,10 +40,10 @@ impl Lexer {
         }
         self.tokens.push(Token {
             token: Eof,
-            len: 0,
             lexeme: "\0".to_string(),
             value: None,
             line: self.line,
+            pos: (0, 0),
         });
         self.tokens.clone()
     }
@@ -76,13 +80,22 @@ impl Lexer {
             '>' => self.handle_gr(),
             '\\' => self.handle_esc(),
             '/' => self.handle_div(),
-            ' ' | '\t' | '\r' => {}
-            '\n' => self.line += 1,
+            '\r' => {}
+            '\t' => {
+                self.pos += 4;
+            }
+            ' ' => {
+                self.pos += 1;
+            }
+            '\n' => {
+                self.pos = 1;
+                self.line += 1;
+            }
             '\'' => self.char(),
             '"' => self.string(),
             c if c.is_ascii_digit() => self.number(c),
             c if c.is_alphabetic() || c == '_' => self.ident(),
-            _ => e0x101(self.line, c),
+            _ => self.err.throw(E0x101, self.line, vec![c.to_string()]),
         };
     }
 
@@ -267,9 +280,11 @@ impl Lexer {
     fn comment(&mut self) {
         loop {
             if self.peek() == '\n' || self.is_eof() {
+                self.pos = 1;
                 break;
             }
             self.advance();
+            self.pos += 1;
         }
     }
 
@@ -281,11 +296,14 @@ impl Lexer {
 
             if self.peek() == '*' {
                 self.advance();
+                self.pos += 1;
                 if self.peek() == '/' {
                     self.advance();
+                    self.pos += 1;
                     break;
                 }
             } else {
+                self.pos += 1;
                 self.advance();
             }
         }
@@ -297,11 +315,11 @@ impl Lexer {
             self.advance();
             c
         } else {
-            e0x102(self.line);
+            self.err.throw(E0x102, self.line, vec![]);
             return;
         };
         if self.peek() != '\'' {
-            e0x102(self.line);
+            self.err.throw(E0x102, self.line, vec![]);
             return;
         }
         self.advance();
@@ -312,11 +330,12 @@ impl Lexer {
         while self.peek() != '"' && !self.is_eof() {
             if self.peek() == '\n' {
                 self.line += 1;
+                self.pos = 1;
             }
             self.advance();
         }
         if self.is_eof() {
-            e0x103(self.line);
+            self.err.throw(E0x103, self.line, vec![]);
         }
         self.advance();
         let value = &self.source[self.start + 1..self.crnt - 1].to_string();
@@ -378,7 +397,11 @@ impl Lexer {
                     value,
                 }),
             ),
-            Err(_) => e0x104(self.line, "decimal", sub),
+            Err(_) => self.err.throw(
+                E0x104,
+                self.line,
+                vec!["decimal".to_string(), sub.to_string()],
+            ),
         }
     }
 
@@ -400,7 +423,11 @@ impl Lexer {
                     value: value as f32,
                 }),
             ),
-            Err(_) => e0x104(self.line, "binary", sub),
+            Err(_) => self.err.throw(
+                E0x104,
+                self.line,
+                vec!["binary".to_string(), sub.to_string()],
+            ),
         }
     }
 
@@ -411,7 +438,7 @@ impl Lexer {
         while self.peek().is_digit(8) {
             self.advance();
         }
-
+1
         let sub = &self.source[self.start..self.crnt];
         let val = i32::from_str_radix(&sub[2..], 8);
         match val {
@@ -422,7 +449,11 @@ impl Lexer {
                     value: value as f32,
                 }),
             ),
-            Err(_) => e0x104(self.line, "octal", sub),
+            Err(_) => self.err.throw(
+                E0x104,
+                self.line,
+                vec!["octal".to_string(), sub.to_string()],
+            ),
         }
     }
 
@@ -443,7 +474,11 @@ impl Lexer {
                     value: value as f32,
                 }),
             ),
-            Err(_) => e0x104(self.line, "hexadecimal", sub),
+            Err(_) => self.err.throw(
+                E0x104,
+                self.line,
+                vec!["hexadecimal".to_string(), sub.to_string()],
+            ),
         }
     }
 
@@ -455,12 +490,14 @@ impl Lexer {
 
     fn push_token(&mut self, token: TokenType, value: Option<LiteralKind>) {
         let lexeme = self.source[self.start..self.crnt].to_string();
+        let pos = (self.pos, self.pos + lexeme.len());
+        self.pos += lexeme.len();
         self.tokens.push(Token {
             token,
             lexeme: lexeme.clone(),
             line: self.line,
             value,
-            len: lexeme.len() as u32,
+            pos,
         })
     }
 

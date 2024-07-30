@@ -1,4 +1,12 @@
 use super::*;
+/*
+tests::hexa.rs
+
+Unit tests for hexadecimal number literals:
+- "0xf"
+- "0xff2"
+- "0x00f"
+*/
 
 #[test]
 fn test_hexadecimal_1() {
@@ -8,7 +16,7 @@ fn test_hexadecimal_1() {
             token: NumberLit,
             lexeme: "0xf".to_string(),
             line: 1,
-            len: 3,
+            pos: (1, 4),
             value: Some(LiteralKind::Number {
                 base: Base::Hexadecimal,
                 value: 15.0,
@@ -27,7 +35,7 @@ fn test_hexademical_2() {
             token: NumberLit,
             lexeme: "0xff2".to_string(),
             line: 1,
-            len: 5,
+            pos: (1, 6),
             value: Some(LiteralKind::Number {
                 base: Base::Hexadecimal,
                 value: 4082.0,
@@ -46,7 +54,7 @@ fn test_hexademical_3() {
             token: NumberLit,
             lexeme: "0x00f".to_string(),
             line: 1,
-            len: 5,
+            pos: (1, 6),
             value: Some(LiteralKind::Number {
                 base: Base::Hexadecimal,
                 value: 15.0,

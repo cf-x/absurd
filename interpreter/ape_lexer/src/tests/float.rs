@@ -1,4 +1,15 @@
 use super::*;
+/*
+tests::float.rs
+
+Unit tests for floating point number literals:
+- "2.0"
+- "0.314"
+- "2424.442"
+todo:
+- "2.p3" // periods
+- "2.21p1" // periods
+*/
 
 #[test]
 fn test_float_1() {
@@ -8,7 +19,7 @@ fn test_float_1() {
             token: NumberLit,
             lexeme: "2.0".to_string(),
             line: 1,
-            len: 3,
+            pos: (1, 4),
             value: Some(LiteralKind::Number {
                 base: Base::Decimal,
                 value: 2.0,
@@ -27,7 +38,7 @@ fn test_float_2() {
             token: NumberLit,
             lexeme: "0.314".to_string(),
             line: 1,
-            len: 5,
+            pos: (1, 6),
             value: Some(LiteralKind::Number {
                 base: Base::Decimal,
                 value: 0.314,
@@ -46,7 +57,7 @@ fn test_float_3() {
             token: NumberLit,
             lexeme: "2424.442".to_string(),
             line: 1,
-            len: 8,
+            pos: (1, 9),
             value: Some(LiteralKind::Number {
                 base: Base::Decimal,
                 value: 2424.442,

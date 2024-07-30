@@ -1,4 +1,12 @@
 use super::*;
+/*
+tests::octal.rs
+
+Unit tests for octal number literals:
+- 0o7
+- 0o27
+- 0o0027
+*/
 
 #[test]
 fn test_octal_1() {
@@ -8,7 +16,7 @@ fn test_octal_1() {
             token: NumberLit,
             lexeme: "0o7".to_string(),
             line: 1,
-            len: 3,
+            pos: (1, 4),
             value: Some(LiteralKind::Number {
                 base: Base::Octal,
                 value: 7.0,
@@ -27,7 +35,7 @@ fn test_octal_2() {
             token: NumberLit,
             lexeme: "0o27".to_string(),
             line: 1,
-            len: 4,
+            pos: (1, 5),
             value: Some(LiteralKind::Number {
                 base: Base::Octal,
                 value: 23.0,
@@ -46,7 +54,7 @@ fn test_octal_3() {
             token: NumberLit,
             lexeme: "0o0027".to_string(),
             line: 1,
-            len: 6,
+            pos: (1, 7),
             value: Some(LiteralKind::Number {
                 base: Base::Octal,
                 value: 23.0,

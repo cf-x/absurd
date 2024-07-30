@@ -1,4 +1,12 @@
 use super::*;
+/*
+tests::block_comment.rs
+
+Unit tests for block comments:
+- /* hi */
+- /* hi \n */
+- /* hi */ ;
+*/
 
 #[test]
 fn test_block_comment_1() {
@@ -22,7 +30,7 @@ fn test_block_comment_3() {
             token: Semi,
             lexeme: ";".to_string(),
             line: 1,
-            len: 1,
+            pos: (9, 10),
             value: None,
         }],
         1,

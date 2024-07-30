@@ -4,22 +4,22 @@ version = 3
 
 [[package]]
 name = "ape_ast"
-version = "0.1.4"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ca86766aa96e19c7c6b4d2f0713ce606f2ca4d5a6f5886f0f190182a3639c7a"
+checksum = "d774b83ac39a6d384e7cd89a0551d40ab053c995331a4133bd98b7c806b6c659"
 
 [[package]]
 name = "ape_errors"
-version = "0.1.1"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ae209af7a02b4ceec9af681280c0523f82c666d4b4c401c22ce7889bf880dd84"
+checksum = "8a642a0a190979d36dc78d790b582dcb89b23e5326c788d17aa05d7d7e765732"
 dependencies = [
  "colored",
 ]
 
 [[package]]
 name = "ape_lexer"
-version = "0.1.7"
+version = "0.1.8"
 dependencies = [
  "ape_ast",
  "ape_errors",

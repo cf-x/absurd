@@ -1,4 +1,12 @@
 use super::*;
+/*
+tests::chars_len2.rs
+
+Unit tests for 2 characters length tokens:
+- "--"
+- ">="
+- ".."
+*/
 
 #[test]
 fn test_char_len2_1() {
@@ -8,7 +16,7 @@ fn test_char_len2_1() {
             token: Decr,
             lexeme: "--".to_string(),
             line: 1,
-            len: 2,
+            pos: (1, 3),
             value: None,
         }],
         1,
@@ -24,7 +32,7 @@ fn test_char_len2_2() {
             token: GreaterOrEq,
             lexeme: ">=".to_string(),
             line: 1,
-            len: 2,
+            pos: (1, 3),
             value: None,
         }],
         1,
@@ -40,7 +48,7 @@ fn test_char_len2_3() {
             token: DotDot,
             lexeme: "..".to_string(),
             line: 1,
-            len: 2,
+            pos: (1, 3),
             value: None,
         }],
         1,
