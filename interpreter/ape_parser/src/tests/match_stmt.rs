@@ -7,7 +7,7 @@ fn stmt_3() {
             id: 0,
             name: Token {
                 token: Ident,
-                len: 5,
+                pos: (7, 12),
                 lexeme: "fruit".to_string(),
                 value: None,
                 line: 1,
@@ -49,7 +49,7 @@ fn stmt_2() {
             id: 0,
             name: Token {
                 token: Ident,
-                len: 5,
+                pos: (7, 12),
                 lexeme: "fruit".to_string(),
                 value: None,
                 line: 1,
@@ -73,7 +73,7 @@ fn stmt_1() {
             id: 0,
             name: Token {
                 token: Ident,
-                len: 5,
+                pos: (7, 12),
                 lexeme: "fruit".to_string(),
                 value: None,
                 line: 1,

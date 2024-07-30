@@ -8,14 +8,14 @@ fn stmt_4() {
             (
                 Token {
                     token: Ident,
-                    len: 1,
+                    pos: (5, 6),
                     lexeme: "a".to_string(),
                     value: None,
                     line: 1,
                 },
                 Some(Token {
                     token: Ident,
-                    len: 1,
+                    pos: (10, 11),
                     lexeme: "b".to_string(),
                     value: None,
                     line: 1,
@@ -24,7 +24,7 @@ fn stmt_4() {
             (
                 Token {
                     token: Ident,
-                    len: 1,
+                    pos: (13, 14),
                     lexeme: "c".to_string(),
                     value: None,
                     line: 1,
@@ -45,14 +45,14 @@ fn stmt_3() {
         names: vec![(
             Token {
                 token: Ident,
-                len: 1,
+                pos: (5, 6),
                 lexeme: "a".to_string(),
                 value: None,
                 line: 1,
             },
             Some(Token {
                 token: Ident,
-                len: 1,
+                pos: (10, 11),
                 lexeme: "b".to_string(),
                 value: None,
                 line: 1,
@@ -72,7 +72,7 @@ fn stmt_2() {
             (
                 Token {
                     token: Ident,
-                    len: 1,
+                    pos: (5, 6),
                     lexeme: "a".to_string(),
                     value: None,
                     line: 1,
@@ -82,7 +82,7 @@ fn stmt_2() {
             (
                 Token {
                     token: Ident,
-                    len: 1,
+                    pos: (8, 9),
                     lexeme: "b".to_string(),
                     value: None,
                     line: 1,
@@ -92,7 +92,7 @@ fn stmt_2() {
             (
                 Token {
                     token: Ident,
-                    len: 1,
+                    pos: (11, 12),
                     lexeme: "c".to_string(),
                     value: None,
                     line: 1,
@@ -113,7 +113,7 @@ fn stmt_1() {
         names: vec![(
             Token {
                 token: Ident,
-                len: 1,
+                pos: (5, 6),
                 lexeme: "a".to_string(),
                 value: None,
                 line: 1,

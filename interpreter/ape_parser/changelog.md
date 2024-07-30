@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.7 - 20/07/24
+
+- implemented new error handling
+- updated unit tests
+
 ## 0.1.6 - 29/07/24
 
 - added function expression

@@ -1,4 +1,14 @@
 use super::*;
+/*
+cases:
+- let name: number = 5;
+- let name1, name2: number = 5;
+- let name;
+- let mut name: char = 'c';
+- let pub name: char = 'c';
+- let pub(c) name: char = 'c';
+- let pub(c, cc) name1, name2: char = 'c';
+*/
 
 #[test]
 fn stmt_7() {
@@ -6,14 +16,14 @@ fn stmt_7() {
         names: vec![
             Token {
                 token: Ident,
-                len: 5,
+                pos: (16, 21),
                 lexeme: "name1".to_string(),
                 value: None,
                 line: 1,
             },
             Token {
                 token: Ident,
-                len: 5,
+                pos: (23, 28),
                 lexeme: "name2".to_string(),
                 value: None,
                 line: 1,
@@ -21,7 +31,7 @@ fn stmt_7() {
         ],
         value_type: Token {
             token: CharIdent,
-            len: 4,
+            pos: (30, 34),
             lexeme: "char".to_string(),
             value: None,
             line: 1,
@@ -35,14 +45,14 @@ fn stmt_7() {
         pub_names: vec![
             Token {
                 token: Ident,
-                len: 1,
+                pos: (9, 10),
                 lexeme: "c".to_string(),
                 value: None,
                 line: 1,
             },
             Token {
                 token: Ident,
-                len: 2,
+                pos: (12, 14),
                 lexeme: "cc".to_string(),
                 value: None,
                 line: 1,
@@ -63,14 +73,14 @@ fn stmt_6() {
     let left = vec![Statement::Var {
         names: vec![Token {
             token: Ident,
-            len: 4,
+            pos: (12, 16),
             lexeme: "name".to_string(),
             value: None,
             line: 1,
         }],
         value_type: Token {
             token: CharIdent,
-            len: 4,
+            pos: (18, 22),
             lexeme: "char".to_string(),
             value: None,
             line: 1,
@@ -83,7 +93,7 @@ fn stmt_6() {
         is_pub: true,
         pub_names: vec![Token {
             token: Ident,
-            len: 1,
+            pos: (9, 10),
             lexeme: "c".to_string(),
             value: None,
             line: 1,
@@ -100,14 +110,14 @@ fn stmt_5() {
     let left = vec![Statement::Var {
         names: vec![Token {
             token: Ident,
-            len: 4,
+            pos: (9, 13),
             lexeme: "name".to_string(),
             value: None,
             line: 1,
         }],
         value_type: Token {
             token: CharIdent,
-            len: 4,
+            pos: (15, 19),
             lexeme: "char".to_string(),
             value: None,
             line: 1,
@@ -131,14 +141,14 @@ fn stmt_4() {
     let left = vec![Statement::Var {
         names: vec![Token {
             token: Ident,
-            len: 4,
+            pos: (9, 13),
             lexeme: "name".to_string(),
             value: None,
             line: 1,
         }],
         value_type: Token {
             token: CharIdent,
-            len: 4,
+            pos: (15, 19),
             lexeme: "char".to_string(),
             value: None,
             line: 1,
@@ -162,14 +172,14 @@ fn stmt_3() {
     let left = vec![Statement::Var {
         names: vec![Token {
             token: Ident,
-            len: 4,
+            pos: (5, 9),
             lexeme: "name".to_string(),
             value: None,
             line: 1,
         }],
         value_type: Token {
             token: NullIdent,
-            len: 4,
+            pos: (9, 10),
             lexeme: "null".to_string(),
             value: None,
             line: 1,
@@ -194,14 +204,14 @@ fn stmt_2() {
         names: vec![
             Token {
                 token: Ident,
-                len: 5,
+                pos: (5, 10),
                 lexeme: "name1".to_string(),
                 value: None,
                 line: 1,
             },
             Token {
                 token: Ident,
-                len: 5,
+                pos: (12, 17),
                 lexeme: "name2".to_string(),
                 value: None,
                 line: 1,
@@ -209,7 +219,7 @@ fn stmt_2() {
         ],
         value_type: Token {
             token: NumberIdent,
-            len: 6,
+            pos: (19, 25),
             lexeme: "number".to_string(),
             value: None,
             line: 1,
@@ -233,14 +243,14 @@ fn stmt_1() {
     let left = vec![Statement::Var {
         names: vec![Token {
             token: Ident,
-            len: 4,
+            pos: (5, 9),
             lexeme: "name".to_string(),
             value: None,
             line: 1,
         }],
         value_type: Token {
             token: NumberIdent,
-            len: 6,
+            pos: (11, 17),
             lexeme: "number".to_string(),
             value: None,
             line: 1,

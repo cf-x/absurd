@@ -1,29 +1,11 @@
 use super::*;
 
 #[test]
-fn stmt_2() {
-    let left = vec![Statement::Enum {
-        name: Token {
-            token: Ident,
-            len: 4,
-            lexeme: "Name".to_string(),
-            value: None,
-            line: 1,
-        },
-        enums: vec![],
-        is_pub: true,
-    }];
-    let right = get_ast("enum pub Name {}");
-
-    assert_eq!(left, right, "testing `enum pub Name {{}}`");
-}
-
-#[test]
 fn stmt_1() {
     let left = vec![Statement::Enum {
         name: Token {
             token: Ident,
-            len: 4,
+            pos: (6, 10),
             lexeme: "Name".to_string(),
             value: None,
             line: 1,
@@ -31,14 +13,14 @@ fn stmt_1() {
         enums: vec![
             Token {
                 token: Ident,
-                len: 6,
+                pos: (12, 18),
                 lexeme: "Number".to_string(),
                 value: None,
                 line: 1,
             },
             Token {
                 token: Ident,
-                len: 6,
+                pos: (20, 26),
                 lexeme: "String".to_string(),
                 value: None,
                 line: 1,

@@ -6,7 +6,7 @@ fn call_struct_1() {
         id: 2,
         name: Box::new(Token {
             token: Ident,
-            len: 4,
+            pos: (14, 18),
             lexeme: "Call".to_string(),
             value: None,
             line: 1,
@@ -15,7 +15,7 @@ fn call_struct_1() {
             id: 1,
             name: Token {
                 token: Ident,
-                len: 5,
+                pos: (19, 24),
                 lexeme: "value".to_string(),
                 value: None,
                 line: 1,
@@ -34,7 +34,7 @@ fn call_enum_1() {
         id: 2,
         name: Box::new(Token {
             token: Ident,
-            len: 4,
+            pos: (14, 18),
             lexeme: "call".to_string(),
             value: None,
             line: 1,
@@ -43,7 +43,7 @@ fn call_enum_1() {
             id: 1,
             name: Token {
                 token: Ident,
-                len: 4,
+                pos: (20, 24),
                 lexeme: "Enum".to_string(),
                 value: None,
                 line: 1,
@@ -62,7 +62,7 @@ fn call_func_3() {
         id: 3,
         name: Box::new(Token {
             token: Ident,
-            len: 4,
+            pos: (14, 18),
             lexeme: "call".to_string(),
             value: None,
             line: 1,
@@ -90,7 +90,7 @@ fn call_func_2() {
         id: 2,
         name: Box::new(Token {
             token: Ident,
-            len: 4,
+            pos: (14, 18),
             lexeme: "call".to_string(),
             value: None,
             line: 1,
@@ -112,7 +112,7 @@ fn call_func_1() {
         id: 1,
         name: Box::new(Token {
             token: Ident,
-            len: 4,
+            pos: (14, 18),
             lexeme: "call".to_string(),
             value: None,
             line: 1,

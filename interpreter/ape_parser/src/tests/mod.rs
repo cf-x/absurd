@@ -14,12 +14,14 @@ mod use_stmt;
 mod var_stmt;
 mod while_stmt;
 use super::*;
+use ape_errors::Error;
 use ape_lexer::Lexer;
 
 fn get_ast(source: &str) -> Vec<Statement> {
-    let mut lexer = Lexer::new(source.to_string());
+    let err = Error::new(source);
+    let mut lexer = Lexer::new(source.to_string(), err.clone());
     let tokens = lexer.lex();
-    let mut parser = Parser::new(tokens);
+    let mut parser = Parser::new(tokens, err.clone());
     parser.parse()
 }
 
@@ -27,14 +29,14 @@ fn get_expr(expr: Expression) -> Vec<Statement> {
     vec![Statement::Var {
         names: vec![Token {
             token: Ident,
-            len: 1,
+            pos: (5, 6),
             lexeme: "x".to_string(),
             value: None,
             line: 1,
         }],
         value_type: Token {
             token: AnyIdent,
-            len: 3,
+            pos: (8, 11),
             lexeme: "any".to_string(),
             value: None,
             line: 1,

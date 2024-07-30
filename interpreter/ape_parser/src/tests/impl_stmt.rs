@@ -5,7 +5,7 @@ fn stmt_2() {
     let left = vec![Statement::Impl {
         name: Token {
             token: Ident,
-            len: 4,
+            pos: (6, 10),
             lexeme: "Name".to_string(),
             value: None,
             line: 1,
@@ -13,14 +13,14 @@ fn stmt_2() {
         body: vec![Statement::Func {
             name: Token {
                 token: Ident,
-                len: 5,
+                pos: (15, 20),
                 lexeme: "empty".to_string(),
                 value: None,
                 line: 1,
             },
             value_type: Token {
                 token: VoidIdent,
-                len: 4,
+                pos: (26, 30),
                 lexeme: "void".to_string(),
                 value: None,
                 line: 1,
@@ -43,7 +43,7 @@ fn stmt_1() {
     let left = vec![Statement::Impl {
         name: Token {
             token: Ident,
-            len: 4,
+            pos: (6, 10),
             lexeme: "Name".to_string(),
             value: None,
             line: 1,

@@ -4,19 +4,21 @@ use ape_ast::{
     CallType, Expression, FuncBody, LiteralKind, LiteralType, Statement, Token,
     TokenType::{self, *},
 };
-use ape_errors::{e0x201, e0x202, e0x203, e0x204};
+use ape_errors::{Error, ErrorCode::*};
 use std::process::exit;
 
 pub struct Parser {
     tokens: Vec<Token>,
+    err: Error,
     crnt: usize,
     id: usize,
 }
 
 impl Parser {
-    pub fn new(tokens: Vec<Token>) -> Self {
+    pub fn new(tokens: Vec<Token>, err: Error) -> Self {
         Parser {
             tokens,
+            err,
             crnt: 0,
             id: 0,
         }
@@ -94,7 +96,7 @@ impl Parser {
             names: names.clone(),
             value_type: Token {
                 token: NullIdent,
-                len: 4,
+                pos: self.peek().pos,
                 lexeme: "null".to_string(),
                 value: None,
                 line: names[0].line,
@@ -174,7 +176,12 @@ impl Parser {
                 is_impl = true;
             } else if self.if_token_consume(Comma) {
             } else if !self.is_token(RightParen) {
-                e0x201(self.peek().line, self.peek().lexeme);
+                self.err.throw(
+                    E0x201,
+                    self.peek().line,
+                    self.peek().pos,
+                    vec![self.peek().lexeme],
+                );
             }
         }
         self.consume(Arrow);
@@ -260,7 +267,12 @@ impl Parser {
             let num = match self.consume(NullLit).value {
                 Some(LiteralKind::Number { value, .. }) => value,
                 _ => {
-                    e0x202(self.peek().line, self.peek().lexeme);
+                    self.err.throw(
+                        E0x202,
+                        self.peek().line,
+                        self.peek().pos,
+                        vec![self.peek().lexeme],
+                    );
                     exit(1);
                 }
             };
@@ -365,7 +377,12 @@ impl Parser {
             structs.push((struct_name, struct_type, struct_is_pub));
 
             if !self.if_token_consume(Comma) && !self.is_token(RightBrace) {
-                e0x201(self.peek().line, self.peek().lexeme);
+                self.err.throw(
+                    E0x201,
+                    self.peek().line,
+                    self.peek().pos,
+                    vec![self.peek().lexeme],
+                );
             }
         }
         Statement::Struct {
@@ -404,7 +421,12 @@ impl Parser {
             let enm = self.consume(Ident);
             enums.push(enm);
             if !self.if_token_consume(Comma) && !self.is_token(RightBrace) {
-                e0x201(self.peek().line, self.peek().lexeme);
+                self.err.throw(
+                    E0x201,
+                    self.peek().line,
+                    self.peek().pos,
+                    vec![self.peek().lexeme],
+                );
             }
         }
         Statement::Enum {
@@ -421,7 +443,12 @@ impl Parser {
                 return stmts;
             }
             _ => {
-                e0x203(self.peek().line, "a block statement".to_string());
+                self.err.throw(
+                    E0x203,
+                    self.peek().line,
+                    self.peek().pos,
+                    vec!["a block statement".to_string()],
+                );
                 exit(1)
             }
         }
@@ -548,7 +575,12 @@ impl Parser {
             let arg = self.expr();
             args.push(arg);
             if !self.if_token_consume(Comma) && !self.is_token(RightParen) {
-                e0x201(self.peek().line, self.peek().lexeme);
+                self.err.throw(
+                    E0x201,
+                    self.peek().line,
+                    self.peek().pos,
+                    vec![self.peek().lexeme],
+                );
             }
         }
         Expression::Call {
@@ -589,7 +621,12 @@ impl Parser {
                         value: self.to_value_type(token),
                     };
                 }
-                e0x201(self.peek().line, self.peek().lexeme);
+                self.err.throw(
+                    E0x201,
+                    self.peek().line,
+                    self.peek().pos,
+                    vec![self.peek().lexeme],
+                );
                 exit(1)
             }
         }
@@ -601,7 +638,12 @@ impl Parser {
                 let number = match token.value {
                     Some(LiteralKind::Number { value, .. }) => value,
                     _ => {
-                        e0x202(self.peek().line, self.peek().lexeme);
+                        self.err.throw(
+                            E0x202,
+                            self.peek().line,
+                            self.peek().pos,
+                            vec![self.peek().lexeme],
+                        );
                         exit(1)
                     }
                 };
@@ -612,7 +654,12 @@ impl Parser {
                 let string = match token.value {
                     Some(LiteralKind::String { value }) => value,
                     _ => {
-                        e0x202(self.peek().line, self.peek().lexeme);
+                        self.err.throw(
+                            E0x202,
+                            self.peek().line,
+                            self.peek().pos,
+                            vec![self.peek().lexeme],
+                        );
                         exit(1)
                     }
                 };
@@ -622,7 +669,12 @@ impl Parser {
                 let char = match token.value {
                     Some(LiteralKind::Char { value }) => value,
                     _ => {
-                        e0x202(self.peek().line, self.peek().lexeme);
+                        self.err.throw(
+                            E0x202,
+                            self.peek().line,
+                            self.peek().pos,
+                            vec![self.peek().lexeme],
+                        );
                         exit(1)
                     }
                 };
@@ -642,13 +694,23 @@ impl Parser {
             let item = match item_expr {
                 Expression::Value { value, .. } => value,
                 _ => {
-                    e0x203(self.peek().line, "an array expression".to_string());
+                    self.err.throw(
+                        E0x203,
+                        self.peek().line,
+                        self.peek().pos,
+                        vec!["an array expression".to_string()],
+                    );
                     exit(1)
                 }
             };
             items.push(item);
             if !self.if_token_consume(Comma) && !self.is_token(RightBracket) {
-                e0x201(self.peek().line, self.peek().lexeme);
+                self.err.throw(
+                    E0x201,
+                    self.peek().line,
+                    self.peek().pos,
+                    vec![self.peek().lexeme],
+                );
             }
         }
         Expression::Array {
@@ -695,7 +757,12 @@ impl Parser {
                     params.push((param_name, param_type))
                 } else if self.if_token_consume(Comma) {
                 } else if !self.is_token(Pipe) {
-                    e0x201(self.peek().line, self.peek().lexeme);
+                    self.err.throw(
+                        E0x201,
+                        self.peek().line,
+                        self.peek().pos,
+                        vec![self.peek().lexeme],
+                    );
                 }
             }
         }
@@ -775,7 +842,12 @@ impl Parser {
             return token;
         }
         // @error expected uppercase identifier
-        e0x204(token.clone().line, "Uppercase Ident".to_string());
+        self.err.throw(
+            E0x204,
+            self.peek().line,
+            self.peek().pos,
+            vec!["uppercase Ident".to_string()],
+        );
         token
     }
 
@@ -789,7 +861,7 @@ impl Parser {
             Token {
                 token: ArrayIdent,
                 lexeme: typ.lexeme,
-                len: typ.len,
+                pos: self.peek().pos,
                 value: None,
                 line: self.peek().line,
             }
@@ -802,7 +874,12 @@ impl Parser {
                     let arg = self.consume_type_ident();
                     args.push(arg);
                     if !self.if_token_consume(Comma) && !self.is_token(Pipe) {
-                        e0x201(self.peek().line, self.peek().lexeme);
+                        self.err.throw(
+                            E0x201,
+                            self.peek().line,
+                            self.peek().pos,
+                            vec![self.peek().lexeme],
+                        );
                     }
                 }
             }
@@ -812,7 +889,7 @@ impl Parser {
             Token {
                 token: ArrayIdent,
                 lexeme: typ.lexeme,
-                len: typ.len,
+                pos: self.peek().pos,
                 value: None,
                 line: self.peek().line,
             }
@@ -838,7 +915,12 @@ impl Parser {
             }
         }
         let token = self.prev(1);
-        e0x204(token.clone().line, token.clone().lexeme);
+        self.err.throw(
+            E0x204,
+            self.peek().line,
+            self.peek().pos,
+            vec![token.clone().lexeme],
+        );
         token
     }
 
@@ -848,7 +930,12 @@ impl Parser {
             return self.prev(1);
         }
         let token = self.prev(1);
-        e0x204(token.clone().line, token.clone().lexeme);
+        self.err.throw(
+            E0x204,
+            self.peek().line,
+            self.peek().pos,
+            vec![token.clone().lexeme],
+        );
         token
     }
 
@@ -868,7 +955,7 @@ impl Parser {
                 token: Eof,
                 lexeme: "\0".to_string(),
                 line: 0,
-                len: 0,
+                pos: (0, 0),
                 value: None,
             };
         }

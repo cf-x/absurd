@@ -5,14 +5,14 @@ fn type_array_1() {
     let left = vec![Statement::Var {
         names: vec![Token {
             token: Ident,
-            len: 1,
+            pos: (5, 6),
             lexeme: "x".to_string(),
             value: None,
             line: 1,
         }],
         value_type: Token {
             token: ArrayIdent,
-            len: 4,
+            pos: (15, 16),
             lexeme: "bool".to_string(),
             value: None,
             line: 1,
