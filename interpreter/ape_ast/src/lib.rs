@@ -179,13 +179,9 @@ pub enum FuncValueType {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Base {
-    // 0b prefix
     Binary = 2,
-    // 0o prefix
     Octal = 8,
-    // no prefix
     Decimal = 10,
-    // 0x prefix
     Hexadecimal = 16,
 }
 
@@ -214,10 +210,10 @@ pub enum LiteralKind {
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
     pub token: TokenType,
-    pub len: u32,
     pub lexeme: String,
     pub value: Option<LiteralKind>,
     pub line: usize,
+    pub pos: (usize, usize),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -232,25 +228,21 @@ pub enum Expression {
     },
     Call {
         id: usize,
-        // identifier
         name: Box<Token>,
         args: Vec<Expression>,
         call_type: CallType,
     },
-    // expression operator
     Unary {
         id: usize,
         left: Box<Expression>,
         operator: Token,
     },
-    // expression operator expression
     Binary {
         id: usize,
         left: Box<Expression>,
         operator: Token,
         right: Box<Expression>,
     },
-    // (expression)
     Grouping {
         id: usize,
         expression: Box<Expression>,
@@ -261,39 +253,12 @@ pub enum Expression {
     },
     Func {
         id: usize,
-        // inherited
         name: Token,
-        // inherited
         value_type: Token,
         body: FuncBody,
         params: Vec<(Token, Token)>,
         is_async: bool,
-        // inherited
         is_pub: bool,
-        // can't be muttated or implemented
-    },
-    If {
-        id: usize,
-        cond: Box<Expression>,
-        body: Vec<Statement>,
-        else_if_branches: Vec<(Expression, Vec<Statement>)>,
-        else_branch: Box<Statement>,
-    },
-    While {
-        id: usize,
-        cond: Box<Expression>,
-        body: Vec<Statement>,
-    },
-    Loop {
-        id: usize,
-        iter: Option<usize>,
-        body: Vec<Statement>,
-    },
-    Match {
-        id: usize,
-        cond: Box<Expression>,
-        cases: Vec<(Expression, FuncBody)>,
-        def_case: FuncBody,
     },
     Await {
         id: usize,
@@ -320,35 +285,22 @@ pub enum Statement {
         stmts: Vec<Statement>,
     },
     Var {
-        // identifiers
         names: Vec<Token>,
-        // type tokens
         value_type: Token,
-        // null, if no expression
         value: Option<Expression>,
-        // can't be mutable and public simultaniously
         is_mut: bool,
         is_pub: bool,
-        // should match number of names, if non-empty
         pub_names: Vec<Token>,
-        // if has callback, is function
         is_func: bool,
     },
     Func {
-        // identifier
         name: Token,
-        // type token
         value_type: Token,
-        // either block or expression
         body: FuncBody,
-        // (identifier, type token)
         params: Vec<(Token, Token)>,
-        // function can be both async and public at the same time
         is_async: bool,
         is_pub: bool,
-        // if inside implementation, `self` should be included before params (not included in params)
         is_impl: bool,
-        // if implementing, if `self` is mutable: `mut self`
         is_mut: bool,
     },
     If {
@@ -383,21 +335,16 @@ pub enum Statement {
     },
     Struct {
         name: Token,
-        // (identifier, type token, is_public)
         structs: Vec<(Token, TokenType, bool)>,
         is_pub: bool,
-        // (function name, is_public)
         methods: Vec<(Expression, bool)>,
     },
     Impl {
         name: Token,
-        // functions-only
         body: Vec<Statement>,
     },
     Enum {
-        // identifier
         name: Token,
-        // identifiers (capitilized)
         enums: Vec<Token>,
         is_pub: bool,
     },

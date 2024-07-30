@@ -1,5 +1,10 @@
 # Changelog
 
+### 0.1.7 - 30/07/24
+
+- updated Token for bettet coordinating system
+- remove support for stmt expressions
+
 ### 0.1.6 - 29/07/24
 
 - fixed if expression
