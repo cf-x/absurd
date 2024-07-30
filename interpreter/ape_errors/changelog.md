@@ -1,5 +1,10 @@
 # Changelog
 
+
+## 0.1.5 - 30/07/24
+
+- implement derive Debug, Clone macros
+
 ## 0.1.4 - 30/07/24
 
 - some errors now will print the snippet

@@ -2,6 +2,7 @@ use colored::Colorize;
 use ErrorCode::*;
 mod msgs;
 
+#[derive(Debug, Clone)]
 pub enum ErrorCode {
     /// ## cause
     /// unrecognized character detected by lexer
@@ -118,6 +119,7 @@ pub enum ErrorCode {
     E0x204,
 }
 
+#[derive(Debug, Clone)]
 pub struct Error {
     source: String,
 }
