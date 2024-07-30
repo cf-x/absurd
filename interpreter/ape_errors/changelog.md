@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4 - 30/07/24
+
+- some errors now will print the snippet
+- organized codebase
+- fixed minor issues
+
 ## 0.1.3 - 28/07/24
 
 - fix `E0x204`
