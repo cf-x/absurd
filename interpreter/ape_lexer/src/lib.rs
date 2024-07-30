@@ -95,7 +95,12 @@ impl Lexer {
             '"' => self.string(),
             c if c.is_ascii_digit() => self.number(c),
             c if c.is_alphabetic() || c == '_' => self.ident(),
-            _ => self.err.throw(E0x101, self.line, vec![c.to_string()]),
+            _ => self.err.throw(
+                E0x101,
+                self.line,
+                (self.pos, self.pos + 1),
+                vec![c.to_string()],
+            ),
         };
     }
 
@@ -315,11 +320,13 @@ impl Lexer {
             self.advance();
             c
         } else {
-            self.err.throw(E0x102, self.line, vec![]);
+            self.err
+                .throw(E0x102, self.line, (self.pos - 1, self.pos), vec![]);
             return;
         };
         if self.peek() != '\'' {
-            self.err.throw(E0x102, self.line, vec![]);
+            self.err
+                .throw(E0x102, self.line, (self.pos - 1, self.pos), vec![]);
             return;
         }
         self.advance();
@@ -335,7 +342,8 @@ impl Lexer {
             self.advance();
         }
         if self.is_eof() {
-            self.err.throw(E0x103, self.line, vec![]);
+            self.err
+                .throw(E0x103, self.line, (self.pos - 1, self.pos), vec![]);
         }
         self.advance();
         let value = &self.source[self.start + 1..self.crnt - 1].to_string();
@@ -400,6 +408,7 @@ impl Lexer {
             Err(_) => self.err.throw(
                 E0x104,
                 self.line,
+                (self.pos - 1, self.pos),
                 vec!["decimal".to_string(), sub.to_string()],
             ),
         }
@@ -426,6 +435,7 @@ impl Lexer {
             Err(_) => self.err.throw(
                 E0x104,
                 self.line,
+                (self.pos - 1, self.pos),
                 vec!["binary".to_string(), sub.to_string()],
             ),
         }
@@ -452,6 +462,7 @@ impl Lexer {
             Err(_) => self.err.throw(
                 E0x104,
                 self.line,
+                (self.pos - 1, self.pos),
                 vec!["octal".to_string(), sub.to_string()],
             ),
         }
@@ -477,6 +488,7 @@ impl Lexer {
             Err(_) => self.err.throw(
                 E0x104,
                 self.line,
+                (self.pos - 1, self.pos),
                 vec!["hexadecimal".to_string(), sub.to_string()],
             ),
         }
