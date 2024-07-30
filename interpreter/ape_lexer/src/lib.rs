@@ -438,7 +438,7 @@ impl Lexer {
         while self.peek().is_digit(8) {
             self.advance();
         }
-1
+
         let sub = &self.source[self.start..self.crnt];
         let val = i32::from_str_radix(&sub[2..], 8);
         match val {
