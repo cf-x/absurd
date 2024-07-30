@@ -1,0 +1,9 @@
+[package]
+name = "ape_analyzer"
+description = "analyzer for Aperture programming language"
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ape_ast = "0.1.7"
