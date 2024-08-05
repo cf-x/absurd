@@ -2,8 +2,9 @@
 name = "ape_ast"
 description = "abstract syntax tree for Aperture programming language"
 license = "MIT"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
 
 [dependencies]
 ape_env = "0.1.0"
+ape_expr = { version = "0.1.0", path = "../ape_expr" }
