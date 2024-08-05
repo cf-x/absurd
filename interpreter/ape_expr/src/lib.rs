@@ -1,4 +1,5 @@
 use ape_ast::{CallType, FuncBody, LiteralType, Token};
+use std::hash::Hasher;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
