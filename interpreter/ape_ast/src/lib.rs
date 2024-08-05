@@ -1,3 +1,5 @@
+use ape_expr::Expression;
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     /// !
@@ -216,55 +218,6 @@ pub struct Token {
     pub pos: (usize, usize),
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum Expression {
-    Array {
-        id: usize,
-        items: Vec<LiteralType>,
-    },
-    Var {
-        id: usize,
-        name: Token,
-    },
-    Call {
-        id: usize,
-        name: Box<Token>,
-        args: Vec<Expression>,
-        call_type: CallType,
-    },
-    Unary {
-        id: usize,
-        left: Box<Expression>,
-        operator: Token,
-    },
-    Binary {
-        id: usize,
-        left: Box<Expression>,
-        operator: Token,
-        right: Box<Expression>,
-    },
-    Grouping {
-        id: usize,
-        expression: Box<Expression>,
-    },
-    Value {
-        id: usize,
-        value: LiteralType,
-    },
-    Func {
-        id: usize,
-        name: Token,
-        value_type: Token,
-        body: FuncBody,
-        params: Vec<(Token, Token)>,
-        is_async: bool,
-        is_pub: bool,
-    },
-    Await {
-        id: usize,
-        expr: Box<Expression>,
-    },
-}
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum CallType {

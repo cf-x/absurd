@@ -1,5 +1,9 @@
 # Changelog
 
+### 0.1.8 - 05/08/24
+
+- separate expression from AST
+
 ### 0.1.7 - 30/07/24
 
 - updated Token for bettet coordinating system
