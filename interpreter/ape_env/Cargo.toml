@@ -1,9 +1,0 @@
-[package]
-name = "ape_env"
-description = "environments for Aperture programming language"
-license = "MIT"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-ape_ast = { version = "0.1.7", path = "../ape_ast" }

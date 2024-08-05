@@ -1,17 +1,11 @@
 #!/bin/bash
 
-crate=${1}
-version=${2}
+version=${1}
 tmp_file=$(mktemp)
-path="./interpreter/ape_$crate/Cargo.toml"
-
-if [ -z "$crate" ]; then
-    echo "usage: $0 <cargo_name> <new_version>"
-    exit 1
-fi
+path="./Cargo.toml"
 
 if [ -z "$version" ]; then
-    echo "usage: $0 <cargo_name> <new_version>"
+    echo "usage: $0 <new_version>"
     exit 1
 fi
 
@@ -36,8 +30,8 @@ fi
 
 mv "$tmp_file" "$path"
 
-git add ./interpreter/ape_$crate
-git commit -m "ape_$crate: $version"
+git add .
+git commit -m "update: v$version"
 git push -u origin main
 
 

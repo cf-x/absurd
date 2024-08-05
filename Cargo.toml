@@ -1,0 +1,9 @@
+[package]
+name = "aperture"
+description = "Aperture programming language"
+license = "MIT"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+colored = "2.1.0"

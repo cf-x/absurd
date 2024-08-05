@@ -1,6 +1,0 @@
-[package]
-name = "ape_resolver"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
