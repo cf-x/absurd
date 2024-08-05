@@ -1,5 +1,5 @@
 use ape_ast::{CallType, FuncBody, LiteralType, Token};
-use core::hash::Hasher;
+use core::hash::{Hasher, Hash};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
