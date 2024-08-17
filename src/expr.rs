@@ -1,4 +1,7 @@
-use crate::ast::{CallType, FuncBody, LiteralType, Token};
+use crate::{
+    ast::{CallType, FuncBody, LiteralType, Token},
+    env::Env,
+};
 use core::hash::{Hash, Hasher};
 
 #[derive(Debug, PartialEq, Clone)]
@@ -13,7 +16,7 @@ pub enum Expression {
     },
     Call {
         id: usize,
-        name: Box<Token>,
+        name: Box<Expression>,
         args: Vec<Expression>,
         call_type: CallType,
     },
@@ -71,5 +74,9 @@ impl Expression {
             Expression::Value { id, .. } => *id,
             Expression::Grouping { id, .. } => *id,
         }
+    }
+    pub fn eval(&self, _eval: Env) -> LiteralType {
+        // @todo
+        LiteralType::Any
     }
 }

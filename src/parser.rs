@@ -544,10 +544,12 @@ impl Parser {
     fn struct_call(&mut self) -> Expression {
         let name = self.prev(2);
         let args = vec![self.expr()];
-
         Expression::Call {
             id: self.id(),
-            name: Box::new(name),
+            name: Box::new(Expression::Var {
+                id: self.id(),
+                name,
+            }),
             args,
             call_type: CallType::Struct,
         }
@@ -561,7 +563,10 @@ impl Parser {
 
         Expression::Call {
             id: self.id(),
-            name: Box::new(name),
+            name: Box::new(Expression::Var {
+                id: self.id(),
+                name,
+            }),
             args,
             call_type: CallType::Enum,
         }
@@ -584,7 +589,10 @@ impl Parser {
         }
         Expression::Call {
             id: self.id(),
-            name: Box::new(name),
+            name: Box::new(Expression::Var {
+                id: self.id(),
+                name,
+            }),
             args,
             call_type: CallType::Func,
         }

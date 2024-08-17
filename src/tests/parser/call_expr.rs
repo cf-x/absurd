@@ -6,12 +6,15 @@ use crate::expr::Expression;
 fn call_struct_1() {
     let left = get_expr(Expression::Call {
         id: 2,
-        name: Box::new(Token {
-            token: Ident,
-            pos: (14, 18),
-            lexeme: "Call".to_string(),
-            value: None,
-            line: 1,
+        name: Box::new(Expression::Var {
+            id: 3,
+            name: Token {
+                token: Ident,
+                pos: (14, 18),
+                lexeme: "Call".to_string(),
+                value: None,
+                line: 1,
+            },
         }),
         args: vec![Expression::Var {
             id: 1,
@@ -34,12 +37,15 @@ fn call_struct_1() {
 fn call_enum_1() {
     let left = get_expr(Expression::Call {
         id: 2,
-        name: Box::new(Token {
-            token: Ident,
-            pos: (14, 18),
-            lexeme: "call".to_string(),
-            value: None,
-            line: 1,
+        name: Box::new(Expression::Var {
+            id: 3,
+            name: Token {
+                token: Ident,
+                pos: (14, 18),
+                lexeme: "call".to_string(),
+                value: None,
+                line: 1,
+            },
         }),
         args: vec![Expression::Var {
             id: 1,
@@ -62,12 +68,15 @@ fn call_enum_1() {
 fn call_func_3() {
     let left = get_expr(Expression::Call {
         id: 3,
-        name: Box::new(Token {
-            token: Ident,
-            pos: (14, 18),
-            lexeme: "call".to_string(),
-            value: None,
-            line: 1,
+        name: Box::new(Expression::Var {
+            id: 4,
+            name: Token {
+                token: Ident,
+                pos: (14, 18),
+                lexeme: "call".to_string(),
+                value: None,
+                line: 1,
+            },
         }),
         args: vec![
             Expression::Value {
@@ -90,12 +99,15 @@ fn call_func_3() {
 fn call_func_2() {
     let left = get_expr(Expression::Call {
         id: 2,
-        name: Box::new(Token {
-            token: Ident,
-            pos: (14, 18),
-            lexeme: "call".to_string(),
-            value: None,
-            line: 1,
+        name: Box::new(Expression::Var {
+            id: 3,
+            name: Token {
+                token: Ident,
+                pos: (14, 18),
+                lexeme: "call".to_string(),
+                value: None,
+                line: 1,
+            },
         }),
         args: vec![Expression::Value {
             id: 1,
@@ -112,12 +124,15 @@ fn call_func_2() {
 fn call_func_1() {
     let left = get_expr(Expression::Call {
         id: 1,
-        name: Box::new(Token {
-            token: Ident,
-            pos: (14, 18),
-            lexeme: "call".to_string(),
-            value: None,
-            line: 1,
+        name: Box::new(Expression::Var {
+            id: 2,
+            name: Token {
+                token: Ident,
+                pos: (14, 18),
+                lexeme: "call".to_string(),
+                value: None,
+                line: 1,
+            },
         }),
         args: vec![],
         call_type: CallType::Func,

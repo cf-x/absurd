@@ -33,7 +33,4 @@ mv "$tmp_file" "$path"
 git add .
 git commit -m "update: v$version"
 git push -u origin main
-
-
-cd ./interpreter/ape_$crate
-cargo publish
+echo "version updated to $version"
