@@ -1,3 +1,8 @@
+use std::{
+    fmt::{self, Debug},
+    rc::Rc,
+};
+
 use crate::{env::Env, expr::Expression};
 
 #[derive(Debug, PartialEq, Clone)]
@@ -198,6 +203,48 @@ pub enum LiteralType {
     Any,
     Array(Vec<LiteralType>),
     Func(FuncValueType),
+    DeclrFunc(DeclrFuncType),
+}
+
+#[derive(Debug, Clone)]
+pub struct DeclrFuncType {
+    pub name: String,
+    pub arity: usize,
+    pub func: Rc<dyn FuncValType>,
+}
+
+pub trait FuncValType {
+    fn call(&self, args: Vec<LiteralType>) -> LiteralType;
+}
+
+impl Debug for dyn FuncValType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "FuncValType")
+    }
+}
+
+impl PartialEq for DeclrFuncType {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name && self.arity == other.arity && self.func.rc_eq(&other.func)
+    }
+}
+
+pub trait RcFuncValType {
+    fn rc_eq(&self, other: &Self) -> bool;
+}
+
+impl RcFuncValType for Rc<dyn FuncValType> {
+    fn rc_eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(self, other)
+    }
+}
+
+pub struct Wrapper(pub Box<dyn Fn(&[LiteralType]) -> LiteralType>);
+
+impl FuncValType for Wrapper {
+    fn call(&self, args: Vec<LiteralType>) -> LiteralType {
+        (self.0)(&args)
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]

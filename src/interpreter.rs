@@ -1,12 +1,14 @@
-use std::{collections::HashMap, process::exit};
+use core::panic;
+use std::{any::Any, collections::HashMap, rc::Rc};
 
 use crate::{
     ast::{
-        FuncImpl, FuncValueType, LiteralType,
+        DeclrFuncType, FuncBody, FuncImpl, FuncValueType, LiteralType,
         Statement::{self, *},
-        Token,
+        Token, Wrapper,
     },
     env::Env,
+    expr::Expression,
 };
 
 #[derive(Debug)]
@@ -18,16 +20,29 @@ pub struct Interpreter {
 
 impl Interpreter {
     pub fn new() -> Self {
-        let /* mut */ int = Self {
+        let int = Self {
             env: Env::new(HashMap::new()),
             specs: HashMap::new(),
             is_mod: false,
         };
         // @todo pre-load std
+        int.env.define(
+            "print".to_string(),
+            LiteralType::DeclrFunc(DeclrFuncType {
+                name: "print".to_string(),
+                arity: 1,
+                func: Rc::new(Wrapper {
+                    0: Box::new(|args: &[LiteralType]| {
+                        println!("{:?}", args[0]);
+                        LiteralType::Void
+                    }),
+                }),
+            }),
+        );
         int
     }
     pub fn new_with_env(env: Env) -> Self {
-        let /* mut */ int = Self {
+        let int = Self {
             env,
             specs: HashMap::new(),
             is_mod: false,
@@ -38,7 +53,7 @@ impl Interpreter {
     pub fn interpret(&mut self, stmts: Vec<&Statement>) {
         for stmt in stmts {
             match stmt {
-                Expression { expr } => {
+                Statement::Expression { expr } => {
                     expr.eval(self.env.clone());
                 }
                 Block { stmts } => {
@@ -70,12 +85,21 @@ impl Interpreter {
                         // @todo handle null value
                     } // @todo handle functions
                 },
-                Func { name, .. } => {
+                Func {
+                    name,
+                    value_type,
+                    body,
+                    params,
+                    is_async,
+                    is_pub,
+                    is_impl,
+                    is_mut,
+                } => {
                     // @todo handle implementation,
                     // asynchroneity and param mutability
-                    let call = self.create_func(stmt);
-                    let func = LiteralType::Func(FuncValueType::Func(call));
-                    self.env.define(name.lexeme.clone(), func);
+                    // let call = self.create_func(stmt);
+                    // let func = LiteralType::Func(FuncValueType::Func(call));
+                    self.env.define(name.lexeme.clone(), LiteralType::Any);
                 }
                 If { .. } => {
                     // @todo handle if statements
@@ -126,10 +150,18 @@ impl Interpreter {
                 .iter()
                 .map(|(name, value_type)| (name.clone(), value_type.clone()))
                 .collect();
+            let body: Vec<Statement> = match body {
+                FuncBody::Statements(stmts) => stmts.iter().map(|x| x.clone()).collect(),
+                _ => {
+                    // @error invalid function body
+                    panic!("invalid function body")
+                }
+            };
+
             FuncImpl {
                 name: name.lexeme.clone(),
                 value_type: value_type.clone(),
-                body: body.clone(),
+                body: FuncBody::Statements(body),
                 params,
                 is_async: *is_async,
                 is_pub: *is_pub,
@@ -139,7 +171,53 @@ impl Interpreter {
             }
         } else {
             // @error failed to create a function
-            exit(1);
+            panic!(" failed to create a function");
         }
     }
+}
+
+pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Env) -> LiteralType {
+    if args.len() != func.params.len() {
+        // @error invalid number of arguments
+        panic!("invalid number of arguments")
+    }
+    let mut arg_values = vec![];
+    for arg in args {
+        arg_values.push(arg.eval(env.clone()));
+    }
+    let func_env = func.env.enclose();
+    for (i, val) in arg_values.iter().enumerate() {
+        if i < func.params.len() {
+            // @todo type check arguments
+            func_env.define(func.params[i].0.lexeme.clone(), val.clone());
+        } else {
+            // @error invalid number of arguments
+            panic!("invalid number of arguments")
+        }
+    }
+    let mut int = Interpreter::new_with_env(func_env);
+
+    match func.body {
+        FuncBody::Statements(body) => {
+            for stmt in body {
+                int.interpret(vec![&stmt]);
+                let val = int.specs.get("return");
+                if val.is_some() {
+                    let v = val.unwrap().clone();
+                    // @todo add output type checking
+                    return v;
+                }
+            }
+        }
+        _ => {
+            // @error invalid function body
+            panic!("invalid function body")
+        }
+    }
+
+    if func.value_type.lexeme != "void" {
+        // @error missing return statement
+        panic!("missing return statement")
+    }
+    LiteralType::Null
 }

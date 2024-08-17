@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- updated interpreter
+- updated expressions
+- updated ast
+- vulnerabilities detected
+
 ## 0.2.0
 
 - added interpreter

@@ -1,6 +1,7 @@
 use crate::{
-    ast::{CallType, FuncBody, LiteralType, Token},
+    ast::{CallType, FuncBody, FuncValueType, LiteralType, Token},
     env::Env,
+    interpreter::run_func,
 };
 use core::hash::{Hash, Hasher};
 
@@ -64,6 +65,7 @@ impl Eq for Expression {}
 impl Expression {
     pub fn id(&self) -> usize {
         match self {
+            // @todo add assign expression
             Expression::Var { id, .. } => *id,
             Expression::Call { id, .. } => *id,
             Expression::Func { id, .. } => *id,
@@ -75,8 +77,53 @@ impl Expression {
             Expression::Grouping { id, .. } => *id,
         }
     }
-    pub fn eval(&self, _eval: Env) -> LiteralType {
-        // @todo
-        LiteralType::Any
+
+    pub fn eval(&self, env: Env) -> LiteralType {
+        match self {
+            Expression::Var { name, .. } => match env.get(name.lexeme.clone(), self.id()) {
+                Some(v) => v.clone(),
+                None => LiteralType::Null,
+            },
+            Expression::Call {
+                name,
+                args,
+                // call_type,
+                ..
+            } => {
+                let call: LiteralType = name.eval(env.clone());
+
+                match call {
+                    LiteralType::Func(func) => match func {
+                        FuncValueType::Func(func) => run_func(func, args, env),
+                        _ => {
+                            // @error invalid function call
+                            LiteralType::Null
+                        }
+                    },
+                    LiteralType::DeclrFunc(func) => {
+                        let mut args_eval = vec![];
+                        for arg in args {
+                            args_eval.push(arg.eval(env.clone()))
+                        }
+
+                        (*func.func).call(args_eval)
+                    }
+                    // @todo add other call types
+                    _ => {
+                        // @error invalid call
+                        LiteralType::Null
+                    }
+                }
+            }
+            Expression::Grouping { expression, .. } => expression.eval(env),
+            Expression::Value { value, .. } => value.clone(),
+            // @todo add func expression
+            Expression::Func { .. } => LiteralType::Null,
+            // @todo change array items to expressions
+            Expression::Array { .. } => LiteralType::Null,
+            // @todo handle after adding asynchronocity
+            Expression::Await { .. } => LiteralType::Null,
+            _ => LiteralType::Any,
+        }
     }
 }

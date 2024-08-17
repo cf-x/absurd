@@ -39,5 +39,5 @@ pub fn interpreter_raw(src: &str) {
     let mut resolver = Resolver::new();
     let locals = resolver.resolve(&stmts.iter().collect(), &mut int.env);
     int.env.resolve(locals);
-    int.interpret(stmts.iter().collect());
+    int.interpret(stmts.iter().collect()); 
 }

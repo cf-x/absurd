@@ -18,7 +18,7 @@ fn main() {
     func name() -> string {
         return "hi";
     }
-    let name: string = name();
+    print(name());
         "#;
     interpreter_raw(src);
 }
