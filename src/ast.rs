@@ -1,4 +1,4 @@
-use crate::expr::Expression;
+use crate::{env::Env, expr::Expression};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
@@ -172,9 +172,9 @@ pub enum TokenType {
     AnyIdent,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum FuncValueType {
-    Func,
+    Func(FuncImpl),
     Std,
     Callback,
 }
@@ -207,6 +207,19 @@ pub enum LiteralKind {
     Char { value: char },
     Bool { value: bool },
     Null,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct FuncImpl {
+    pub name: String,
+    pub value_type: Token,
+    pub body: FuncBody,
+    pub params: Vec<(Token, Token)>,
+    pub is_async: bool,
+    pub is_pub: bool,
+    pub is_impl: bool,
+    pub is_mut: bool,
+    pub env: Env,
 }
 
 #[derive(Debug, PartialEq, Clone)]

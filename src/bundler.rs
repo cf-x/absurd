@@ -5,7 +5,9 @@
 use crate::analyzer::Analyzer;
 use crate::ast::{Statement, Token};
 use crate::errors::Error;
+use crate::interpreter::Interpreter;
 use crate::lexer::Lexer;
+use crate::resolver::Resolver;
 
 pub fn lexer(src: &str) -> Vec<Token> {
     let err = Error::new(src);
@@ -29,4 +31,13 @@ pub fn analyzer(src: &str) -> Vec<Statement> {
     let stmts = parser.parse();
     let mut analyzer = Analyzer::new(stmts);
     analyzer.analyze()
+}
+
+pub fn interpreter_raw(src: &str) {
+    let mut int = Interpreter::new();
+    let stmts = parser(src);
+    let mut resolver = Resolver::new();
+    let locals = resolver.resolve(&stmts.iter().collect(), &mut int.env);
+    int.env.resolve(locals);
+    int.interpret(stmts.iter().collect());
 }
