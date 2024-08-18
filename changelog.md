@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1
+
+- fixed environmental vulnerability
+- fixed interpreter
+
 ## 0.3.0
 
 - updated interpreter

@@ -3,7 +3,10 @@ use crate::{
     env::Env,
     interpreter::run_func,
 };
-use core::hash::{Hash, Hasher};
+use core::{
+    hash::{Hash, Hasher},
+    panic,
+};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
@@ -97,7 +100,7 @@ impl Expression {
                         FuncValueType::Func(func) => run_func(func, args, env),
                         _ => {
                             // @error invalid function call
-                            LiteralType::Null
+                            panic!("Invalid function call");
                         }
                     },
                     LiteralType::DeclrFunc(func) => {

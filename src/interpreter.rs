@@ -1,5 +1,5 @@
 use core::panic;
-use std::{any::Any, collections::HashMap, rc::Rc};
+use std::{collections::HashMap, rc::Rc};
 
 use crate::{
     ast::{
@@ -26,6 +26,7 @@ impl Interpreter {
             is_mod: false,
         };
         // @todo pre-load std
+
         int.env.define(
             "print".to_string(),
             LiteralType::DeclrFunc(DeclrFuncType {
@@ -42,13 +43,11 @@ impl Interpreter {
         int
     }
     pub fn new_with_env(env: Env) -> Self {
-        let int = Self {
+        Self {
             env,
             specs: HashMap::new(),
             is_mod: false,
-        };
-        // @todo pre-load std
-        int
+        }
     }
     pub fn interpret(&mut self, stmts: Vec<&Statement>) {
         for stmt in stmts {
@@ -97,9 +96,9 @@ impl Interpreter {
                 } => {
                     // @todo handle implementation,
                     // asynchroneity and param mutability
-                    // let call = self.create_func(stmt);
-                    // let func = LiteralType::Func(FuncValueType::Func(call));
-                    self.env.define(name.lexeme.clone(), LiteralType::Any);
+                    let call = self.create_func(stmt);
+                    let func = LiteralType::Func(FuncValueType::Func(call));
+                    self.env.define(name.lexeme.clone(), func);
                 }
                 If { .. } => {
                     // @todo handle if statements
@@ -167,7 +166,7 @@ impl Interpreter {
                 is_pub: *is_pub,
                 is_impl: *is_impl,
                 is_mut: *is_mut,
-                env: self.env.clone(),
+                env: Env::new(HashMap::new()),
             }
         } else {
             // @error failed to create a function
@@ -202,6 +201,7 @@ pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Env) -> LiteralType
             for stmt in body {
                 int.interpret(vec![&stmt]);
                 let val = int.specs.get("return");
+
                 if val.is_some() {
                     let v = val.unwrap().clone();
                     // @todo add output type checking
