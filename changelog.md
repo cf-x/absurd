@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.2
+
+- updated standard library system
+- fixed minor bugs
+
 ## 0.3.1
 
 - fixed environmental vulnerability

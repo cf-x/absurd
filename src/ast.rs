@@ -81,6 +81,8 @@ pub enum TokenType {
     FalseLit,
     /// null
     NullLit,
+    /// array
+    ArrayLit,
     /// <
     Less,
     /// <=
@@ -95,8 +97,6 @@ pub enum TokenType {
     Dot,
     /// ..
     DotDot,
-    /// ...
-    Spread,
     /// /
     Divide,
     /// \
@@ -171,7 +171,7 @@ pub enum TokenType {
     NullIdent,
     /// void
     VoidIdent,
-    /// array(type)
+    /// array
     ArrayIdent,
     /// any
     AnyIdent,
@@ -201,7 +201,7 @@ pub enum LiteralType {
     Null,
     Void,
     Any,
-    Array(Vec<LiteralType>),
+    Array(Vec<Expression>),
     Func(FuncValueType),
     DeclrFunc(DeclrFuncType),
 }

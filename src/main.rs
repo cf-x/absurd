@@ -8,6 +8,7 @@ mod errors;
 mod expr;
 mod interpreter;
 mod lexer;
+mod std;
 mod parser;
 mod resolver;
 #[cfg(test)]
@@ -15,10 +16,7 @@ mod tests;
 
 fn main() {
     let src = r#"
-    func name() -> string {
-        return "hi";
-    }
-    let x: any = print(name());
+    let x: any = print("Hello, World!");
         "#;
     interpreter_raw(src);
 }

@@ -863,8 +863,6 @@ impl Parser {
         if self.if_token_consume(Less) {
             let typ = self.consume_type_ident();
             self.consume(Greater);
-            // @todo add ArrayLit
-            // @todo add Array Literal Type
             Token {
                 token: ArrayIdent,
                 lexeme: typ.lexeme,
@@ -891,8 +889,6 @@ impl Parser {
                 }
             }
             let typ = self.consume_type_ident();
-            // @todo add CallbackLit token type
-            // @todo add Callback Literal type
             Token {
                 token: ArrayIdent,
                 lexeme: typ.lexeme,

@@ -9,6 +9,7 @@ use crate::{
     },
     env::Env,
     expr::Expression,
+    std::core::io::StdCoreIo,
 };
 
 #[derive(Debug)]
@@ -27,19 +28,8 @@ impl Interpreter {
         };
         // @todo pre-load std
 
-        int.env.define(
-            "print".to_string(),
-            LiteralType::DeclrFunc(DeclrFuncType {
-                name: "print".to_string(),
-                arity: 1,
-                func: Rc::new(Wrapper {
-                    0: Box::new(|args: &[LiteralType]| {
-                        println!("{:?}", args[0]);
-                        LiteralType::Void
-                    }),
-                }),
-            }),
-        );
+        let mut std_core_io = StdCoreIo::new(int.env.clone());
+        std_core_io.load();
         int
     }
     pub fn new_with_env(env: Env) -> Self {
