@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0
+
+- updated `variable` and `function` interpreter
+- added `if`, `while` and `loop` statement interpreter
+
 ## 0.5.1
 
 - added cli `run` command

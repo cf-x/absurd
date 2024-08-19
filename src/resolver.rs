@@ -94,7 +94,7 @@ impl Resolver {
                 self.declare(name);
                 if let Some(value) = value {
                     let val = (*value).eval(env.clone());
-                    if self.type_check(value_type, &val) {
+                    if type_check(value_type, &val) {
                         self.resolve_expr(value, env);
                     } else {
                         self.err.throw(
@@ -107,7 +107,7 @@ impl Resolver {
                 }
                 self.define(name);
             }
-            // @todo better handle public names
+            // @todo better handle public names (after adding modality)
             for pub_name in pub_names {
                 self.declare(pub_name);
                 if let Some(value) = value {
@@ -168,7 +168,7 @@ impl Resolver {
                     for stmt in body {
                         if let Statement::Return { expr } = stmt {
                             let val = (*expr).eval(env.clone());
-                            if self.type_check(value_type, &val) {
+                            if type_check(value_type, &val) {
                                 self.resolve_expr(expr, env);
                             } else {
                                 self.err.throw(
@@ -279,7 +279,6 @@ impl Resolver {
             self.resolve_many(&body.iter().collect(), env);
             self.scope_end();
             for (elif_pred, elif_stmt) in else_if_branches {
-                // @todo type cheking
                 self.resolve_expr(elif_pred, env);
                 self.scope_start();
                 self.resolve_many(&elif_stmt.iter().collect(), env);
@@ -341,7 +340,7 @@ impl Resolver {
 
     fn resolve_func_expr(
         &mut self,
-        _value_type: &Token,
+        value_type: &Token,
         body: &FuncBody,
         params: &Vec<(Token, Token)>,
         _is_async: &bool,
@@ -351,8 +350,7 @@ impl Resolver {
         let encl_func = self.is_crnt_fnc;
         self.is_crnt_fnc = Bool::True;
         self.scope_start();
-        for (parname, _partype) in params {
-            // @todo handle type checking
+        for (parname, _) in params {
             self.declare(parname);
             self.define(parname);
         }
@@ -360,11 +358,28 @@ impl Resolver {
         match body {
             FuncBody::Statements(body) => {
                 self.resolve_many(&body.iter().collect(), env);
+
+                for stmt in body {
+                    if let Statement::Return { expr } = stmt {
+                        let val = (*expr).eval(env.clone());
+                        if type_check(value_type, &val) {
+                            self.resolve_expr(expr, env);
+                        } else {
+                            self.err.throw(
+                                E0x301,
+                                0,
+                                (0, 0),
+                                vec![value_type.clone().lexeme, val.to_string()],
+                            );
+                        }
+                    }
+                }
             }
             _ => {
                 self.err.throw(E0x305, 0, (0, 0), vec![]);
             }
         }
+
         self.scope_end();
         self.is_crnt_fnc = encl_func;
     }
@@ -392,55 +407,6 @@ impl Resolver {
             _ => self
                 .err
                 .throw(E0x306, 0, (0, 0), vec!["a variable".to_string()]),
-        }
-    }
-
-    fn type_check(&self, value_type: &Token, val: &LiteralType) -> bool {
-        match value_type.token {
-            TokenType::NumberIdent => {
-                if let LiteralType::Number(_) = val {
-                    true
-                } else {
-                    false
-                }
-            }
-            TokenType::StringIdent => {
-                if let LiteralType::String(_) = val {
-                    true
-                } else {
-                    false
-                }
-            }
-            TokenType::BoolIdent => {
-                if let LiteralType::Boolean(_) = val {
-                    true
-                } else {
-                    false
-                }
-            }
-            TokenType::CharIdent => {
-                if let LiteralType::Char(_) = val {
-                    true
-                } else {
-                    false
-                }
-            }
-            TokenType::NullIdent => {
-                if let LiteralType::Null = val {
-                    true
-                } else {
-                    false
-                }
-            }
-            TokenType::VoidIdent => {
-                if let LiteralType::Void = val {
-                    true
-                } else {
-                    false
-                }
-            }
-            TokenType::AnyIdent => true,
-            _ => false,
         }
     }
 
@@ -493,5 +459,54 @@ impl Resolver {
                 self.err.throw(E0x308, 0, (0, 0), vec![]);
             }
         }
+    }
+}
+
+pub fn type_check(value_type: &Token, val: &LiteralType) -> bool {
+    match value_type.token {
+        TokenType::NumberIdent => {
+            if let LiteralType::Number(_) = val {
+                true
+            } else {
+                false
+            }
+        }
+        TokenType::StringIdent => {
+            if let LiteralType::String(_) = val {
+                true
+            } else {
+                false
+            }
+        }
+        TokenType::BoolIdent => {
+            if let LiteralType::Boolean(_) = val {
+                true
+            } else {
+                false
+            }
+        }
+        TokenType::CharIdent => {
+            if let LiteralType::Char(_) = val {
+                true
+            } else {
+                false
+            }
+        }
+        TokenType::NullIdent => {
+            if let LiteralType::Null = val {
+                true
+            } else {
+                false
+            }
+        }
+        TokenType::VoidIdent => {
+            if let LiteralType::Void = val {
+                true
+            } else {
+                false
+            }
+        }
+        TokenType::AnyIdent => true,
+        _ => false,
     }
 }

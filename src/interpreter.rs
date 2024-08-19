@@ -15,7 +15,6 @@ use std::collections::HashMap;
 pub struct Interpreter {
     pub env: Env,
     pub specs: HashMap<String, LiteralType>,
-    #[allow(dead_code)]
     pub is_mod: bool,
 }
 
@@ -26,8 +25,6 @@ impl Interpreter {
             specs: HashMap::new(),
             is_mod: false,
         };
-        // @todo pre-load std
-
         let mut std_core_io = StdCoreIo::new(int.env.clone());
         std_core_io.load();
         int
@@ -46,50 +43,132 @@ impl Interpreter {
                     expr.eval(self.env.clone());
                 }
                 Block { stmts } => {
-                    let new_env = self.env.enclose();
-                    let prev_env = self.env.clone();
-                    self.env = new_env;
-                    self.interpret(stmts.iter().map(|x| x).collect());
-                    self.env = prev_env;
+                    if !self.is_mod {
+                        let new_env = self.env.enclose();
+                        let prev_env = self.env.clone();
+                        self.env = new_env;
+                        self.interpret(stmts.iter().map(|x| x).collect());
+                        self.env = prev_env;
+                    }
                 }
                 Var {
                     names,
                     value,
                     is_pub,
                     pub_names,
+                    is_func,
                     ..
                 } => match value {
                     Some(v) => {
-                        let val = v.eval(self.env.clone());
-                        for name in names {
-                            self.env.define(name.lexeme.clone(), val.clone());
-                        }
-                        if *is_pub {
+                        if !self.is_mod {
+                            if is_func.clone() {
+                                if names.len() != 1 {
+                                    panic!("@error function must have one name")
+                                }
+                                let call = self.create_func(stmt);
+                                let func = LiteralType::Func(FuncValueType::Func(call));
+                                self.env.define(names[0].lexeme.clone(), func);
+                            } else {
+                                let val = v.eval(self.env.clone());
+                                for name in names {
+                                    self.env.define(name.lexeme.clone(), val.clone());
+                                }
+                                if is_pub.clone() {
+                                    for name in pub_names {
+                                        self.env.define_pub(name.lexeme.clone(), val.clone());
+                                    }
+                                }
+                            }
+                        } else if is_pub.clone() {
+                            let val = v.eval(self.env.clone());
                             for name in pub_names {
                                 self.env.define_pub(name.lexeme.clone(), val.clone());
                             }
                         }
                     }
                     None => {
-                        // @todo handle null value
-                    } // @todo handle functions
+                        if is_pub.clone() {
+                            panic!("@error public variable must have a value")
+                        }
+                        let val = LiteralType::Null;
+                        for name in names {
+                            self.env.define(name.lexeme.clone(), val.clone());
+                        }
+                    }
                 },
-                Func { name, .. } => {
+                Func { name, is_pub, .. } => {
                     // @todo handle implementation,
                     // asynchroneity and param mutability
+
                     let call = self.create_func(stmt);
                     let func = LiteralType::Func(FuncValueType::Func(call));
-                    self.env.define(name.lexeme.clone(), func);
+                    if is_pub.clone() {
+                        self.env.define_pub(name.lexeme.clone(), func.clone());
+                    } else if !self.is_mod {
+                        self.env.define(name.lexeme.clone(), func);
+                    }
                 }
-                If { .. } => {
-                    // @todo handle if statements
+                If {
+                    cond,
+                    body,
+                    else_branch,
+                    else_if_branches,
+                } => {
+                    if !self.is_mod {
+                        let val = cond.eval(self.env.clone());
+                        if val.is_truthy() {
+                            self.interpret(body.iter().map(|x| x).collect());
+                        } else {
+                            for (cond, body) in else_if_branches {
+                                let val = cond.eval(self.env.clone());
+                                if val.is_truthy() {
+                                    self.interpret(body.iter().map(|x| x).collect());
+                                    break;
+                                }
+                            }
+                            if let Some(body) = else_branch {
+                                self.interpret(body.iter().map(|x| x).collect());
+                            }
+                        }
+                    }
                 }
                 Return { expr } => {
                     let value = expr.eval(self.env.clone());
                     self.specs.insert("return".to_string(), value);
                 }
-                While { .. } => {}
-                Loop { .. } => {}
+                While { cond, body } => {
+                    if !self.is_mod {
+                        while cond.eval(self.env.clone()).is_truthy() {
+                            self.interpret(body.iter().map(|x| x).collect());
+                            if self.specs.get("break").is_some() {
+                                self.specs.remove("break");
+                                break;
+                            }
+                        }
+                    }
+                }
+                Loop { iter, body } => {
+                    if !self.is_mod {
+                        match iter {
+                            Some(i) => {
+                                for _ in 0..i.clone() {
+                                    self.interpret(body.iter().map(|x| x).collect());
+                                    if self.specs.get("break").is_some() {
+                                        self.specs.remove("break");
+                                        break;
+                                    }
+                                }
+                            }
+                            None => loop {
+                                self.interpret(body.iter().map(|x| x).collect());
+                                if self.specs.get("break").is_some() {
+                                    self.specs.remove("break");
+                                    break;
+                                }
+                            },
+                        }
+                    }
+                }
                 Break {} => {
                     self.specs.insert("break".to_string(), LiteralType::Null);
                 }

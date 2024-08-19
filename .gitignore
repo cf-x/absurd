@@ -2,3 +2,4 @@ interpreter/ape_*/target
 interpreter/ape_*/Cargo.lock
 target
 Cargo.lock
+test.ape

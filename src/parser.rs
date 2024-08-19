@@ -262,8 +262,8 @@ impl Parser {
     }
 
     fn loop_stmt(&mut self) -> Statement {
-        let iter = if self.if_token_consume(NumberLit) {
-            let num = match self.consume(NullLit).value {
+        let iter = if self.is_token(NumberLit) {
+            let num = match self.consume(NumberLit).value {
                 Some(LiteralKind::Number { value, .. }) => value,
                 _ => {
                     self.err.throw(
@@ -275,11 +275,14 @@ impl Parser {
                     exit(1);
                 }
             };
-            Some(num as usize)
+            if num < 0.0 {
+                Some(1)
+            } else {
+                Some(num as usize)
+            }
         } else {
             None
         };
-
         let body = self.block_stmts();
         Statement::Loop { iter, body }
     }
