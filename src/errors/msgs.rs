@@ -229,4 +229,82 @@ impl Error {
             format!("stack overflow, at {}:{}-{}", line, pos.0, pos.1),
         );
     }
+
+    pub fn e401(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.panic(
+            "runtime",
+            401,
+            format!(
+                "function must have one name, at {}:{}-{}",
+                line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e402(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.panic(
+            "runtime",
+            402,
+            format!(
+                "public variable must have a value, at {}:{}-{}",
+                line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e403(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.panic(
+            "runtime",
+            403,
+            format!("invalid function body, at {}:{}-{}", line, pos.0, pos.1),
+        );
+    }
+
+    pub fn e404(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.panic(
+            "runtime",
+            404,
+            format!(
+                "failed to create a function, at {}:{}-{}",
+                line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e405(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.panic(
+            "runtime",
+            405,
+            format!(
+                "invalid number of arguments, at {}:{}-{}",
+                line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e406(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.panic(
+            "runtime",
+            406,
+            format!("missing return statement, at {}:{}-{}", line, pos.0, pos.1),
+        );
+    }
 }

@@ -5,35 +5,39 @@ use crate::{
         Token,
     },
     env::Env,
+    errors::{Error, ErrorCode::*},
     expr::Expression,
+    resolver::type_check,
     std::core::io::StdCoreIo,
 };
-use core::panic;
-use std::collections::HashMap;
+use std::{collections::HashMap, process::exit};
 
 #[derive(Debug)]
 pub struct Interpreter {
     pub env: Env,
     pub specs: HashMap<String, LiteralType>,
     pub is_mod: bool,
+    error: Error,
 }
 
 impl Interpreter {
-    pub fn new() -> Self {
+    pub fn new(src: &str) -> Self {
         let int = Self {
             env: Env::new(HashMap::new()),
             specs: HashMap::new(),
             is_mod: false,
+            error: Error::new(src),
         };
         let mut std_core_io = StdCoreIo::new(int.env.clone());
         std_core_io.load();
         int
     }
-    pub fn new_with_env(env: Env) -> Self {
+    pub fn new_with_env(env: Env, src: &str) -> Self {
         Self {
             env,
             specs: HashMap::new(),
             is_mod: false,
+            error: Error::new(src),
         }
     }
     pub fn interpret(&mut self, stmts: Vec<&Statement>) {
@@ -63,7 +67,8 @@ impl Interpreter {
                         if !self.is_mod {
                             if is_func.clone() {
                                 if names.len() != 1 {
-                                    panic!("@error function must have one name")
+                                    self.error
+                                        .throw(E0x401, names[0].line, names[0].pos, vec![]);
                                 }
                                 let call = self.create_func(stmt);
                                 let func = LiteralType::Func(FuncValueType::Func(call));
@@ -88,7 +93,8 @@ impl Interpreter {
                     }
                     None => {
                         if is_pub.clone() {
-                            panic!("@error public variable must have a value")
+                            self.error
+                                .throw(E0x402, names[0].line, names[0].pos, vec![]);
                         }
                         let val = LiteralType::Null;
                         for name in names {
@@ -212,8 +218,8 @@ impl Interpreter {
             let body: Vec<Statement> = match body {
                 FuncBody::Statements(stmts) => stmts.iter().map(|x| x.clone()).collect(),
                 _ => {
-                    // @error invalid function body
-                    panic!("invalid function body")
+                    self.error.throw(E0x403, name.line, name.pos, vec![]);
+                    exit(1);
                 }
             };
 
@@ -229,16 +235,16 @@ impl Interpreter {
                 env: Env::new(HashMap::new()),
             }
         } else {
-            // @error failed to create a function
-            panic!(" failed to create a function");
+            self.error.throw(E0x404, 0, (0, 0), vec![]);
+            exit(1);
         }
     }
 }
 
 pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Env) -> LiteralType {
+    let error = Error::new("");
     if args.len() != func.params.len() {
-        // @error invalid number of arguments
-        panic!("invalid number of arguments")
+        error.throw(E0x405, 0, (0, 0), vec![]);
     }
     let mut arg_values = vec![];
     for arg in args {
@@ -247,14 +253,20 @@ pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Env) -> LiteralType
     let func_env = func.env.enclose();
     for (i, val) in arg_values.iter().enumerate() {
         if i < func.params.len() {
-            // @todo type check arguments
+            if !type_check(&func.value_type, &val) {
+                error.throw(
+                    E0x301,
+                    0,
+                    (0, 0),
+                    vec![val.to_string(), arg_values[i].to_string()],
+                );
+            }
             func_env.define(func.params[i].0.lexeme.clone(), val.clone());
         } else {
-            // @error invalid number of arguments
-            panic!("invalid number of arguments")
+            error.throw(E0x405, 0, (0, 0), vec![]);
         }
     }
-    let mut int = Interpreter::new_with_env(func_env);
+    let mut int = Interpreter::new_with_env(func_env, "");
 
     match func.body {
         FuncBody::Statements(body) => {
@@ -264,20 +276,25 @@ pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Env) -> LiteralType
 
                 if val.is_some() {
                     let v = val.unwrap().clone();
-                    // @todo add output type checking
+                    if !type_check(&func.value_type, &v) {
+                        error.throw(
+                            E0x301,
+                            0,
+                            (0, 0),
+                            vec![func.value_type.clone().lexeme, v.to_string()],
+                        );
+                    }
                     return v;
                 }
             }
         }
         _ => {
-            // @error invalid function body
-            panic!("invalid function body")
+            error.throw(E0x403, 0, (0, 0), vec![]);
         }
     }
 
     if func.value_type.lexeme != "void" {
-        // @error missing return statement
-        panic!("missing return statement")
+        error.throw(E0x406, 0, (0, 0), vec![]);
     }
     LiteralType::Null
 }

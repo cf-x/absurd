@@ -103,6 +103,24 @@ pub enum ErrorCode {
     /// ## message
     /// `runtime error (E0x309): stack overflow`
     E0x309,
+    /// ## message
+    /// `runtime error (E0x401): function must have one name`
+    E0x401,
+    /// ## message
+    /// `runtime error (E0x402): public variable must have a value`
+    E0x402,
+    /// ## message
+    /// `runtime error (E0x403): invalid function body`
+    E0x403,
+    /// ## message
+    /// `runtime error (E0x404): failed to create a function`
+    E0x404,
+    /// ## message
+    /// `runtime error (E0x405): invalid number of arguments`
+    E0x405,
+    /// ## message
+    /// `runtime error (E0x406): missing return statement`
+    E0x406,
 }
 
 #[derive(Debug, Clone)]
@@ -136,6 +154,12 @@ impl Error {
             E0x307 => self.e307(line, pos, args),
             E0x308 => self.e308(line, pos),
             E0x309 => self.e309(line, pos),
+            E0x401 => self.e401(line, pos),
+            E0x402 => self.e402(line, pos),
+            E0x403 => self.e403(line, pos),
+            E0x404 => self.e404(line, pos),
+            E0x405 => self.e405(line, pos),
+            E0x406 => self.e406(line, pos),
         };
     }
 

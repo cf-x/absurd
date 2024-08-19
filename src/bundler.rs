@@ -31,7 +31,7 @@ pub fn analyzer(src: &str) -> Vec<Statement> {
 }
 
 pub fn interpreter_raw(src: &str) {
-    let mut int = Interpreter::new();
+    let mut int = Interpreter::new(src);
     let stmts = parser(src);
     let mut resolver = Resolver::new(src);
     let locals = resolver.resolve(&stmts.iter().collect(), &mut int.env);

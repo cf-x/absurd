@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.1
+
+- implemented error handling in interpreter
+- added 6 new standard library modules
+
 ## 0.6.0
 
 - updated `variable` and `function` interpreter
