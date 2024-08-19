@@ -19,7 +19,7 @@ impl StdCoreIo {
             &mut self.env,
             Rc::new(Wrapper {
                 0: Box::new(|args: &[LiteralType]| {
-                    println!("{:?}", args[0]);
+                    println!("{}", args[0].to_string());
                     LiteralType::Void
                 }),
             }),

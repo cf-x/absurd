@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+
+- added expression interpreter
+- updated literal handling
+- fixed bugs
+
 ## 0.3.2
 
 - updated standard library system

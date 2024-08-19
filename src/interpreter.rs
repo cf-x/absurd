@@ -74,16 +74,7 @@ impl Interpreter {
                         // @todo handle null value
                     } // @todo handle functions
                 },
-                Func {
-                    name,
-                    value_type,
-                    body,
-                    params,
-                    is_async,
-                    is_pub,
-                    is_impl,
-                    is_mut,
-                } => {
+                Func { name, .. } => {
                     // @todo handle implementation,
                     // asynchroneity and param mutability
                     let call = self.create_func(stmt);

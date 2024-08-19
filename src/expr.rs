@@ -1,12 +1,17 @@
 use crate::{
-    ast::{CallType, FuncBody, FuncValueType, LiteralType, Token},
+    ast::{
+        CallType, FuncBody, FuncImpl, FuncValueType, LiteralType, Token,
+        TokenType::{self, *},
+    },
     env::Env,
     interpreter::run_func,
 };
 use core::{
+    cmp::Eq,
     hash::{Hash, Hasher},
     panic,
 };
+use std::{collections::HashMap, fmt};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
@@ -120,13 +125,156 @@ impl Expression {
             }
             Expression::Grouping { expression, .. } => expression.eval(env),
             Expression::Value { value, .. } => value.clone(),
-            // @todo add func expression
-            Expression::Func { .. } => LiteralType::Null,
+            Expression::Func {
+                name,
+                value_type,
+                body,
+                params,
+                is_pub,
+                is_async,
+                id: _,
+            } => {
+                let call = FuncImpl {
+                    name: name.lexeme.clone(),
+                    value_type: value_type.clone(),
+                    body: FuncBody::Statements(match body {
+                        FuncBody::Statements(stmts) => stmts.iter().map(|x| x.clone()).collect(),
+                        _ => {
+                            // @error invalid function body
+                            panic!("invalid function body")
+                        }
+                    }),
+                    params: params
+                        .iter()
+                        .map(|(name, value_type)| (name.clone(), value_type.clone()))
+                        .collect(),
+                    is_pub: *is_pub,
+                    is_async: *is_async,
+                    is_impl: false,
+                    is_mut: false,
+                    env: Env::new(HashMap::new()),
+                };
+                let func = LiteralType::Func(FuncValueType::Func(call));
+                func
+            }
             // @todo change array items to expressions
             Expression::Array { .. } => LiteralType::Null,
             // @todo handle after adding asynchronocity
             Expression::Await { .. } => LiteralType::Null,
+            Expression::Binary {
+                left,
+                operator,
+                right,
+                ..
+            } => self.eval_binary(left, operator, right, env),
+            Expression::Unary { operator, left, .. } => self.eval_unary(operator, left, env),
+        }
+    }
+
+    fn eval_unary(&self, operator: &Token, left: &Expression, env: Env) -> LiteralType {
+        let left = left.eval(env.clone());
+        match (operator.clone().token, left.clone()) {
+            (Minus, LiteralType::Number(a)) => LiteralType::Number(-a),
+            (Not, _) => LiteralType::Boolean(!left.is_truthy()),
+            (NotNot, _) => LiteralType::Boolean(!!left.is_truthy()),
+            (Square, LiteralType::Number(a)) => LiteralType::Number(a * a),
+            (Decr, LiteralType::Number(a)) => LiteralType::Number(a - 1.0),
+            (Increment, LiteralType::Number(a)) => LiteralType::Number(a + 1.0),
+            _ => LiteralType::Null,
+        }
+    }
+
+    fn eval_binary(
+        &self,
+        left: &Expression,
+        operator: &Token,
+        right: &Expression,
+        env: Env,
+    ) -> LiteralType {
+        let left = left.eval(env.clone());
+        let right = right.eval(env.clone());
+        match (left.clone(), operator.clone().token, right.clone()) {
+            (_, Or, _) => {
+                if left.is_truthy() == true {
+                    return left;
+                }
+                return right;
+            }
+            (_, AndAnd, _) => {
+                if left.is_truthy() == false {
+                    return left.is_truthy_literal();
+                }
+                return right;
+            }
+            (LiteralType::Number(a), Percent, LiteralType::Number(b)) => {
+                return LiteralType::Number(a % b);
+            }
+            (LiteralType::Number(a), Mult, LiteralType::Number(b)) => {
+                return LiteralType::Number(a * b);
+            }
+            (LiteralType::Number(a), Minus, LiteralType::Number(b)) => {
+                return LiteralType::Number(a - b);
+            }
+            (LiteralType::Number(a), Divide, LiteralType::Number(b)) => {
+                return LiteralType::Number(a / b);
+            }
+            (LiteralType::Number(a), Plus, LiteralType::Number(b)) => {
+                return LiteralType::Number(a + b);
+            }
+            (LiteralType::Number(a), Greater, LiteralType::Number(b)) => {
+                return LiteralType::Boolean(a > b);
+            }
+            (LiteralType::Number(a), GreaterOrEq, LiteralType::Number(b)) => {
+                return LiteralType::Boolean(a >= b);
+            }
+            (LiteralType::Number(a), Less, LiteralType::Number(b)) => {
+                return LiteralType::Boolean(a < b);
+            }
+            (LiteralType::Number(a), LessOrEq, LiteralType::Number(b)) => {
+                return LiteralType::Boolean(a <= b);
+            }
+            (_, Eq, _) => {
+                return LiteralType::Boolean(left == right);
+            }
+            (_, NotEq, _) => {
+                return LiteralType::Boolean(left != right);
+            }
             _ => LiteralType::Any,
+        }
+    }
+}
+
+impl fmt::Display for Expression {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Expression::Var { name, .. } => write!(f, "{}", name.lexeme),
+            Expression::Call { name, args, .. } => {
+                let mut args_str = String::new();
+                for arg in args {
+                    args_str.push_str(&format!("{}, ", arg));
+                }
+                write!(f, "{}({})", name, args_str)
+            }
+            Expression::Grouping { expression, .. } => write!(f, "({})", expression),
+            Expression::Value { value, .. } => write!(f, "{}", value),
+            Expression::Func { name, .. } => write!(f, "{}", name.lexeme),
+            Expression::Array { items, .. } => {
+                let mut items_str = String::new();
+                for item in items {
+                    items_str.push_str(&format!("{}, ", item));
+                }
+                write!(f, "[{}]", items_str)
+            }
+            Expression::Await { expr, .. } => write!(f, "await {}", expr),
+            Expression::Binary {
+                left,
+                operator,
+                right,
+                ..
+            } => {
+                write!(f, "{} {} {}", left, operator.lexeme, right)
+            }
+            Expression::Unary { left, operator, .. } => write!(f, "{}{}", operator.lexeme, left),
         }
     }
 }
