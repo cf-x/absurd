@@ -6,12 +6,14 @@ use crate::ast::{
 };
 use crate::expr::Expression;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct FuncCall {
     name: Token,
     args: Vec<Expression>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum Called {
     Var(Token),
@@ -105,22 +107,21 @@ impl Analyzer {
         }
     }
 
-    fn expr(&mut self, expr: Expression) -> Option<Statement> {
+    fn expr(&mut self, _expr: Expression) -> Option<Statement> {
         None
     }
-    fn block(&mut self, vec: Vec<Statement>) -> Option<Statement> {
+    fn block(&mut self, _vec: Vec<Statement>) -> Option<Statement> {
         None
     }
-
     fn var(
         &mut self,
         names: Vec<Token>,
-        value_type: Token,
-        value: Option<Expression>,
-        is_mut: bool,
+        _value_type: Token,
+        _value: Option<Expression>,
+        _is_mut: bool,
         is_pub: bool,
-        is_func: bool,
-        pub_namees: Vec<Token>,
+        _is_func: bool,
+        _pub_namees: Vec<Token>,
     ) -> Option<Statement> {
         if !is_pub {
             for name in names {
@@ -134,37 +135,37 @@ impl Analyzer {
 
     fn func(
         &mut self,
-        name: Token,
-        value_type: Token,
-        body: FuncBody,
-        params: Vec<(Token, Token)>,
-        is_async: bool,
-        is_pub: bool,
-        is_impl: bool,
-        is_mut: bool,
+        _name: Token,
+        _value_type: Token,
+        _body: FuncBody,
+        _params: Vec<(Token, Token)>,
+        _is_async: bool,
+        _is_pub: bool,
+        _is_impl: bool,
+        _is_mut: bool,
     ) -> Option<Statement> {
         None
     }
 
     fn ifs(
         &mut self,
-        cond: Expression,
-        body: Vec<Statement>,
-        else_if_branches: Vec<(Expression, Vec<Statement>)>,
-        else_branch: Option<Vec<Statement>>,
+        _cond: Expression,
+        _body: Vec<Statement>,
+        _else_if_branches: Vec<(Expression, Vec<Statement>)>,
+        _else_branch: Option<Vec<Statement>>,
     ) -> Option<Statement> {
         None
     }
 
-    fn returns(&mut self, expr: Expression) -> Option<Statement> {
+    fn returns(&mut self, _expr: Expression) -> Option<Statement> {
         None
     }
 
-    fn whiles(&mut self, cond: Expression, body: Vec<Statement>) -> Option<Statement> {
+    fn whiles(&mut self, _cond: Expression, _body: Vec<Statement>) -> Option<Statement> {
         None
     }
 
-    fn loops(&mut self, iter: Option<usize>, body: Vec<Statement>) -> Option<Statement> {
+    fn loops(&mut self, _iter: Option<usize>, _body: Vec<Statement>) -> Option<Statement> {
         None
     }
 
@@ -174,36 +175,36 @@ impl Analyzer {
 
     fn matchs(
         &mut self,
-        cond: Expression,
-        cases: Vec<(Expression, FuncBody)>,
-        def_case: FuncBody,
+        _cond: Expression,
+        _cases: Vec<(Expression, FuncBody)>,
+        _def_case: FuncBody,
     ) -> Option<Statement> {
         None
     }
 
-    fn mods(&mut self, src: String) -> Option<Statement> {
+    fn mods(&mut self, _src: String) -> Option<Statement> {
         None
     }
 
-    fn uses(&mut self, src: String, names: Vec<(Token, Option<Token>)>) -> Option<Statement> {
+    fn uses(&mut self, _src: String, _names: Vec<(Token, Option<Token>)>) -> Option<Statement> {
         None
     }
 
     fn structs(
         &mut self,
-        name: Token,
-        structs: Vec<(Token, TokenType, bool)>,
-        is_pub: bool,
-        methods: Vec<(Expression, bool)>,
+        _name: Token,
+        _structs: Vec<(Token, TokenType, bool)>,
+        _is_pub: bool,
+        _methods: Vec<(Expression, bool)>,
     ) -> Option<Statement> {
         None
     }
 
-    fn impls(&mut self, name: Token, body: Vec<Statement>) -> Option<Statement> {
+    fn impls(&mut self, _name: Token, _body: Vec<Statement>) -> Option<Statement> {
         None
     }
 
-    fn enums(&mut self, name: Token, enums: Vec<Token>, is_pub: bool) -> Option<Statement> {
+    fn enums(&mut self, _name: Token, _enums: Vec<Token>, _is_pub: bool) -> Option<Statement> {
         None
     }
 }

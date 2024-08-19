@@ -82,6 +82,7 @@ pub enum TokenType {
     /// null
     NullLit,
     /// array
+    #[allow(dead_code)]
     ArrayLit,
     /// <
     Less,
@@ -178,6 +179,7 @@ pub enum TokenType {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+#[allow(dead_code)]
 pub enum FuncValueType {
     Func(FuncImpl),
     Std,
@@ -247,6 +249,7 @@ impl FuncValType for Wrapper {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum LiteralKind {
     Number { base: Base, value: f32 },
@@ -278,6 +281,7 @@ pub struct Token {
     pub pos: (usize, usize),
 }
 
+#[allow(dead_code)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum CallType {
     Func,

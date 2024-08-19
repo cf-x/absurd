@@ -4,6 +4,7 @@ use colored::Colorize;
 use ErrorCode::*;
 mod msgs;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum ErrorCode {
     /// ## message
@@ -182,7 +183,7 @@ impl Error {
         let head = format!("{} error ({}):", kind, err_code);
         eprintln!("{} {}", head.red().bold(), msg.red());
     }
-
+    #[allow(dead_code)]
     pub fn warn(&self, msg: String) {
         let head = "warning:".bold().yellow();
         eprintln!("{} {}", head, msg.yellow());

@@ -1,7 +1,8 @@
-use bundler::interpreter_raw;
+use cli::cli;
 mod analyzer;
 mod ast;
 mod bundler;
+mod cli;
 mod env;
 mod errors;
 mod expr;
@@ -15,9 +16,5 @@ mod std;
 mod tests;
 
 fn main() {
-    let src = r#"
-    let a: number = 5;
-    let x: any = print(++a);
-        "#;
-    interpreter_raw(src);
+    cli();
 }

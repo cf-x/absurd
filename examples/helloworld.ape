@@ -1,0 +1,1 @@
+let main: any = print("hello world");

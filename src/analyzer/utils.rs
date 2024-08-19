@@ -1,6 +1,8 @@
 use super::*;
 use crate::ast::{Statement, Token};
 
+
+#[allow(dead_code)]
 impl Analyzer {
     pub fn next(&mut self) -> Statement {
         let mut ast = self.input_ast.clone();
@@ -10,7 +12,6 @@ impl Analyzer {
         }
         ast.get(self.crnt).unwrap().clone()
     }
-
     pub fn is_eof(&mut self) -> bool {
         if self.input_ast.clone().len() <= self.crnt {
             return true;

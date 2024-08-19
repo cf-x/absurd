@@ -5,6 +5,7 @@ use crate::interpreter::Interpreter;
 use crate::lexer::Lexer;
 use crate::resolver::Resolver;
 
+#[allow(dead_code)]
 pub fn lexer(src: &str) -> Vec<Token> {
     let err = Error::new(src);
     let mut lexer = Lexer::new(src.to_string(), err.clone());
@@ -18,7 +19,7 @@ pub fn parser(src: &str) -> Vec<Statement> {
     let mut parser = crate::parser::Parser::new(tokens, err.clone());
     parser.parse()
 }
-
+#[allow(dead_code)]
 pub fn analyzer(src: &str) -> Vec<Statement> {
     let err = Error::new(src);
     let mut lexer = Lexer::new(src.to_string(), err.clone());

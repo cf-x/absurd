@@ -2,7 +2,6 @@ use crate::ast::{FuncBody, LiteralType, Statement, Token, TokenType};
 use crate::env::Env;
 use crate::errors::{Error, ErrorCode::*};
 use crate::expr::Expression;
-use core::panic;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Copy)]

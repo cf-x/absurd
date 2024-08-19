@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1
+
+- added cli `run` command
+- minor optimizations
+
 ## 0.5.0
 
 - implemented type checking

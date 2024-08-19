@@ -1,7 +1,8 @@
-use std::fmt;
 use crate::ast::{LiteralKind, LiteralType, Token, TokenType};
+use std::fmt;
 
 impl LiteralType {
+    #[allow(dead_code)]
     pub fn token_to_literal(&self, token: Token) -> LiteralType {
         match token.token {
             TokenType::NumberLit => {
