@@ -1,21 +1,21 @@
-use core::panic;
-use std::{collections::HashMap, rc::Rc};
-
 use crate::{
     ast::{
-        DeclrFuncType, FuncBody, FuncImpl, FuncValueType, LiteralType,
+        FuncBody, FuncImpl, FuncValueType, LiteralType,
         Statement::{self, *},
-        Token, Wrapper,
+        Token,
     },
     env::Env,
     expr::Expression,
     std::core::io::StdCoreIo,
 };
+use core::panic;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Interpreter {
     pub env: Env,
     pub specs: HashMap<String, LiteralType>,
+    #[allow(dead_code)]
     pub is_mod: bool,
 }
 

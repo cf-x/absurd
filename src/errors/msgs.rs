@@ -3,9 +3,7 @@ use super::Error;
 impl Error {
     pub fn e101(&self, line: usize, pos: (usize, usize), args: Vec<String>) {
         if pos != (0, 0) {
-            if pos != (0, 0) {
-                self.print_lines(line, pos);
-            }
+            self.print_lines(line, pos);
         }
         self.panic(
             "syntax",
@@ -109,6 +107,126 @@ impl Error {
                 "expeted a token '{}', at {}:{}-{}",
                 args[0], line, pos.0, pos.1
             ),
+        );
+    }
+
+    pub fn e301(&self, line: usize, pos: (usize, usize), args: Vec<String>) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.panic(
+            "runtime",
+            301,
+            format!(
+                "type mismatch: expected '{}', got {}, at {}:{}-{}",
+                args[0], args[1], line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e302(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.panic(
+            "runtime",
+            302,
+            format!(
+                "break statement not within a loop, at {}:{}-{}",
+                line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e303(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "runtime",
+            303,
+            format!(
+                "return statement not within a function, at {}:{}-{}",
+                line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e304(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "runtime",
+            304,
+            format!(
+                "await statement not within an async function, at {}:{}-{}",
+                line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e305(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "runtime",
+            305,
+            format!(
+                "invalid function return type, at {}:{}-{}",
+                line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e306(&self, line: usize, pos: (usize, usize), args: Vec<String>) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "runtime",
+            306,
+            format!(
+                "failed to resolve {}, at {}:{}-{}",
+                args[0], line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e307(&self, line: usize, pos: (usize, usize), args: Vec<String>) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "runtime",
+            307,
+            format!(
+                "{} is already declared, at {}:{}-{}",
+                args[0], line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e308(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "runtime",
+            308,
+            format!("stack underflow, at {}:{}-{}", line, pos.0, pos.1),
+        );
+    }
+
+    pub fn e309(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "runtime",
+            309,
+            format!("stack overflow, at {}:{}-{}", line, pos.0, pos.1),
         );
     }
 }

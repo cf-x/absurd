@@ -1,5 +1,6 @@
-use crate::ast::{FuncBody, LiteralType, Statement, Token};
+use crate::ast::{FuncBody, LiteralType, Statement, Token, TokenType};
 use crate::env::Env;
+use crate::errors::{Error, ErrorCode::*};
 use crate::expr::Expression;
 use core::panic;
 use std::collections::HashMap;
@@ -16,15 +17,17 @@ pub struct Resolver {
     scopes: Vec<HashMap<String, bool>>,
     is_crnt_fnc: Bool,
     is_crnt_loop: Bool,
+    err: Error,
 }
 
 impl Resolver {
-    pub fn new() -> Self {
+    pub fn new(src: &str) -> Self {
         Resolver {
             locals: HashMap::new(),
             scopes: Vec::new(),
             is_crnt_fnc: Bool::False,
             is_crnt_loop: Bool::False,
+            err: Error::new(src),
         }
     }
     pub fn resolve(&mut self, stmts: &Vec<&Statement>, env: &mut Env) -> HashMap<usize, usize> {
@@ -42,8 +45,8 @@ impl Resolver {
         match stmt {
             Statement::If { .. } => self.resolve_if_stmt(stmt, env),
             Statement::Block { .. } => self.resolve_block(stmt, env),
-            Statement::Break { .. } => self.resolve_break_stmt(stmt, env),
-            Statement::Enum { .. } => self.resolve_enum_stmt(stmt, env),
+            Statement::Break {} => self.resolve_break_stmt(),
+            Statement::Enum { .. } => self.resolve_enum_stmt(stmt),
             Statement::Expression { expr } => self.resolve_expr(expr, env),
             Statement::Func { .. } => self.resolve_func_stmt(stmt, env),
             Statement::Impl { .. } => self.resolve_impl_stmt(stmt, env),
@@ -52,19 +55,19 @@ impl Resolver {
             Statement::Mod { .. } => self.resolve_mod_stmt(stmt, env),
             Statement::Return { .. } => self.resolve_return_stmt(stmt, env),
             Statement::Struct { .. } => self.resolve_struct_stmt(stmt, env),
-            Statement::Use { .. } => self.resolve_use_stmt(stmt, env),
+            Statement::Use { .. } => self.resolve_use_stmt(stmt),
             Statement::Var { .. } => self.resolve_var_stmt(stmt, env),
             Statement::While { .. } => self.resolve_while_stmt(stmt, env),
         }
     }
 
-    fn resolve_struct_stmt(&mut self, stmt: &Statement, env: &mut Env) {
+    fn resolve_struct_stmt(&mut self, stmt: &Statement, _env: &mut Env) {
         if let Statement::Struct { .. } = stmt {
             // @todo
         }
     }
 
-    fn resolve_use_stmt(&mut self, stmt: &Statement, env: &mut Env) {
+    fn resolve_use_stmt(&mut self, stmt: &Statement) {
         if let Statement::Use { names, .. } = stmt {
             for name in names {
                 let (old, new) = name;
@@ -84,6 +87,7 @@ impl Resolver {
             names,
             pub_names,
             value,
+            value_type,
             ..
         } = stmt
         {
@@ -91,9 +95,16 @@ impl Resolver {
                 self.declare(name);
                 if let Some(value) = value {
                     let val = (*value).eval(env.clone());
-                    let _val_clone = val.clone();
-                    // @todo type checking
-                    self.resolve_expr(value, env);
+                    if self.type_check(value_type, &val) {
+                        self.resolve_expr(value, env);
+                    } else {
+                        self.err.throw(
+                            E0x301,
+                            name.line,
+                            name.pos,
+                            vec![value_type.clone().lexeme, val.to_string()],
+                        );
+                    }
                 }
                 self.define(name);
             }
@@ -118,16 +129,16 @@ impl Resolver {
         }
     }
 
-    fn resolve_break_stmt(&mut self, stmt: &Statement, env: &mut Env) {
+    fn resolve_break_stmt(&mut self) {
         match self.is_crnt_loop {
             Bool::True => {}
             Bool::False => {
-                // @error break outside of loop
+                self.err.throw(E0x302, 0, (0, 0), vec![]);
             }
         }
     }
 
-    fn resolve_enum_stmt(&mut self, stmt: &Statement, env: &mut Env) {
+    fn resolve_enum_stmt(&mut self, stmt: &Statement) {
         if let Statement::Enum { name, .. } = stmt {
             self.declare(name);
             self.define(name);
@@ -136,17 +147,17 @@ impl Resolver {
 
     fn resolve_func_stmt(&mut self, stmt: &Statement, env: &mut Env) {
         if let Statement::Func {
-            // value_type,
+            value_type,
             body,
             params,
+            name,
             ..
         } = stmt
         {
             let encl_func = self.is_crnt_fnc;
             self.is_crnt_fnc = Bool::True;
             self.scope_start();
-            for (parname, _partype) in params {
-                // @todo handle type checking
+            for (parname, _) in params {
                 self.declare(parname);
                 self.define(parname);
             }
@@ -154,12 +165,28 @@ impl Resolver {
             match body {
                 FuncBody::Statements(body) => {
                     self.resolve_many(&body.iter().collect(), env);
+
+                    for stmt in body {
+                        if let Statement::Return { expr } = stmt {
+                            let val = (*expr).eval(env.clone());
+                            if self.type_check(value_type, &val) {
+                                self.resolve_expr(expr, env);
+                            } else {
+                                self.err.throw(
+                                    E0x301,
+                                    name.line,
+                                    name.pos,
+                                    vec![value_type.clone().lexeme, val.to_string()],
+                                );
+                            }
+                        }
+                    }
                 }
                 _ => {
-                    // @error invalid function return type
+                    self.err.throw(E0x305, 0, (0, 0), vec![]);
                 }
             }
-            // @todo handle value_type checking
+
             self.scope_end();
             self.is_crnt_fnc = encl_func;
         }
@@ -235,7 +262,7 @@ impl Resolver {
                 }
             }
             _ => {
-                // @error return outside of function
+                self.err.throw(E0x303, 0, (0, 0), vec![]);
             }
         }
     }
@@ -274,14 +301,16 @@ impl Resolver {
                 self.resolve_many(&stmts.iter().collect(), env);
                 self.scope_end();
             }
-            _ => panic!("@error failed to resolve a block statement"),
+            _ => self
+                .err
+                .throw(E0x306, 0, (0, 0), vec!["a block statement".to_string()]),
         }
     }
 
     fn resolve_expr(&mut self, expr: &Expression, env: &mut Env) {
         match expr {
             Expression::Array { items, .. } => {
-                for item in items {
+                for _item in items {
                     // @todo resolve LiteralType
                 }
             }
@@ -313,11 +342,11 @@ impl Resolver {
 
     fn resolve_func_expr(
         &mut self,
-        value_type: &Token,
+        _value_type: &Token,
         body: &FuncBody,
         params: &Vec<(Token, Token)>,
-        is_async: &bool,
-        is_pub: &bool,
+        _is_async: &bool,
+        _is_pub: &bool,
         env: &mut Env,
     ) {
         let encl_func = self.is_crnt_fnc;
@@ -334,7 +363,7 @@ impl Resolver {
                 self.resolve_many(&body.iter().collect(), env);
             }
             _ => {
-                // @error invalid function return type
+                self.err.throw(E0x305, 0, (0, 0), vec![]);
             }
         }
         self.scope_end();
@@ -346,19 +375,73 @@ impl Resolver {
             Expression::Var { name, .. } => {
                 if !self.scopes.is_empty() {
                     if let Some(false) = self.scopes[self.scopes.len() - 1].get(&name.lexeme) {
-                        panic!("@error: failed to read local variable")
+                        self.err.throw(
+                            E0x306,
+                            name.line,
+                            name.pos,
+                            vec!["a local variable".to_string()],
+                        )
                     }
                 }
             }
             Expression::Call { name, .. } => match name.as_ref() {
                 Expression::Var { name, .. } => self.resolve_local(&name, expr.clone().id()),
-                _ => {
-                    panic!("@error: failed to resolve variable")
-                }
+                _ => self
+                    .err
+                    .throw(E0x306, 0, (0, 0), vec!["a variable".to_string()]),
             },
-            _ => {
-                panic!("@error: failed to resolve variable");
+            _ => self
+                .err
+                .throw(E0x306, 0, (0, 0), vec!["a variable".to_string()]),
+        }
+    }
+
+    fn type_check(&self, value_type: &Token, val: &LiteralType) -> bool {
+        match value_type.token {
+            TokenType::NumberIdent => {
+                if let LiteralType::Number(_) = val {
+                    true
+                } else {
+                    false
+                }
             }
+            TokenType::StringIdent => {
+                if let LiteralType::String(_) = val {
+                    true
+                } else {
+                    false
+                }
+            }
+            TokenType::BoolIdent => {
+                if let LiteralType::Boolean(_) = val {
+                    true
+                } else {
+                    false
+                }
+            }
+            TokenType::CharIdent => {
+                if let LiteralType::Char(_) = val {
+                    true
+                } else {
+                    false
+                }
+            }
+            TokenType::NullIdent => {
+                if let LiteralType::Null = val {
+                    true
+                } else {
+                    false
+                }
+            }
+            TokenType::VoidIdent => {
+                if let LiteralType::Void = val {
+                    true
+                } else {
+                    false
+                }
+            }
+            TokenType::AnyIdent => true,
+            _ => false,
         }
     }
 
@@ -368,7 +451,8 @@ impl Resolver {
         if self.scopes.is_empty() {
             return;
         } else if self.scopes[s - 1].contains_key(&name.lexeme.clone()) {
-            panic!("@error {} is already declared", name.clone().lexeme);
+            self.err
+                .throw(E0x307, name.line, name.pos, vec![name.clone().lexeme]);
         }
         self.scopes[s - 1].insert(name.lexeme.clone(), false);
     }
@@ -404,6 +488,11 @@ impl Resolver {
     }
 
     fn scope_end(&mut self) {
-        self.scopes.pop().expect("@error stack underflow");
+        match self.scopes.pop() {
+            Some(_) => {}
+            None => {
+                self.err.throw(E0x308, 0, (0, 0), vec![]);
+            }
+        }
     }
 }

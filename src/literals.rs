@@ -1,9 +1,8 @@
 use std::fmt;
-
 use crate::ast::{LiteralKind, LiteralType, Token, TokenType};
 
 impl LiteralType {
-    pub fn token_to_literal(token: Token) -> LiteralType {
+    pub fn token_to_literal(&self, token: Token) -> LiteralType {
         match token.token {
             TokenType::NumberLit => {
                 let val = match token.value {
@@ -60,10 +59,6 @@ impl LiteralType {
     }
     pub fn is_truthy_literal(&self) -> LiteralType {
         Self::Boolean(self.is_truthy())
-    }
-
-    pub fn is_falsy(&self) -> bool {
-        !self.is_truthy()
     }
 }
 

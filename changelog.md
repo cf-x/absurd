@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0
+
+- implemented type checking
+- implemented runtime error handling
+
 ## 0.4.0
 
 - added expression interpreter

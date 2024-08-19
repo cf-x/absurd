@@ -1,15 +1,11 @@
 use crate::{
-    ast::{
-        CallType, FuncBody, FuncImpl, FuncValueType, LiteralType, Token,
-        TokenType::{self, *},
-    },
+    ast::{CallType, FuncBody, FuncImpl, FuncValueType, LiteralType, Token, TokenType::*},
     env::Env,
     interpreter::run_func,
 };
 use core::{
     cmp::Eq,
     hash::{Hash, Hasher},
-    panic,
 };
 use std::{collections::HashMap, fmt};
 

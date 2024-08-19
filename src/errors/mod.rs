@@ -1,3 +1,5 @@
+use std::process::exit;
+
 use colored::Colorize;
 use ErrorCode::*;
 mod msgs;
@@ -60,6 +62,46 @@ pub enum ErrorCode {
     ///
     /// `parser error (E0x204): expected a token '{'`
     E0x204,
+    /// ## message
+    /// `runtime error (E0x301): type mismatch: expected '{0}', got '{1}'`
+    /// - {0}: expected type
+    /// - {1}: actual type
+    /// example:
+    ///
+    /// `runtime error (E0x301): type mismatch: expected 'number', got 'string'`
+    E0x301,
+    /// ## message
+    /// `runtime error (E0x302): break statement not within a loop`
+    E0x302,
+    /// ## message
+    /// `runtime error (E0x303): return statement not within a function`
+    E0x303,
+    /// ## message
+    /// `runtime error (E0x304): await statement not within an async function`
+    E0x304,
+    /// ## message
+    /// `runtime error (E0x305): invalid function return type`
+    E0x305,
+    /// ## message
+    /// `runtime error (E0x306): failed to resolve {0}`
+    /// - {0}: subject
+    /// example:
+    ///
+    /// `runtime error (E0x306): failed to resolve a block statement`
+    E0x306,
+    /// ## message
+    /// `runtime error (E0x307): '{0}' is already declared`
+    /// - {0}: subject
+    /// example:
+    ///
+    /// `runtime error (E0x307): 'x' is already declared`
+    E0x307,
+    /// ## message
+    /// `runtime error (E0x308): stack underflow`
+    E0x308,
+    /// ## message
+    /// `runtime error (E0x309): stack overflow`
+    E0x309,
 }
 
 #[derive(Debug, Clone)]
@@ -84,6 +126,15 @@ impl Error {
             E0x202 => self.e202(line, pos, args),
             E0x203 => self.e203(line, pos, args),
             E0x204 => self.e204(line, pos, args),
+            E0x301 => self.e301(line, pos, args),
+            E0x302 => self.e302(line, pos),
+            E0x303 => self.e303(line, pos),
+            E0x304 => self.e304(line, pos),
+            E0x305 => self.e305(line, pos),
+            E0x306 => self.e306(line, pos, args),
+            E0x307 => self.e307(line, pos, args),
+            E0x308 => self.e308(line, pos),
+            E0x309 => self.e309(line, pos),
         };
     }
 
@@ -97,7 +148,7 @@ impl Error {
                 &lines[line - 2].red()
             );
         }
-        
+
         let before = &lines[line - 1][..pos.0 - 1];
         let to_underscore = &lines[line - 1][pos.0 - 1..pos.1 - 1];
         let after = &lines[line - 1][pos.1 - 1..];
@@ -122,7 +173,8 @@ impl Error {
     pub fn panic(&self, kind: &str, code: usize, msg: String) {
         let err_code = format!("E0x{}", code).yellow();
         let head = format!("{} error ({}):", kind, err_code);
-        panic!("{} {}", head.red().bold(), msg.red());
+        eprintln!("{} {}", head.red().bold(), msg.red());
+        exit(0);
     }
 
     pub fn eprintln(&self, kind: &str, code: usize, msg: String) {

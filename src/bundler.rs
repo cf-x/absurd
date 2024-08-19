@@ -1,7 +1,3 @@
-/*
-@todo for bundling different parts with different configurations
-*/
-
 use crate::analyzer::Analyzer;
 use crate::ast::{Statement, Token};
 use crate::errors::Error;
@@ -36,7 +32,7 @@ pub fn analyzer(src: &str) -> Vec<Statement> {
 pub fn interpreter_raw(src: &str) {
     let mut int = Interpreter::new();
     let stmts = parser(src);
-    let mut resolver = Resolver::new();
+    let mut resolver = Resolver::new(src);
     let locals = resolver.resolve(&stmts.iter().collect(), &mut int.env);
     int.env.resolve(locals);
     int.interpret(stmts.iter().collect());
