@@ -645,7 +645,14 @@ impl Parser {
                 self.advance();
                 self.arr_expr()
             }
-            LeftParen => self.group_expr(),
+            LeftParen => {
+                if self.prev(1).token == Ident {
+                    self.advance();
+                    self.func_call()
+                } else {
+                    self.group_expr()
+                }
+            }
             Pipe => self.func_expr(),
             Await => self.await_expr(),
             _ => {

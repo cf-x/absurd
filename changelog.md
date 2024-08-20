@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1
+
+- fixed output printing twice
+- fixed calling expressions
+
 ## 0.7.0
 
 - added `array` expression

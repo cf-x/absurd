@@ -11,10 +11,18 @@ pub fn cli() {
     let command = command.as_str();
     match command {
         "run" => run(args),
+        "help" => help(),
         _ => {
             println!("invalid command");
         }
     }
+}
+
+fn help() {
+    println!("Aperture v0.7.1");
+    println!("USAGE:");
+    println!("run <file> - run a file");
+    println!("help - show this message");
 }
 
 fn run(args: Vec<String>) {

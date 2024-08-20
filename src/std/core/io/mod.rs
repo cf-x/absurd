@@ -105,7 +105,7 @@ impl StdCoreIo {
 
     pub fn load_read_str(&mut self) {
         func(
-            "readstr",
+            "read_str",
             0,
             &mut self.env,
             Rc::new(Wrapper {

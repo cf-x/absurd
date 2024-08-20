@@ -93,7 +93,10 @@ impl Resolver {
             for name in names {
                 self.declare(name);
                 if let Some(value) = value {
-                    let val = (*value).eval(env.clone());
+                    let val = match value {
+                        Expression::Call { .. } => LiteralType::Any,
+                        _ => value.eval(env.clone()),
+                    };
                     if type_check(value_type, &val) {
                         self.resolve_expr(value, env);
                     } else {

@@ -19,6 +19,7 @@ pub fn parser(src: &str) -> Vec<Statement> {
     let mut parser = crate::parser::Parser::new(tokens, err.clone());
     parser.parse()
 }
+
 #[allow(dead_code)]
 pub fn analyzer(src: &str) -> Vec<Statement> {
     let err = Error::new(src);

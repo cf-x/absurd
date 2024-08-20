@@ -95,7 +95,6 @@ impl Expression {
                 ..
             } => {
                 let call: LiteralType = name.eval(env.clone());
-
                 match call {
                     LiteralType::Func(func) => match func {
                         FuncValueType::Func(func) => run_func(func, args, env),
@@ -109,7 +108,7 @@ impl Expression {
                         for arg in args {
                             args_eval.push(arg.eval(env.clone()))
                         }
-                        
+
                         (*func.func).call(args_eval)
                     }
                     // @todo add other call types

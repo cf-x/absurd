@@ -5,7 +5,7 @@ Aperture is an interpreted programming language that is designed to be simple bu
 ## Preview
 
 ```aperture
-let output: any = print("Hello, World!");
+print("Hello, World!");
 ```
 
 documentation and examples will be soon available.
