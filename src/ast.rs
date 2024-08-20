@@ -290,6 +290,7 @@ pub enum CallType {
     OpenStruct,
     Method,
     Enum,
+    Array,
 }
 
 #[derive(Debug, PartialEq, Clone)]

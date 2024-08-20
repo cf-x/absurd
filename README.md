@@ -2,9 +2,17 @@
 
 Aperture is an interpreted programming language that is designed to be simple but powerful. Interpreter is currently under the heavy development and is not ready for use.
 
+## Preview
+
+```aperture
+let output: any = print("Hello, World!");
+```
+
+documentation and examples will be soon available.
+
 ## Contributing
 
-This project isn't yet ready for contributions. Once the interpreter is in a usable state, I will open up the project for contributions.
+Contributing guidelines are not yet available. Please wait for the first release.
 
 ## License
 

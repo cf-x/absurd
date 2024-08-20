@@ -308,8 +308,8 @@ impl Resolver {
     fn resolve_expr(&mut self, expr: &Expression, env: &mut Env) {
         match expr {
             Expression::Array { items, .. } => {
-                for _item in items {
-                    // @todo resolve LiteralType
+                for item in items {
+                    self.resolve_expr(item, env)
                 }
             }
             Expression::Var { .. } => self.resolve_var_expr(expr),

@@ -527,7 +527,14 @@ impl Parser {
     }
 
     fn call(&mut self) -> Expression {
+        if self.is_token(LeftBracket) && self.prev(1).token == Ident {
+            self.advance();
+            let arr = self.array_call();
+            self.consume(RightBracket);
+            return arr;
+        }
         let mut expr = self.primary();
+
         loop {
             if self.if_token_consume(Dot) {
                 expr = self.struct_call();
@@ -535,6 +542,8 @@ impl Parser {
                 expr = self.enum_call();
             } else if self.if_token_consume(LeftParen) {
                 expr = self.func_call();
+            } else if self.if_token_consume(LeftBracket) {
+                expr = self.array_call();
             } else if self.if_token_consume(Ident) {
                 expr = self.call();
             } else {
@@ -542,6 +551,23 @@ impl Parser {
             }
         }
         expr
+    }
+
+    fn array_call(&mut self) -> Expression {
+        let name = self.prev(2);
+        let mut args = vec![];
+        let arg = self.expr();
+        args.push(arg);
+
+        Expression::Call {
+            id: self.id(),
+            name: Box::new(Expression::Var {
+                id: self.id(),
+                name,
+            }),
+            args,
+            call_type: CallType::Array,
+        }
     }
 
     fn struct_call(&mut self) -> Expression {
@@ -578,9 +604,12 @@ impl Parser {
     fn func_call(&mut self) -> Expression {
         let name = self.prev(2);
         let mut args = vec![];
-        while !self.if_token_consume(RightParen) {
+        while !self.is_token(RightParen) {
             let arg = self.expr();
             args.push(arg);
+            if self.is_token(RightParen) {
+                break;
+            }
             if !self.if_token_consume(Comma) && !self.is_token(RightParen) {
                 self.err.throw(
                     E0x201,
@@ -590,6 +619,7 @@ impl Parser {
                 );
             }
         }
+        self.consume(RightParen);
         Expression::Call {
             id: self.id(),
             name: Box::new(Expression::Var {
@@ -606,23 +636,18 @@ impl Parser {
         match token.clone().token {
             Ident => {
                 self.advance();
-                let mut expr = Expression::Var {
+                Expression::Var {
                     id: self.id(),
-                    name: self.prev(1),
-                };
-
-                if self.if_token_consume(LeftBracket) {
-                    expr = self.arr_expr()
+                    name: token,
                 }
-                return expr;
             }
             LeftBracket => {
                 self.advance();
-                return self.arr_expr();
+                self.arr_expr()
             }
-            LeftParen => return self.group_expr(),
-            Pipe => return self.func_expr(),
-            Await => return self.await_expr(),
+            LeftParen => self.group_expr(),
+            Pipe => self.func_expr(),
+            Await => self.await_expr(),
             _ => {
                 if self.is_literal() {
                     self.advance();
@@ -700,19 +725,7 @@ impl Parser {
     fn arr_expr(&mut self) -> Expression {
         let mut items = vec![];
         while !self.if_token_consume(RightBracket) {
-            let item_expr = self.expr();
-            let item = match item_expr {
-                Expression::Value { value, .. } => value,
-                _ => {
-                    self.err.throw(
-                        E0x203,
-                        self.peek().line,
-                        self.peek().pos,
-                        vec!["an array expression".to_string()],
-                    );
-                    exit(1)
-                }
-            };
+            let item = self.expr();
             items.push(item);
             if !self.if_token_consume(Comma) && !self.is_token(RightBracket) {
                 self.err.throw(

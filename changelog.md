@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0
+
+- added `array` expression
+- added new standard library modules (`core::io`)
+- fixed calls
+
 ## 0.6.1
 
 - implemented error handling in interpreter

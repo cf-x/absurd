@@ -21,7 +21,16 @@ fn type_array_1() {
         },
         value: Some(Expression::Array {
             id: 2,
-            items: vec![LiteralType::Boolean(true), LiteralType::Boolean(false)],
+            items: vec![
+                Expression::Value {
+                    id: 0,
+                    value: LiteralType::Boolean(true),
+                },
+                Expression::Value {
+                    id: 1,
+                    value: LiteralType::Boolean(false),
+                },
+            ],
         }),
         is_mut: false,
         is_pub: false,

@@ -13,7 +13,7 @@ use std::{collections::HashMap, fmt};
 pub enum Expression {
     Array {
         id: usize,
-        items: Vec<LiteralType>,
+        items: Vec<Expression>,
     },
     Var {
         id: usize,
@@ -91,7 +91,7 @@ impl Expression {
             Expression::Call {
                 name,
                 args,
-                // call_type,
+                call_type: _,
                 ..
             } => {
                 let call: LiteralType = name.eval(env.clone());
@@ -109,12 +109,15 @@ impl Expression {
                         for arg in args {
                             args_eval.push(arg.eval(env.clone()))
                         }
-
+                        
                         (*func.func).call(args_eval)
                     }
                     // @todo add other call types
                     _ => {
                         // @error invalid call
+                        // if call_type.clone() == CallType::Array {
+                        //     return LiteralType::Array(vec![args[0].clone()]);
+                        // }
                         LiteralType::Null
                     }
                 }
@@ -153,8 +156,7 @@ impl Expression {
                 let func = LiteralType::Func(FuncValueType::Func(call));
                 func
             }
-            // @todo change array items to expressions
-            Expression::Array { .. } => LiteralType::Null,
+            Expression::Array { items, .. } => LiteralType::Array(items.clone()),
             // @todo handle after adding asynchronocity
             Expression::Await { .. } => LiteralType::Null,
             Expression::Binary {
