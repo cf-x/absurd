@@ -125,15 +125,19 @@ impl Interpreter {
                         if val.is_truthy() {
                             self.interpret(body.iter().map(|x| x).collect());
                         } else {
+                            let mut executed = false;
                             for (cond, body) in else_if_branches {
                                 let val = cond.eval(self.env.clone());
                                 if val.is_truthy() {
+                                    executed = true;
                                     self.interpret(body.iter().map(|x| x).collect());
                                     break;
                                 }
                             }
                             if let Some(body) = else_branch {
-                                self.interpret(body.iter().map(|x| x).collect());
+                                if !executed {
+                                    self.interpret(body.iter().map(|x| x).collect());
+                                }
                             }
                         }
                     }

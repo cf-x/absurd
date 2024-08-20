@@ -19,7 +19,7 @@ pub fn cli() {
 }
 
 fn help() {
-    println!("Aperture v0.7.1");
+    println!("Aperture v0.7.2");
     println!("USAGE:");
     println!("run <file> - run a file");
     println!("help - show this message");

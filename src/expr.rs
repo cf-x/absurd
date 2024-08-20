@@ -230,11 +230,41 @@ impl Expression {
             (LiteralType::Number(a), LessOrEq, LiteralType::Number(b)) => {
                 return LiteralType::Boolean(a <= b);
             }
+            (LiteralType::Number(a), Eq, LiteralType::Number(b)) => {
+                return LiteralType::Boolean(a == b);
+            }
+            (LiteralType::Number(a), NotEq, LiteralType::Number(b)) => {
+                return LiteralType::Boolean(a != b);
+            }
+            (LiteralType::String(a), Eq, LiteralType::String(b)) => {
+                return LiteralType::Boolean(a == b);
+            }
+            (LiteralType::String(a), NotEq, LiteralType::String(b)) => {
+                return LiteralType::Boolean(a != b);
+            }
+            (LiteralType::Char(a), Eq, LiteralType::Char(b)) => {
+                return LiteralType::Boolean(a == b);
+            }
+            (LiteralType::Char(a), NotEq, LiteralType::Char(b)) => {
+                return LiteralType::Boolean(a != b);
+            }
+            (LiteralType::Boolean(a), Eq, LiteralType::Boolean(b)) => {
+                return LiteralType::Boolean(a == b);
+            }
+            (LiteralType::Boolean(a), NotEq, LiteralType::Boolean(b)) => {
+                return LiteralType::Boolean(a != b);
+            }
+            (LiteralType::Null, Eq, LiteralType::Null) => {
+                return LiteralType::Boolean(true);
+            }
+            (LiteralType::Null, NotEq, LiteralType::Null) => {
+                return LiteralType::Boolean(false);
+            }
             (_, Eq, _) => {
-                return LiteralType::Boolean(left == right);
+                return LiteralType::Boolean(false);
             }
             (_, NotEq, _) => {
-                return LiteralType::Boolean(left != right);
+                return LiteralType::Boolean(false);
             }
             _ => LiteralType::Any,
         }

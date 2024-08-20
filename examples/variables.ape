@@ -1,0 +1,6 @@
+let x: string = "hi";
+print(x);
+let y, z: number = 0;
+print(y);
+let mut a: number = 0;
+// assigns are todo

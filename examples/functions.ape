@@ -1,0 +1,6 @@
+
+func add(a: number, b: number) -> any {
+    return a + b;
+}
+
+print(add(1, 2));
