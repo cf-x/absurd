@@ -10,47 +10,50 @@ use crate::{
     resolver::type_check,
     std::core::io::StdCoreIo,
 };
-use std::{collections::HashMap, process::exit};
+use std::{cell::RefCell, collections::HashMap, process::exit, rc::Rc};
 
 #[derive(Debug)]
 pub struct Interpreter {
-    pub env: Env,
-    pub specs: HashMap<String, LiteralType>,
+    pub env: Rc<RefCell<Env>>,
+    pub specs: Rc<RefCell<HashMap<String, LiteralType>>>,
     pub is_mod: bool,
     error: Error,
 }
 
 impl Interpreter {
     pub fn new(src: &str) -> Self {
+        let env = Rc::new(RefCell::new(Env::new(HashMap::new())));
         let int = Self {
-            env: Env::new(HashMap::new()),
-            specs: HashMap::new(),
+            env: env.clone(),
+            specs: Rc::new(RefCell::new(HashMap::new())),
             is_mod: false,
             error: Error::new(src),
         };
-        let mut std_core_io = StdCoreIo::new(int.env.clone());
+        let mut std_core_io = StdCoreIo::new(env);
         std_core_io.load();
         int
     }
-    pub fn new_with_env(env: Env, src: &str) -> Self {
+
+    pub fn new_with_env(env: Rc<RefCell<Env>>, src: &str) -> Self {
         Self {
             env,
-            specs: HashMap::new(),
+            specs: Rc::new(RefCell::new(HashMap::new())),
             is_mod: false,
             error: Error::new(src),
         }
     }
+
     pub fn interpret(&mut self, stmts: Vec<&Statement>) {
         for stmt in stmts {
             match stmt {
                 Statement::Expression { expr } => {
-                    expr.eval(self.env.clone());
+                    expr.eval(Rc::clone(&self.env));
                 }
                 Block { stmts } => {
                     if !self.is_mod {
-                        let new_env = self.env.enclose();
-                        let prev_env = self.env.clone();
-                        self.env = new_env;
+                        let new_env = self.env.borrow().enclose();
+                        let prev_env = Rc::clone(&self.env);
+                        self.env = Rc::new(RefCell::new(new_env));
                         self.interpret(stmts.iter().map(|x| x).collect());
                         self.env = prev_env;
                     }
@@ -72,22 +75,28 @@ impl Interpreter {
                                 }
                                 let call = self.create_func(stmt);
                                 let func = LiteralType::Func(FuncValueType::Func(call));
-                                self.env.define(names[0].lexeme.clone(), func);
+                                self.env.borrow_mut().define(names[0].lexeme.clone(), func);
                             } else {
                                 let val = v.eval(self.env.clone());
                                 for name in names {
-                                    self.env.define(name.lexeme.clone(), val.clone());
+                                    self.env
+                                        .borrow_mut()
+                                        .define(name.lexeme.clone(), val.clone());
                                 }
                                 if is_pub.clone() {
                                     for name in pub_names {
-                                        self.env.define_pub(name.lexeme.clone(), val.clone());
+                                        self.env
+                                            .borrow_mut()
+                                            .define_pub(name.lexeme.clone(), val.clone());
                                     }
                                 }
                             }
                         } else if is_pub.clone() {
-                            let val = v.eval(self.env.clone());
+                            let val = v.eval(Rc::clone(&self.env));
                             for name in pub_names {
-                                self.env.define_pub(name.lexeme.clone(), val.clone());
+                                self.env
+                                    .borrow_mut()
+                                    .define_pub(name.lexeme.clone(), val.clone());
                             }
                         }
                     }
@@ -98,20 +107,21 @@ impl Interpreter {
                         }
                         let val = LiteralType::Null;
                         for name in names {
-                            self.env.define(name.lexeme.clone(), val.clone());
+                            self.env
+                                .borrow_mut()
+                                .define(name.lexeme.clone(), val.clone());
                         }
                     }
                 },
                 Func { name, is_pub, .. } => {
-                    // @todo handle implementation,
-                    // asynchroneity and param mutability
-
                     let call = self.create_func(stmt);
                     let func = LiteralType::Func(FuncValueType::Func(call));
                     if is_pub.clone() {
-                        self.env.define_pub(name.lexeme.clone(), func.clone());
+                        self.env
+                            .borrow_mut()
+                            .define_pub(name.lexeme.clone(), func.clone());
                     } else if !self.is_mod {
-                        self.env.define(name.lexeme.clone(), func);
+                        self.env.borrow_mut().define(name.lexeme.clone(), func);
                     }
                 }
                 If {
@@ -121,13 +131,13 @@ impl Interpreter {
                     else_if_branches,
                 } => {
                     if !self.is_mod {
-                        let val = cond.eval(self.env.clone());
+                        let val = cond.eval(Rc::clone(&self.env));
                         if val.is_truthy() {
                             self.interpret(body.iter().map(|x| x).collect());
                         } else {
                             let mut executed = false;
                             for (cond, body) in else_if_branches {
-                                let val = cond.eval(self.env.clone());
+                                let val = cond.eval(Rc::clone(&self.env));
                                 if val.is_truthy() {
                                     executed = true;
                                     self.interpret(body.iter().map(|x| x).collect());
@@ -143,15 +153,15 @@ impl Interpreter {
                     }
                 }
                 Return { expr } => {
-                    let value = expr.eval(self.env.clone());
-                    self.specs.insert("return".to_string(), value);
+                    let value = expr.eval(Rc::clone(&self.env));
+                    self.specs.borrow_mut().insert("return".to_string(), value);
                 }
                 While { cond, body } => {
                     if !self.is_mod {
-                        while cond.eval(self.env.clone()).is_truthy() {
+                        while cond.eval(Rc::clone(&self.env)).is_truthy() {
                             self.interpret(body.iter().map(|x| x).collect());
-                            if self.specs.get("break").is_some() {
-                                self.specs.remove("break");
+                            if self.specs.borrow().get("break").is_some() {
+                                self.specs.borrow_mut().remove("break");
                                 break;
                             }
                         }
@@ -163,16 +173,16 @@ impl Interpreter {
                             Some(i) => {
                                 for _ in 0..i.clone() {
                                     self.interpret(body.iter().map(|x| x).collect());
-                                    if self.specs.get("break").is_some() {
-                                        self.specs.remove("break");
+                                    if self.specs.borrow().get("break").is_some() {
+                                        self.specs.borrow_mut().remove("break");
                                         break;
                                     }
                                 }
                             }
                             None => loop {
                                 self.interpret(body.iter().map(|x| x).collect());
-                                if self.specs.get("break").is_some() {
-                                    self.specs.remove("break");
+                                if self.specs.borrow().get("break").is_some() {
+                                    self.specs.borrow_mut().remove("break");
                                     break;
                                 }
                             },
@@ -180,7 +190,9 @@ impl Interpreter {
                     }
                 }
                 Break {} => {
-                    self.specs.insert("break".to_string(), LiteralType::Null);
+                    self.specs
+                        .borrow_mut()
+                        .insert("break".to_string(), LiteralType::Null);
                 }
                 Match { .. } => {
                     // @todo handle match statements
@@ -203,6 +215,7 @@ impl Interpreter {
             }
         }
     }
+
     fn create_func(&self, stmt: &Statement) -> FuncImpl {
         if let Func {
             name,
@@ -236,7 +249,7 @@ impl Interpreter {
                 is_pub: *is_pub,
                 is_impl: *is_impl,
                 is_mut: *is_mut,
-                env: Env::new(HashMap::new()),
+                env: Rc::clone(&self.env),
             }
         } else {
             self.error.throw(E0x404, 0, (0, 0), vec![]);
@@ -245,16 +258,17 @@ impl Interpreter {
     }
 }
 
-pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Env) -> LiteralType {
+pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Rc<RefCell<Env>>) -> LiteralType {
     let error = Error::new("");
     if args.len() != func.params.len() {
         error.throw(E0x405, 0, (0, 0), vec![]);
     }
     let mut arg_values = vec![];
     for arg in args {
-        arg_values.push(arg.eval(env.clone()));
+        arg_values.push(arg.eval(Rc::clone(&env)));
     }
-    let func_env = func.env.enclose();
+    let func_env = func.env.borrow_mut().enclose();
+    let func_env = Rc::new(RefCell::new(func_env));
     for (i, val) in arg_values.iter().enumerate() {
         if i < func.params.len() {
             if !type_check(&func.value_type, &val) {
@@ -265,7 +279,9 @@ pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Env) -> LiteralType
                     vec![val.to_string(), arg_values[i].to_string()],
                 );
             }
-            func_env.define(func.params[i].0.lexeme.clone(), val.clone());
+            func_env
+                .borrow_mut()
+                .define(func.params[i].0.lexeme.clone(), val.clone());
         } else {
             error.throw(E0x405, 0, (0, 0), vec![]);
         }
@@ -276,7 +292,10 @@ pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Env) -> LiteralType
         FuncBody::Statements(body) => {
             for stmt in body {
                 int.interpret(vec![&stmt]);
-                let val = int.specs.get("return");
+                let val = {
+                    let specs = int.specs.borrow();
+                    specs.get("return").cloned()
+                };
 
                 if val.is_some() {
                     let v = val.unwrap().clone();

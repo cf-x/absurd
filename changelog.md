@@ -1,10 +1,15 @@
 # Changelog
 
+## 0.7.3
+
+- fixed function parameters
+- fixed environmental vulnerability
+- optimized environment handling
+
 ## 0.7.2
 
 - fixed equality expressions
 - fixed if statements
-
 
 ## 0.7.1
 

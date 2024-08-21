@@ -36,6 +36,6 @@ pub fn interpreter_raw(src: &str) {
     let stmts = parser(src);
     let mut resolver = Resolver::new(src);
     let locals = resolver.resolve(&stmts.iter().collect(), &mut int.env);
-    int.env.resolve(locals);
+    int.env.borrow_mut().resolve(locals);
     int.interpret(stmts.iter().collect());
 }

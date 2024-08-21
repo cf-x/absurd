@@ -7,7 +7,7 @@ use core::{
     cmp::Eq,
     hash::{Hash, Hasher},
 };
-use std::{collections::HashMap, fmt};
+use std::{cell::RefCell, fmt, rc::Rc};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
@@ -82,19 +82,24 @@ impl Expression {
         }
     }
 
-    pub fn eval(&self, env: Env) -> LiteralType {
+    pub fn eval(&self, env: Rc<RefCell<Env>>) -> LiteralType {
         match self {
-            Expression::Var { name, .. } => match env.get(name.lexeme.clone(), self.id()) {
-                Some(v) => v.clone(),
-                None => LiteralType::Null,
-            },
+            Expression::Var { name, .. } => {
+                match env.borrow().get(name.lexeme.clone(), self.id()) {
+                    Some(v) => v.clone(),
+                    None => match env.borrow().values.borrow().get(name.lexeme.as_str()) {
+                        Some(v) => v.clone(),
+                        None => LiteralType::Null,
+                    },
+                }
+            }
             Expression::Call {
                 name,
                 args,
                 call_type: _,
                 ..
             } => {
-                let call: LiteralType = name.eval(env.clone());
+                let call: LiteralType = name.eval(Rc::clone(&env));
                 match call {
                     LiteralType::Func(func) => match func {
                         FuncValueType::Func(func) => run_func(func, args, env),
@@ -106,7 +111,7 @@ impl Expression {
                     LiteralType::DeclrFunc(func) => {
                         let mut args_eval = vec![];
                         for arg in args {
-                            args_eval.push(arg.eval(env.clone()))
+                            args_eval.push(arg.eval(Rc::clone(&env)))
                         }
 
                         (*func.func).call(args_eval)
@@ -150,7 +155,7 @@ impl Expression {
                     is_async: *is_async,
                     is_impl: false,
                     is_mut: false,
-                    env: Env::new(HashMap::new()),
+                    env: Rc::clone(&env),
                 };
                 let func = LiteralType::Func(FuncValueType::Func(call));
                 func
@@ -168,8 +173,13 @@ impl Expression {
         }
     }
 
-    fn eval_unary(&self, operator: &Token, left: &Expression, env: Env) -> LiteralType {
-        let left = left.eval(env.clone());
+    fn eval_unary(
+        &self,
+        operator: &Token,
+        left: &Expression,
+        env: Rc<RefCell<Env>>,
+    ) -> LiteralType {
+        let left = left.eval(Rc::clone(&env));
         match (operator.clone().token, left.clone()) {
             (Minus, LiteralType::Number(a)) => LiteralType::Number(-a),
             (Not, _) => LiteralType::Boolean(!left.is_truthy()),
@@ -186,10 +196,10 @@ impl Expression {
         left: &Expression,
         operator: &Token,
         right: &Expression,
-        env: Env,
+        env: Rc<RefCell<Env>>,
     ) -> LiteralType {
-        let left = left.eval(env.clone());
-        let right = right.eval(env.clone());
+        let left = left.eval(Rc::clone(&env));
+        let right = right.eval(Rc::clone(&env));
         match (left.clone(), operator.clone().token, right.clone()) {
             (_, Or, _) => {
                 if left.is_truthy() == true {
@@ -266,7 +276,7 @@ impl Expression {
             (_, NotEq, _) => {
                 return LiteralType::Boolean(false);
             }
-            _ => LiteralType::Any,
+            _ => LiteralType::Null,
         }
     }
 }

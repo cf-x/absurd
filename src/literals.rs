@@ -1,4 +1,4 @@
-use crate::ast::{LiteralKind, LiteralType, Token, TokenType};
+use crate::ast::{FuncValueType, LiteralKind, LiteralType, Token, TokenType};
 use std::fmt;
 
 impl LiteralType {
@@ -83,7 +83,13 @@ impl fmt::Display for LiteralType {
                 s.push(']');
                 write!(f, "{}", s)
             }
-            _ => write!(f, "unknown"),
+            Self::Any => write!(f, "any"),
+            Self::Void => write!(f, "void"),
+            Self::Func(func) => match func {
+                FuncValueType::Func(i) => write!(f, "{}()", i.name),
+                _ => write!(f, "{:?}", func),
+            },
+            Self::DeclrFunc(declr_func) => write!(f, "{}()", declr_func.name),
         }
     }
 }

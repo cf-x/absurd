@@ -4,14 +4,14 @@ use crate::{
     std::func,
 };
 use colored::Colorize;
-use std::{process::exit, rc::Rc};
+use std::{cell::RefCell, process::exit, rc::Rc};
 
 pub struct StdCoreIo {
-    env: Env,
+    env: Rc<RefCell<Env>>,
 }
 
 impl StdCoreIo {
-    pub fn new(env: Env) -> Self {
+    pub fn new(env: Rc<RefCell<Env>>) -> Self {
         Self { env }
     }
 

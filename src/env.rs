@@ -10,20 +10,15 @@ pub struct Env {
     pub mod_vals: EnvValueType,
     pub mods: Vec<Env>,
     pub locals: Rc<RefCell<HashMap<usize, usize>>>,
-    pub enclosing: Option<Box<Env>>,
-}
-
-fn init_vals() -> EnvValueType {
-    let env = HashMap::new();
-    Rc::new(RefCell::new(env))
+    pub enclosing: Option<Rc<RefCell<Env>>>,
 }
 
 impl Env {
     pub fn new(locals: HashMap<usize, usize>) -> Self {
         Self {
-            values: init_vals(),
-            pub_vals: init_vals(),
-            mod_vals: init_vals(),
+            values: get_empty_rc(),
+            pub_vals: get_empty_rc(),
+            mod_vals: get_empty_rc(),
             mods: Vec::new(),
             locals: Rc::new(RefCell::new(locals)),
             enclosing: None,
@@ -32,12 +27,12 @@ impl Env {
 
     pub fn enclose(&self) -> Env {
         Self {
-            values: self.get_empty_rc(),
-            pub_vals: self.get_empty_rc(),
-            mod_vals: self.get_empty_rc(),
+            values: get_empty_rc(),
+            pub_vals: get_empty_rc(),
+            mod_vals: get_empty_rc(),
             mods: self.mods.clone(),
-            locals: self.locals.clone(),
-            enclosing: Some(Box::new(self.clone())),
+            locals: Rc::clone(&self.locals),
+            enclosing: Some(Rc::new(RefCell::new(self.clone()))),
         }
     }
 
@@ -67,7 +62,7 @@ impl Env {
     pub fn get_int(&self, name: &str, d: Option<usize>) -> Option<LiteralType> {
         if d.is_none() {
             match &self.enclosing {
-                Some(env) => env.get_int(name, d),
+                Some(env) => env.borrow().get_int(name, d),
                 None => self.values.borrow().get(name).cloned(),
             }
         } else {
@@ -76,7 +71,7 @@ impl Env {
                 self.values.borrow().get(name).cloned()
             } else {
                 match &self.enclosing {
-                    Some(env) => env.get_int(name, Some(d - 1)),
+                    Some(env) => env.borrow().get_int(name, Some(d - 1)),
                     None => {
                         panic!("@error failed to resolve a value");
                     }
@@ -84,8 +79,8 @@ impl Env {
             }
         }
     }
+}
 
-    fn get_empty_rc(&self) -> EnvValueType {
-        Rc::new(RefCell::new(HashMap::new()))
-    }
+fn get_empty_rc() -> EnvValueType {
+    Rc::new(RefCell::new(HashMap::new()))
 }

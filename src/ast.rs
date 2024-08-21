@@ -1,6 +1,5 @@
 use std::{
-    fmt::{self, Debug},
-    rc::Rc,
+    cell::RefCell, fmt::{self, Debug}, rc::Rc
 };
 
 use crate::{env::Env, expr::Expression};
@@ -269,7 +268,7 @@ pub struct FuncImpl {
     pub is_pub: bool,
     pub is_impl: bool,
     pub is_mut: bool,
-    pub env: Env,
+    pub env: Rc<RefCell<Env>>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
