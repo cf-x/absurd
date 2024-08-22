@@ -4,10 +4,11 @@ use crate::ast::{
 };
 use crate::errors::{Error, ErrorCode::*};
 use std::collections::HashMap;
+use unicode_xid::UnicodeXID;
 
 #[derive(Debug, Clone)]
 pub struct Lexer {
-    source: String,
+    source: Vec<char>,
     tokens: Vec<Token>,
     kwds: HashMap<&'static str, TokenType>,
     line: usize,
@@ -20,7 +21,7 @@ pub struct Lexer {
 impl Lexer {
     pub fn new(source: String, err: Error) -> Self {
         Self {
-            source,
+            source: source.chars().collect(),
             err,
             tokens: vec![],
             kwds: kwds(),
@@ -92,13 +93,8 @@ impl Lexer {
             '\'' => self.char(),
             '"' => self.string(),
             c if c.is_ascii_digit() => self.number(c),
-            c if c.is_alphabetic() || c == '_' => self.ident(),
-            _ => self.err.throw(
-                E0x101,
-                self.line,
-                (self.pos, self.pos + 1),
-                vec![c.to_string()],
-            ),
+            c if UnicodeXID::is_xid_start(c) || c == '_' => self.ident(),
+            _ => self.push_token(Ident, None),
         };
     }
 
@@ -344,7 +340,7 @@ impl Lexer {
                 .throw(E0x103, self.line, (self.pos - 1, self.pos), vec![]);
         }
         self.advance();
-        let value = &self.source[self.start + 1..self.crnt - 1].to_string();
+        let value: String = self.source[self.start + 1..self.crnt - 1].iter().collect();
         self.push_token(
             StringLit,
             Some(LiteralKind::String {
@@ -354,11 +350,16 @@ impl Lexer {
     }
 
     fn ident(&mut self) {
-        while self.peek().is_alphanumeric() || self.peek() == '_' {
-            self.advance();
+        while !self.is_eof() {
+            let c = self.peek();
+            if UnicodeXID::is_xid_continue(c) || c == '_' {
+                self.advance();
+            } else {
+                break;
+            }
         }
-        let sub = &self.source[self.start..self.crnt];
-        let token = self.kwds.get(sub).clone().unwrap_or(&Ident);
+        let sub: String = self.source[self.start..self.crnt].iter().collect();
+        let token = self.kwds.get(&sub as &str).clone().unwrap_or(&Ident);
         self.push_token(token.clone(), None);
     }
 
@@ -393,7 +394,7 @@ impl Lexer {
             }
         }
 
-        let sub = &self.source[self.start..self.crnt];
+        let sub: String = self.source[self.start..self.crnt].iter().collect();
         let val = sub.parse::<f32>();
         match val {
             Ok(value) => self.push_token(
@@ -407,11 +408,10 @@ impl Lexer {
                 E0x104,
                 self.line,
                 (self.pos - 1, self.pos),
-                vec!["decimal".to_string(), sub.to_string()],
+                vec!["decimal".to_string(), sub],
             ),
         }
     }
-
     fn parse_binary(&mut self) {
         self.advance();
         self.advance();
@@ -420,7 +420,7 @@ impl Lexer {
             self.advance();
         }
 
-        let sub = &self.source[self.start..self.crnt];
+        let sub: String = self.source[self.start..self.crnt].iter().collect();
         let val = i32::from_str_radix(&sub[2..], 2);
         match val {
             Ok(value) => self.push_token(
@@ -434,11 +434,10 @@ impl Lexer {
                 E0x104,
                 self.line,
                 (self.pos - 1, self.pos),
-                vec!["binary".to_string(), sub.to_string()],
+                vec!["binary".to_string(), sub],
             ),
         }
     }
-
     fn parse_octal(&mut self) {
         self.advance();
         self.advance();
@@ -447,7 +446,7 @@ impl Lexer {
             self.advance();
         }
 
-        let sub = &self.source[self.start..self.crnt];
+        let sub: String = self.source[self.start..self.crnt].iter().collect();
         let val = i32::from_str_radix(&sub[2..], 8);
         match val {
             Ok(value) => self.push_token(
@@ -461,11 +460,10 @@ impl Lexer {
                 E0x104,
                 self.line,
                 (self.pos - 1, self.pos),
-                vec!["octal".to_string(), sub.to_string()],
+                vec!["octal".to_string(), sub],
             ),
         }
     }
-
     fn parse_hexadecimal(&mut self) {
         self.advance();
         self.advance();
@@ -473,7 +471,7 @@ impl Lexer {
         while self.peek().is_digit(16) {
             self.advance();
         }
-        let sub = &self.source[self.start..self.crnt];
+        let sub: String = self.source[self.start..self.crnt].iter().collect();
         let val = i32::from_str_radix(&sub[2..], 16);
         match val {
             Ok(value) => self.push_token(
@@ -487,24 +485,24 @@ impl Lexer {
                 E0x104,
                 self.line,
                 (self.pos - 1, self.pos),
-                vec!["hexadecimal".to_string(), sub.to_string()],
+                vec!["hexadecimal".to_string(), sub],
             ),
         }
     }
 
     fn advance(&mut self) -> char {
-        let c = self.source.chars().nth(self.crnt).unwrap_or('\0');
+        let c = self.source.get(self.crnt).copied().unwrap_or('\0');
         self.crnt += 1;
         c
     }
 
     fn push_token(&mut self, token: TokenType, value: Option<LiteralKind>) {
-        let lexeme = self.source[self.start..self.crnt].to_string();
-        let pos = (self.pos, self.pos + lexeme.len());
-        self.pos += lexeme.len();
+        let lexeme: String = self.source[self.start..self.crnt].iter().collect();
+        let pos = (self.pos, self.pos + lexeme.chars().count());
+        self.pos += lexeme.chars().count();
         self.tokens.push(Token {
             token,
-            lexeme: lexeme.clone(),
+            lexeme,
             line: self.line,
             value,
             pos,
@@ -512,18 +510,11 @@ impl Lexer {
     }
 
     fn peek(&self) -> char {
-        if self.is_eof() {
-            return '\0';
-        }
-        self.source.chars().nth(self.crnt).unwrap()
+        self.source.get(self.crnt).copied().unwrap_or('\0')
     }
 
     fn peek_next(&self) -> char {
-        if self.crnt + 1 >= self.source.len() {
-            '\0'
-        } else {
-            self.source.chars().nth(self.crnt + 1).unwrap_or('\0')
-        }
+        self.source.get(self.crnt + 1).copied().unwrap_or('\0')
     }
 }
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.2
+
+- updated error handling
+- added emoji support in identifiers
+
 ## 0.8.1
 
 - updated environment structure

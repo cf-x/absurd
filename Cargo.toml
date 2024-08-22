@@ -2,8 +2,9 @@
 name = "aperture"
 description = "Aperture programming language"
 license = "MIT"
-version = "0.8.1"
+version = "0.8.2"
 edition = "2021"
 
 [dependencies]
 colored = "2.1.0"
+unicode-xid = "0.2.5"

@@ -6,6 +6,27 @@ Aperture is an interpreted programming language that is designed to be simple bu
 
 ```aperture
 print("Hello, World!");
+// Hello, World!
+```
+
+```aperture
+let mut 🧑: string = "john";
+🧑 = "michael";
+print(🧑);
+// michael
+```
+
+```aperture
+func add(a: number, b: number) -> number {
+    return a + b;
+}
+print(add(1, 2));
+// 3
+```
+
+```aperture
+print(0xff + 0b10 + 0o3 + 10);
+// 270
 ```
 
 documentation and examples will be soon available.

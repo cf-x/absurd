@@ -132,6 +132,28 @@ pub enum ErrorCode {
     /// `runtime error (E0x409): {0} isn't literal`
     /// - {0}: subject
     E0x409,
+    /// ## message
+    /// `runtime error (E0x410): can not assign to an immutable variable`
+    E0x410,
+    /// ## message
+    /// `runtime error (E0x411): can not assign to a public variable`
+    E0x411,
+    /// ## message
+    /// `runtime error (E0x412): invalid type, while assigning to a variable '{0}'`
+    /// - {0}: variable
+    E0x412,
+    /// ## message
+    /// `runtime error (E0x413): can not assign to a non-variable`
+    E0x413,
+    /// ## message
+    /// `runtime error (E0x414): failed to assign a value`
+    E0x414,
+    /// ## message
+    /// `environment error (E0x501): failed to get a distance`
+    E0x501,
+    /// ## message
+    /// `environment error (E0x502): failed to resolve a value`
+    E0x502,
 }
 
 #[derive(Debug, Clone)]
@@ -174,12 +196,19 @@ impl Error {
             E0x407 => self.e407(line, pos),
             E0x408 => self.e408(line, pos, args),
             E0x409 => self.e409(line, pos, args),
+            E0x410 => self.e410(line, pos),
+            E0x411 => self.e411(line, pos),
+            E0x412 => self.e412(line, pos, args),
+            E0x413 => self.e413(line, pos),
+            E0x414 => self.e414(line, pos),
+            E0x501 => self.e501(line, pos),
+            E0x502 => self.e502(line, pos),
         };
     }
 
     pub fn print_lines(&self, line: usize, pos: (usize, usize)) {
         let lines: Vec<&str> = self.source.lines().collect();
-
+    
         if line > 1 {
             eprintln!(
                 "{} | {}",
@@ -187,11 +216,10 @@ impl Error {
                 &lines[line - 2].red()
             );
         }
-
-        let before = &lines[line - 1][..pos.0 - 1];
-        let to_underscore = &lines[line - 1][pos.0 - 1..pos.1 - 1];
-        let after = &lines[line - 1][pos.1 - 1..];
-
+    
+        let line_content = lines[line - 1];
+        let (before, to_underscore, after) = split_line_at_char_indices(line_content, pos);
+    
         eprintln!(
             "{} | {}{}{}",
             line.to_string().yellow(),
@@ -199,7 +227,7 @@ impl Error {
             to_underscore.red().bold().underline(),
             after.red().bold()
         );
-
+    
         if line < lines.len() {
             eprintln!(
                 "{} | {}",
@@ -221,10 +249,18 @@ impl Error {
         let head = format!("{} error ({}):", kind, err_code);
         eprintln!("{} {}", head.red().bold(), msg.red());
     }
-    
+
     #[allow(dead_code)]
     pub fn warn(&self, msg: String) {
         let head = "warning:".bold().yellow();
         eprintln!("{} {}", head, msg.yellow());
     }
+}
+
+fn split_line_at_char_indices(line: &str, pos: (usize, usize)) -> (String, String, String) {
+    let mut chars = line.chars();
+    let before: String = chars.by_ref().take(pos.0 - 1).collect();
+    let to_underscore: String = chars.by_ref().take(pos.1 - pos.0).collect();
+    let after: String = chars.collect();
+    (before, to_underscore, after)
 }

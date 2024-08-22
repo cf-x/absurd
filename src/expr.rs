@@ -104,22 +104,22 @@ impl Expression {
                     Some(v) => match v.kind {
                         ValueKind::Var(s) => {
                             if !s.is_mut {
-                                // @error cannot assign to immutable variable
-                                panic!("cannot assign to immutable variable")
+                                self.err().throw(E0x410, name.line, name.pos, vec![]);
                             }
                             if s.is_pub {
-                                // @error cannot assign to public variable
-                                panic!("cannot assign to public variable")
+                                self.err().throw(E0x411, name.line, name.pos, vec![]);
                             }
                             if v.value.type_name() != val.type_name() {
-                                // @error cannot assign different type
-                                eprintln!("{:?} {:?}", v.value, val);
-                                panic!("cannot assign different type")
+                                self.err().throw(
+                                    E0x412,
+                                    name.line,
+                                    name.pos,
+                                    vec![name.clone().lexeme],
+                                );
                             }
                         }
                         _ => {
-                            // @error cannot assign to non-variable
-                            panic!("cannot assign to non-variable")
+                            self.err().throw(E0x413, name.line, name.pos, vec![]);
                         }
                     },
                     None => {}
@@ -139,8 +139,8 @@ impl Expression {
                 if assigned {
                     val
                 } else {
-                    // @error failed to assign value
-                    panic!("failed to assign value");
+                    self.err().throw(E0x414, name.line, name.pos, vec![]);
+                    exit(1);
                 }
             }
             Expression::Var { name, .. } => {
@@ -177,7 +177,6 @@ impl Expression {
                     }
                     // @todo add other call types
                     _ => {
-                        // @error invalid call
                         // if call_type.clone() == CallType::Array {
                         //     return LiteralType::Array(vec![args[0].clone()]);
                         // }

@@ -177,6 +177,8 @@ pub enum TokenType {
     ArrayIdent,
     /// any
     AnyIdent,
+    /// unknown character
+    Unknown
 }
 
 #[derive(Debug, PartialEq, Clone)]

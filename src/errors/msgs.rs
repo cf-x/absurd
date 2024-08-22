@@ -343,4 +343,93 @@ impl Error {
             format!("{} isn't literal, at {}:{}-{}", args[0], line, pos.0, pos.1),
         );
     }
+
+    pub fn e410(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "runtime",
+            410,
+            format!(
+                "can not assign to an immutable variable, at {}:{}-{}",
+                line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e411(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "runtime",
+            411,
+            format!(
+                "can not assign to a public variable, at {}:{}-{}",
+                line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e412(&self, line: usize, pos: (usize, usize), args: Vec<String>) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "runtime",
+            412,
+            format!(
+                "invalid type, while assigning to a variable '{}', at {}:{}-{}",
+                args[0], line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e413(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "runtime",
+            413,
+            format!(
+                "can not assign to a non-variable, at {}:{}-{}",
+                line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e414(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "runtime",
+            414,
+            format!("failed to assign a value, at {}:{}-{}", line, pos.0, pos.1),
+        );
+    }
+
+    pub fn e501(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "environment",
+            501,
+            format!("failed to get a distance, at {}:{}-{}", line, pos.0, pos.1),
+        );
+    }
+
+    pub fn e502(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "environment",
+            502,
+            format!("failed to resolve a value, at {}:{}-{}", line, pos.0, pos.1),
+        );
+    }
 }

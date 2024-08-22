@@ -1,5 +1,8 @@
-use crate::ast::LiteralType;
-use std::{borrow::Borrow, cell::RefCell, collections::HashMap, rc::Rc};
+use crate::{
+    ast::LiteralType,
+    errors::{Error, ErrorCode::*},
+};
+use std::{borrow::Borrow, cell::RefCell, collections::HashMap, process::exit, rc::Rc};
 
 type EnvValueType = Rc<RefCell<HashMap<String, ValueType>>>;
 
@@ -44,6 +47,10 @@ pub struct Env {
 }
 
 impl Env {
+    fn err(&self) -> Error {
+        Error::new("")
+    }
+
     pub fn new(locals: HashMap<usize, usize>) -> Self {
         Self {
             values: get_empty_rc(),
@@ -144,14 +151,21 @@ impl Env {
                 None => self.values.borrow_mut().get(name).cloned(),
             }
         } else {
-            let d = d.expect("@error failed to get a distance");
+            let d = match d {
+                Some(d) => d,
+                None => {
+                    self.err().throw(E0x501, 0, (0, 0), vec![]);
+                    exit(1)
+                }
+            };
             if d <= 0 {
                 self.values.borrow_mut().get(name).cloned()
             } else {
                 match &self.enclosing {
                     Some(env) => env.borrow_mut().get_int(name, Some(d - 1)),
                     None => {
-                        panic!("@error failed to resolve a value");
+                        self.err().throw(E0x502, 0, (0, 0), vec![]);
+                        exit(1);
                     }
                 }
             }
@@ -175,7 +189,13 @@ impl Env {
                     .is_some(),
             }
         } else {
-            let d = d.expect("@error failed to get a distance");
+            let d = match d {
+                Some(d) => d,
+                None => {
+                    self.err().throw(E0x501, 0, (0, 0), vec![]);
+                    exit(1)
+                }
+            };
             if d <= 0 {
                 self.values.borrow_mut().remove(name);
                 true
@@ -183,7 +203,8 @@ impl Env {
                 match &self.enclosing {
                     Some(env) => env.borrow_mut().set_int(name, value, Some(d - 1)),
                     None => {
-                        panic!("@error failed to resolve a value");
+                        self.err().throw(E0x502, 0, (0, 0), vec![]);
+                        exit(1);
                     }
                 }
             }
