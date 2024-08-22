@@ -1,3 +1,4 @@
+use crate::errors::{Error, ErrorCode::*};
 use crate::{
     ast::{CallType, FuncBody, FuncImpl, FuncValueType, LiteralType, Token, TokenType::*},
     env::Env,
@@ -7,10 +8,16 @@ use core::{
     cmp::Eq,
     hash::{Hash, Hasher},
 };
+use std::process::exit;
 use std::{cell::RefCell, fmt, rc::Rc};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
+    Assign {
+        id: usize,
+        name: Token,
+        value: Box<Expression>,
+    },
     Array {
         id: usize,
         items: Vec<Expression>,
@@ -67,6 +74,10 @@ impl Hash for Expression {
 
 impl Eq for Expression {}
 impl Expression {
+    fn err(&self) -> Error {
+        Error::new("")
+    }
+
     pub fn id(&self) -> usize {
         match self {
             // @todo add assign expression
@@ -79,11 +90,26 @@ impl Expression {
             Expression::Unary { id, .. } => *id,
             Expression::Value { id, .. } => *id,
             Expression::Grouping { id, .. } => *id,
+            Expression::Assign { id, .. } => *id,
         }
     }
 
     pub fn eval(&self, env: Rc<RefCell<Env>>) -> LiteralType {
         match self {
+            Expression::Assign { name, value, .. } => {
+                let val = (*value).eval(Rc::clone(&env));
+                let assigned = env
+                    .borrow_mut()
+                    .assing(name.lexeme.clone(), val.clone(), self.id());
+                // @todo type check
+                if assigned {
+                    val
+                } else {
+                    // @error failed to assign value
+                    self.err().throw(E0x401, 0, (0, 0), vec![]);
+                    exit(0);
+                }
+            }
             Expression::Var { name, .. } => {
                 match env.borrow().get(name.lexeme.clone(), self.id()) {
                     Some(v) => v.clone(),
@@ -104,8 +130,8 @@ impl Expression {
                     LiteralType::Func(func) => match func {
                         FuncValueType::Func(func) => run_func(func, args, env),
                         _ => {
-                            // @error invalid function call
-                            panic!("Invalid function call");
+                            self.err().throw(E0x407, 0, (0, 0), vec![]);
+                            exit(0);
                         }
                     },
                     LiteralType::DeclrFunc(func) => {
@@ -143,8 +169,8 @@ impl Expression {
                     body: FuncBody::Statements(match body {
                         FuncBody::Statements(stmts) => stmts.iter().map(|x| x.clone()).collect(),
                         _ => {
-                            // @error invalid function body
-                            panic!("invalid function body")
+                            self.err().throw(E0x403, 0, (0, 0), vec![]);
+                            exit(0);
                         }
                     }),
                     params: params
@@ -284,6 +310,7 @@ impl Expression {
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Expression::Assign { name, value, .. } => write!(f, "{} = {}", name.lexeme, value),
             Expression::Var { name, .. } => write!(f, "{}", name.lexeme),
             Expression::Call { name, args, .. } => {
                 let mut args_str = String::new();

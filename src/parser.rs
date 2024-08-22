@@ -466,13 +466,37 @@ impl Parser {
     }
 
     fn expr_stmt(&mut self) -> Statement {
+        self.retreat();
         let expr = self.expr();
         self.consume(Semi);
         Statement::Expression { expr }
     }
 
     fn expr(&mut self) -> Expression {
-        self.binary()
+        let expr = self.binary();
+        if self.if_token_consume(Assign) {
+            return self.assign(expr);
+        }
+        expr
+    }
+
+    fn assign(&mut self, expr: Expression) -> Expression {
+        let value = self.expr();
+        if let Expression::Var { id: _, name } = expr {
+            return Expression::Assign {
+                id: self.id(),
+                name,
+                value: Box::new(value),
+            };
+        } else {
+            self.err.throw(
+                E0x201,
+                self.peek().line,
+                self.peek().pos,
+                vec!["Invalid assignment target".to_string()],
+            );
+            exit(1);
+        }
     }
 
     fn binary(&mut self) -> Expression {
@@ -970,6 +994,14 @@ impl Parser {
     fn advance(&mut self) -> Token {
         if !self.is_token(Eof) {
             self.crnt += 1;
+        }
+        self.prev(1)
+    }
+    /// decreases current position by 1
+    /// and returns advanced token
+    fn retreat(&mut self) -> Token {
+        if self.crnt > 0 {
+            self.crnt -= 1;
         }
         self.prev(1)
     }

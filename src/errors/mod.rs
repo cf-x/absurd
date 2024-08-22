@@ -121,6 +121,17 @@ pub enum ErrorCode {
     /// ## message
     /// `runtime error (E0x406): missing return statement`
     E0x406,
+    /// ## message
+    /// `runtime error (E0x407): invalid function call`
+    E0x407,
+    /// ## message
+    /// `runtime error (E0x408): failed to parse {0} literal`
+    /// - {0}: subject
+    E0x408,
+    /// ## message
+    /// `runtime error (E0x409): {0} isn't literal`
+    /// - {0}: subject
+    E0x409,
 }
 
 #[derive(Debug, Clone)]
@@ -160,6 +171,9 @@ impl Error {
             E0x404 => self.e404(line, pos),
             E0x405 => self.e405(line, pos),
             E0x406 => self.e406(line, pos),
+            E0x407 => self.e407(line, pos),
+            E0x408 => self.e408(line, pos, args),
+            E0x409 => self.e409(line, pos, args),
         };
     }
 
@@ -207,6 +221,7 @@ impl Error {
         let head = format!("{} error ({}):", kind, err_code);
         eprintln!("{} {}", head.red().bold(), msg.red());
     }
+    
     #[allow(dead_code)]
     pub fn warn(&self, msg: String) {
         let head = "warning:".bold().yellow();

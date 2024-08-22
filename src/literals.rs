@@ -1,7 +1,13 @@
 use crate::ast::{FuncValueType, LiteralKind, LiteralType, Token, TokenType};
+use crate::errors::{Error, ErrorCode::*};
 use std::fmt;
+use std::process::exit;
 
 impl LiteralType {
+    fn err(&self) -> Error {
+        Error::new("")
+    }
+
     #[allow(dead_code)]
     pub fn token_to_literal(&self, token: Token) -> LiteralType {
         match token.token {
@@ -9,7 +15,9 @@ impl LiteralType {
                 let val = match token.value {
                     Some(LiteralKind::Number { base: _, value }) => value,
                     _ => {
-                        panic!("failed to parse number literal");
+                        self.err()
+                            .throw(E0x408, token.line, token.pos, vec!["number".to_string()]);
+                        exit(0);
                     }
                 };
                 Self::Number(val)
@@ -18,7 +26,9 @@ impl LiteralType {
                 let val = match token.value {
                     Some(LiteralKind::String { value }) => value,
                     _ => {
-                        panic!("failed to parse string literal");
+                        self.err()
+                            .throw(E0x408, token.line, token.pos, vec!["string".to_string()]);
+                        exit(0);
                     }
                 };
                 Self::String(val)
@@ -27,7 +37,9 @@ impl LiteralType {
                 let val = match token.value {
                     Some(LiteralKind::Char { value }) => value,
                     _ => {
-                        panic!("failed to parse char literal");
+                        self.err()
+                            .throw(E0x408, token.line, token.pos, vec!["char".to_string()]);
+                        exit(0);
                     }
                 };
                 Self::Char(val)
@@ -36,7 +48,13 @@ impl LiteralType {
                 let val = match token.value {
                     Some(LiteralKind::Bool { value }) => value,
                     _ => {
-                        panic!("failed to parse bool literal");
+                        self.err().throw(
+                            E0x408,
+                            token.line,
+                            token.pos,
+                            vec!["boolean".to_string()],
+                        );
+                        exit(0);
                     }
                 };
                 Self::Boolean(val)
@@ -44,7 +62,11 @@ impl LiteralType {
             TokenType::NullLit => Self::Null,
             // @todo array literal
             TokenType::ArrayLit => Self::Array(vec![]),
-            _ => panic!("invalid token"),
+            _ => {
+                self.err()
+                    .throw(E0x407, token.line, token.pos, vec![]);
+                exit(0);
+            }
         }
     }
     pub fn is_truthy(&self) -> bool {

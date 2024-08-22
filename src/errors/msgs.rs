@@ -307,4 +307,40 @@ impl Error {
             format!("missing return statement, at {}:{}-{}", line, pos.0, pos.1),
         );
     }
+
+    pub fn e407(&self, line: usize, pos: (usize, usize)) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.panic(
+            "runtime",
+            407,
+            format!("invalid function call, at {}:{}-{}", line, pos.0, pos.1),
+        );
+    }
+
+    pub fn e408(&self, line: usize, pos: (usize, usize), args: Vec<String>) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "runtime",
+            408,
+            format!(
+                "failed to parse {} literal, at {}:{}-{}",
+                args[0], line, pos.0, pos.1
+            ),
+        );
+    }
+
+    pub fn e409(&self, line: usize, pos: (usize, usize), args: Vec<String>) {
+        if pos != (0, 0) {
+            self.print_lines(line, pos);
+        }
+        self.eprintln(
+            "runtime",
+            409,
+            format!("{} isn't literal, at {}:{}-{}", args[0], line, pos.0, pos.1),
+        );
+    }
 }

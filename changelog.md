@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0
+
+- added assignments
+- better error handling
+
 ## 0.7.3
 
 - fixed function parameters

@@ -317,6 +317,9 @@ impl Resolver {
 
     fn resolve_expr(&mut self, expr: &Expression, env: &Rc<RefCell<Env>>) {
         match expr {
+            Expression::Assign { value, .. } => {
+                self.resolve_expr(value, env);
+            }
             Expression::Array { items, .. } => {
                 for item in items {
                     self.resolve_expr(item, env)
@@ -422,7 +425,6 @@ impl Resolver {
 
     fn declare(&mut self, name: &Token) {
         let s = self.scopes.len();
-        // @todo: add shadowing
         if self.scopes.is_empty() {
             return;
         } else if self.scopes[s - 1].contains_key(&name.lexeme.clone()) {
