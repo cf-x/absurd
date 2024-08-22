@@ -1,0 +1,3 @@
+mod "file2.ape";
+use pi as PI from "file2.ape";
+print(PI);

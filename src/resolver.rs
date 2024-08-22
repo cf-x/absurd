@@ -57,7 +57,7 @@ impl Resolver {
             Statement::Impl { .. } => self.resolve_impl_stmt(stmt, env),
             Statement::Loop { .. } => self.resolve_loop_stmt(stmt, env),
             Statement::Match { .. } => self.resolve_match_stmt(stmt, env),
-            Statement::Mod { .. } => self.resolve_mod_stmt(stmt, env),
+            Statement::Mod { .. } => {}
             Statement::Return { .. } => self.resolve_return_stmt(stmt, env),
             Statement::Struct { .. } => self.resolve_struct_stmt(stmt, env),
             Statement::Use { .. } => self.resolve_use_stmt(stmt),
@@ -253,13 +253,6 @@ impl Resolver {
                     self.resolve_expr(expr, env);
                 }
             }
-        }
-    }
-
-    fn resolve_mod_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
-        if let Statement::Mod { src } = stmt {
-            // env.borrow_mut()
-            //     .define_mod(src.clone(), LiteralType::String(src.clone()));
         }
     }
 

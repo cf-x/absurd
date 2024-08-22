@@ -5,7 +5,6 @@ use crate::{
     env::Env,
     interpreter::run_func,
 };
-use core::panic;
 use core::{
     cmp::Eq,
     hash::{Hash, Hasher},

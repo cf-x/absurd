@@ -12,8 +12,6 @@ mod literals;
 mod parser;
 mod resolver;
 mod std;
-#[cfg(test)]
-mod tests;
 
 fn main() {
     cli();

@@ -1,3 +1,4 @@
+use crate::bundler::interpreter_mod;
 use crate::env::{Env, VarKind};
 use crate::errors::{Error, ErrorCode::*};
 use crate::expr::Expression;
@@ -11,9 +12,12 @@ use crate::{
     },
     env::FuncKind,
 };
+use core::panic;
 use std::cell::RefCell;
-use std::clone;
 use std::collections::HashMap;
+use std::env::current_dir;
+use std::fs::File;
+use std::io::Read;
 use std::process::exit;
 use std::rc::Rc;
 
@@ -22,6 +26,7 @@ pub struct Interpreter {
     pub env: Rc<RefCell<Env>>,
     pub specs: Rc<RefCell<HashMap<String, LiteralType>>>,
     pub is_mod: bool,
+    mod_src: Option<String>,
     error: Error,
 }
 
@@ -32,6 +37,7 @@ impl Interpreter {
             env: env.clone(),
             specs: Rc::new(RefCell::new(HashMap::new())),
             is_mod: false,
+            mod_src: None,
             error: Error::new(src),
         };
         let mut std_core_io = StdCoreIo::new(env);
@@ -39,16 +45,27 @@ impl Interpreter {
         int
     }
 
-    pub fn new_with_env(env: Rc<RefCell<Env>>, src: &str) -> Self {
-        Self {
-            env,
+    pub fn new_with_env(
+        env: Rc<RefCell<Env>>,
+        is_mod: bool,
+        src: &str,
+        mod_src: Option<String>,
+    ) -> Self {
+        let int = Self {
+            env: env.clone(),
             specs: Rc::new(RefCell::new(HashMap::new())),
-            is_mod: false,
+            is_mod,
+            mod_src,
             error: Error::new(src),
+        };
+        if is_mod {
+            let mut std_core_io = StdCoreIo::new(env);
+            std_core_io.load();
         }
+        int
     }
 
-    pub fn interpret(&mut self, stmts: Vec<&Statement>) {
+    pub fn interpret(&mut self, stmts: Vec<&Statement>) -> Rc<RefCell<Env>> {
         for stmt in stmts {
             match stmt {
                 Statement::Expression { expr } => {
@@ -127,9 +144,10 @@ impl Interpreter {
                         } else if is_pub.clone() {
                             let val = v.eval(Rc::clone(&self.env));
                             for name in pub_names {
-                                self.env.borrow_mut().define_pub_var(
-                                    name.lexeme.clone(),
+                                self.env.borrow_mut().define_mod_var(
+                                    self.mod_src.clone().unwrap(),
                                     val.clone(),
+                                    name.lexeme.clone(),
                                     VarKind {
                                         is_pub: true,
                                         is_mut: *is_mut,
@@ -272,11 +290,47 @@ impl Interpreter {
                 Match { .. } => {
                     // @todo handle match statements
                 }
-                Mod { .. } => {
-                    // @todo handle mod statements
+                Mod { src } => {
+                    let mut path = current_dir().unwrap();
+                    path.push(src.trim_matches('"'));
+                    let mut file = File::open(path).unwrap();
+                    let mut contents = String::new();
+                    file.read_to_string(&mut contents).unwrap();
+                    interpreter_mod(contents.as_str(), Some(src.to_string()), self.env.clone());
                 }
-                Use { .. } => {
-                    // @todo handle use statements
+                Use { src, names } => {
+                    let mod_vals = self.env.borrow().mod_vals.borrow().clone();
+                    let vals = match mod_vals.get(src) {
+                        Some(c) => c,
+                        None => {
+                            panic!("failed to get a value, edit this error");
+                        }
+                    };
+
+                    self.env.borrow_mut().mod_vals.borrow_mut().remove(src);
+
+                    for val in vals {
+                        let (name, v) = val;
+
+                        if names.iter().any(|(token, _)| token.lexeme == name.clone()) {
+                            let n = names
+                                .iter()
+                                .map(|(token1, token2)| {
+                                    if token2.clone().is_some() {
+                                        token2.clone().unwrap().lexeme
+                                    } else {
+                                        token1.clone().lexeme
+                                    }
+                                })
+                                .next()
+                                .unwrap_or_default();
+                            self.env
+                                .borrow_mut()
+                                .values
+                                .borrow_mut()
+                                .insert(n.clone(), v.clone());
+                        }
+                    }
                 }
                 Struct { .. } => {
                     // @todo handle struct statements
@@ -289,6 +343,7 @@ impl Interpreter {
                 }
             }
         }
+        self.env.clone()
     }
 
     fn create_func(&self, stmt: &Statement) -> FuncImpl {
@@ -375,7 +430,8 @@ pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Rc<RefCell<Env>>) -
             error.throw(E0x405, 0, (0, 0), vec![]);
         }
     }
-    let mut int = Interpreter::new_with_env(func_env, "");
+    // @todo pass is_mod
+    let mut int = Interpreter::new_with_env(func_env, false, "", None);
 
     match func.body {
         FuncBody::Statements(body) => {

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.0
+
+- added modality
+- added `mod` and `use` statements
+- added variable publicity
+- fixed parsing bugs
+- fixed minor bugs
+
 ## 0.8.2
 
 - updated error handling

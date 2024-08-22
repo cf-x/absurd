@@ -1,5 +1,9 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::analyzer::Analyzer;
 use crate::ast::{Statement, Token};
+use crate::env::Env;
 use crate::errors::Error;
 use crate::interpreter::Interpreter;
 use crate::lexer::Lexer;
@@ -38,4 +42,17 @@ pub fn interpreter_raw(src: &str) {
     let locals = resolver.resolve(&stmts.iter().collect(), &mut int.env);
     int.env.borrow_mut().resolve(locals);
     int.interpret(stmts.iter().collect());
+}
+
+pub fn interpreter_mod(
+    src: &str,
+    mod_src: Option<String>,
+    env: Rc<RefCell<Env>>,
+) -> Rc<RefCell<Env>> {
+    let mut int = Interpreter::new_with_env(env, true, src, mod_src);
+    let stmts = parser(src);
+    let mut resolver = Resolver::new(src);
+    let locals = resolver.resolve(&stmts.iter().collect(), &mut int.env);
+    int.env.borrow_mut().resolve(locals);
+    int.interpret(stmts.iter().collect())
 }

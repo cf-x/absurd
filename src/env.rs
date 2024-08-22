@@ -5,6 +5,7 @@ use crate::{
 use std::{borrow::Borrow, cell::RefCell, collections::HashMap, process::exit, rc::Rc};
 
 type EnvValueType = Rc<RefCell<HashMap<String, ValueType>>>;
+type ModEnvValueType = Rc<RefCell<HashMap<String, Vec<(String, ValueType)>>>>;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ValueKind {
@@ -40,7 +41,7 @@ pub struct ValueType {
 pub struct Env {
     pub values: EnvValueType,
     pub pub_vals: EnvValueType,
-    pub mod_vals: EnvValueType,
+    pub mod_vals: ModEnvValueType,
     pub mods: Vec<Env>,
     pub locals: Rc<RefCell<HashMap<usize, usize>>>,
     pub enclosing: Option<Rc<RefCell<Env>>>,
@@ -55,7 +56,7 @@ impl Env {
         Self {
             values: get_empty_rc(),
             pub_vals: get_empty_rc(),
-            mod_vals: get_empty_rc(),
+            mod_vals: get_empty_md(),
             mods: Vec::new(),
             locals: Rc::new(RefCell::new(locals)),
             enclosing: None,
@@ -66,7 +67,7 @@ impl Env {
         Self {
             values: get_empty_rc(),
             pub_vals: get_empty_rc(),
-            mod_vals: get_empty_rc(),
+            mod_vals: get_empty_md(),
             mods: self.mods.clone(),
             locals: Rc::clone(&self.locals),
             enclosing: Some(Rc::new(RefCell::new(self.clone()))),
@@ -119,24 +120,28 @@ impl Env {
         );
     }
 
-    pub fn define_mod_var(&self, k: String, v: VarKind) {
-        self.mod_vals.borrow_mut().insert(
+    pub fn define_mod_var(&self, source: String, f: LiteralType, k: String, v: VarKind) {
+        let mut mod_vals = self.mod_vals.borrow_mut();
+        let entry = mod_vals.entry(source).or_insert_with(Vec::new);
+        entry.push((
             k,
             ValueType {
-                value: LiteralType::Null,
+                value: f,
                 kind: ValueKind::Var(v),
             },
-        );
+        ));
     }
 
-    pub fn define_mod_func(&self, k: String, v: FuncKind) {
-        self.mod_vals.borrow_mut().insert(
+    pub fn define_mod_func(&self, source: String, f: LiteralType, k: String, v: FuncKind) {
+        let mut mod_vals = self.mod_vals.borrow_mut();
+        let entry = mod_vals.entry(source).or_insert_with(Vec::new);
+        entry.push((
             k,
             ValueType {
-                value: LiteralType::Null,
+                value: f,
                 kind: ValueKind::Func(v),
             },
-        );
+        ));
     }
 
     pub fn get(&self, name: String, id: usize) -> Option<ValueType> {
@@ -213,5 +218,9 @@ impl Env {
 }
 
 fn get_empty_rc() -> EnvValueType {
+    Rc::new(RefCell::new(HashMap::new()))
+}
+
+fn get_empty_md() -> ModEnvValueType {
     Rc::new(RefCell::new(HashMap::new()))
 }

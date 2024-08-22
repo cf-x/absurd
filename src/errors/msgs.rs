@@ -100,7 +100,7 @@ impl Error {
         if pos != (0, 0) {
             self.print_lines(line, pos);
         }
-        self.eprintln(
+        self.panic(
             "syntax",
             204,
             format!(

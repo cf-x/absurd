@@ -91,6 +91,10 @@ impl Parser {
             self.advance();
         }
 
+        if pub_names.is_empty() {
+            pub_names = names.clone();
+        }
+
         let null_var = Statement::Var {
             names: names.clone(),
             value_type: Token {
@@ -350,7 +354,7 @@ impl Parser {
             } else {
                 names.push((name, None))
             }
-            self.consume(Comma);
+            self.if_token_consume(Comma);
         }
 
         let src = self.consume(StringLit).lexeme;
