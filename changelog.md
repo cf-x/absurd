@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.1
+
+- updated environment structure
+- fixed assignments
+
 ## 0.8.0
 
 - added assignments

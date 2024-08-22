@@ -258,8 +258,8 @@ impl Resolver {
 
     fn resolve_mod_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
         if let Statement::Mod { src } = stmt {
-            env.borrow_mut()
-                .define_mod(src.clone(), LiteralType::String(src.clone()));
+            // env.borrow_mut()
+            //     .define_mod(src.clone(), LiteralType::String(src.clone()));
         }
     }
 

@@ -8,6 +8,21 @@ impl LiteralType {
         Error::new("")
     }
 
+    pub fn type_name(&self) -> String {
+        match self {
+            Self::Number(_) => "number".to_string(),
+            Self::String(_) => "string".to_string(),
+            Self::Char(_) => "char".to_string(),
+            Self::Boolean(_) => "bool".to_string(),
+            Self::Array(_) => "array".to_string(),
+            Self::Func(_) => "function".to_string(),
+            Self::Void => "void".to_string(),
+            Self::DeclrFunc(_) => "declared function".to_string(),
+            Self::Null => "null".to_string(),
+            Self::Any => "any".to_string(),
+        }
+    }
+
     #[allow(dead_code)]
     pub fn token_to_literal(&self, token: Token) -> LiteralType {
         match token.token {
@@ -63,8 +78,7 @@ impl LiteralType {
             // @todo array literal
             TokenType::ArrayLit => Self::Array(vec![]),
             _ => {
-                self.err()
-                    .throw(E0x407, token.line, token.pos, vec![]);
+                self.err().throw(E0x407, token.line, token.pos, vec![]);
                 exit(0);
             }
         }

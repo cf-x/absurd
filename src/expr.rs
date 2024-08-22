@@ -1,9 +1,11 @@
+use crate::env::{ValueKind, ValueType, VarKind};
 use crate::errors::{Error, ErrorCode::*};
 use crate::{
     ast::{CallType, FuncBody, FuncImpl, FuncValueType, LiteralType, Token, TokenType::*},
     env::Env,
     interpreter::run_func,
 };
+use core::panic;
 use core::{
     cmp::Eq,
     hash::{Hash, Hasher},
@@ -80,7 +82,6 @@ impl Expression {
 
     pub fn id(&self) -> usize {
         match self {
-            // @todo add assign expression
             Expression::Var { id, .. } => *id,
             Expression::Call { id, .. } => *id,
             Expression::Func { id, .. } => *id,
@@ -98,23 +99,55 @@ impl Expression {
         match self {
             Expression::Assign { name, value, .. } => {
                 let val = (*value).eval(Rc::clone(&env));
+                let t = env.borrow().get(name.lexeme.clone(), self.id());
+                match t {
+                    Some(v) => match v.kind {
+                        ValueKind::Var(s) => {
+                            if !s.is_mut {
+                                // @error cannot assign to immutable variable
+                                panic!("cannot assign to immutable variable")
+                            }
+                            if s.is_pub {
+                                // @error cannot assign to public variable
+                                panic!("cannot assign to public variable")
+                            }
+                            if v.value.type_name() != val.type_name() {
+                                // @error cannot assign different type
+                                eprintln!("{:?} {:?}", v.value, val);
+                                panic!("cannot assign different type")
+                            }
+                        }
+                        _ => {
+                            // @error cannot assign to non-variable
+                            panic!("cannot assign to non-variable")
+                        }
+                    },
+                    None => {}
+                }
+                let ass_val = ValueType {
+                    kind: ValueKind::Var(VarKind {
+                        is_mut: false,
+                        is_pub: false,
+                        is_func: false,
+                    }),
+                    value: val.clone(),
+                };
                 let assigned = env
                     .borrow_mut()
-                    .assing(name.lexeme.clone(), val.clone(), self.id());
-                // @todo type check
+                    .assing(name.lexeme.clone(), ass_val, self.id());
+
                 if assigned {
                     val
                 } else {
                     // @error failed to assign value
-                    self.err().throw(E0x401, 0, (0, 0), vec![]);
-                    exit(0);
+                    panic!("failed to assign value");
                 }
             }
             Expression::Var { name, .. } => {
                 match env.borrow().get(name.lexeme.clone(), self.id()) {
-                    Some(v) => v.clone(),
+                    Some(v) => v.clone().value,
                     None => match env.borrow().values.borrow().get(name.lexeme.as_str()) {
-                        Some(v) => v.clone(),
+                        Some(v) => v.clone().value,
                         None => LiteralType::Null,
                     },
                 }

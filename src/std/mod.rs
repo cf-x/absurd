@@ -3,16 +3,24 @@ pub mod core;
 
 use crate::{
     ast::{DeclrFuncType, FuncValType, LiteralType},
-    env::Env,
+    env::{Env, FuncKind},
 };
 
 pub fn func(name: &str, arity: usize, env: &mut Rc<RefCell<Env>>, func: Rc<dyn FuncValType>) {
-    env.borrow().define(
+    let params = vec![];
+    env.borrow().define_pub_func(
         name.to_string(),
         LiteralType::DeclrFunc(DeclrFuncType {
             name: name.to_string(),
             arity,
             func,
         }),
+        FuncKind {
+            params,
+            is_async: false,
+            is_pub: false,
+            is_impl: false,
+            is_mut: false,
+        },
     )
 }

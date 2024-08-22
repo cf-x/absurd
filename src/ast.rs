@@ -1,5 +1,7 @@
 use std::{
-    cell::RefCell, fmt::{self, Debug}, rc::Rc
+    cell::RefCell,
+    fmt::{self, Debug},
+    rc::Rc,
 };
 
 use crate::{env::Env, expr::Expression};
@@ -316,7 +318,9 @@ pub enum Statement {
         params: Vec<(Token, Token)>,
         is_async: bool,
         is_pub: bool,
+        // if function is method (implemented)
         is_impl: bool,
+        // if function contains `self` parameter
         is_mut: bool,
     },
     If {

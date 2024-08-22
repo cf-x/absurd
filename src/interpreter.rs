@@ -1,14 +1,18 @@
-use crate::ast::{
-    FuncBody, FuncImpl, FuncValueType, LiteralType,
-    Statement::{self, *},
-    Token,
-};
-use crate::env::Env;
+use crate::env::{Env, VarKind};
 use crate::errors::{Error, ErrorCode::*};
 use crate::expr::Expression;
 use crate::resolver::type_check;
 use crate::std::core::io::StdCoreIo;
+use crate::{
+    ast::{
+        FuncBody, FuncImpl, FuncValueType, LiteralType,
+        Statement::{self, *},
+        Token,
+    },
+    env::FuncKind,
+};
 use std::cell::RefCell;
+use std::clone;
 use std::collections::HashMap;
 use std::process::exit;
 use std::rc::Rc;
@@ -65,6 +69,7 @@ impl Interpreter {
                     is_pub,
                     pub_names,
                     is_func,
+                    is_mut,
                     ..
                 } => match value {
                     Some(v) => {
@@ -75,29 +80,62 @@ impl Interpreter {
                                         .throw(E0x401, names[0].line, names[0].pos, vec![]);
                                 }
                                 let call = self.create_func(stmt);
-                                let func = LiteralType::Func(FuncValueType::Func(call));
-                                self.env.borrow_mut().define(names[0].lexeme.clone(), func);
+                                let func = LiteralType::Func(FuncValueType::Func(call.clone()));
+                                let params = call
+                                    .params
+                                    .iter()
+                                    .map(|(a, b)| (a.clone().lexeme, b.clone().lexeme))
+                                    .collect();
+                                self.env.borrow_mut().define_func(
+                                    names[0].lexeme.clone(),
+                                    func,
+                                    FuncKind {
+                                        params,
+                                        is_async: call.is_async,
+                                        is_pub: is_pub.clone(),
+                                        is_impl: call.is_impl,
+                                        is_mut: call.is_mut,
+                                    },
+                                );
                             } else {
                                 let val = v.eval(self.env.clone());
                                 for name in names {
-                                    self.env
-                                        .borrow_mut()
-                                        .define(name.lexeme.clone(), val.clone());
+                                    self.env.borrow_mut().define_var(
+                                        name.lexeme.clone(),
+                                        val.clone(),
+                                        VarKind {
+                                            is_pub: is_pub.clone(),
+                                            is_mut: *is_mut,
+                                            is_func: false,
+                                        },
+                                    );
                                 }
                                 if is_pub.clone() {
                                     for name in pub_names {
-                                        self.env
-                                            .borrow_mut()
-                                            .define_pub(name.lexeme.clone(), val.clone());
+                                        self.env.borrow_mut().define_pub_var(
+                                            name.lexeme.clone(),
+                                            val.clone(),
+                                            VarKind {
+                                                is_pub: true,
+                                                is_mut: *is_mut,
+                                                is_func: false,
+                                            },
+                                        );
                                     }
                                 }
                             }
                         } else if is_pub.clone() {
                             let val = v.eval(Rc::clone(&self.env));
                             for name in pub_names {
-                                self.env
-                                    .borrow_mut()
-                                    .define_pub(name.lexeme.clone(), val.clone());
+                                self.env.borrow_mut().define_pub_var(
+                                    name.lexeme.clone(),
+                                    val.clone(),
+                                    VarKind {
+                                        is_pub: true,
+                                        is_mut: *is_mut,
+                                        is_func: false,
+                                    },
+                                );
                             }
                         }
                     }
@@ -108,21 +146,57 @@ impl Interpreter {
                         }
                         let val = LiteralType::Null;
                         for name in names {
-                            self.env
-                                .borrow_mut()
-                                .define(name.lexeme.clone(), val.clone());
+                            self.env.borrow_mut().define_var(
+                                name.lexeme.clone(),
+                                val.clone(),
+                                VarKind {
+                                    is_pub: false,
+                                    is_mut: *is_mut,
+                                    is_func: false,
+                                },
+                            );
                         }
                     }
                 },
-                Func { name, is_pub, .. } => {
+                Func {
+                    name,
+                    is_pub,
+                    params,
+                    is_async,
+                    is_mut,
+                    is_impl,
+                    ..
+                } => {
                     let call = self.create_func(stmt);
                     let func = LiteralType::Func(FuncValueType::Func(call));
+                    let params = params
+                        .iter()
+                        .map(|(a, b)| (a.clone().lexeme, b.clone().lexeme))
+                        .collect();
                     if is_pub.clone() {
-                        self.env
-                            .borrow_mut()
-                            .define_pub(name.lexeme.clone(), func.clone());
+                        self.env.borrow_mut().define_pub_func(
+                            name.lexeme.clone(),
+                            func.clone(),
+                            FuncKind {
+                                params,
+                                is_async: *is_async,
+                                is_pub: true,
+                                is_impl: *is_impl,
+                                is_mut: *is_mut,
+                            },
+                        );
                     } else if !self.is_mod {
-                        self.env.borrow_mut().define(name.lexeme.clone(), func);
+                        self.env.borrow_mut().define_func(
+                            name.lexeme.clone(),
+                            func,
+                            FuncKind {
+                                params,
+                                is_async: *is_async,
+                                is_pub: false,
+                                is_impl: *is_impl,
+                                is_mut: *is_mut,
+                            },
+                        );
                     }
                 }
                 If {
@@ -270,6 +344,7 @@ pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Rc<RefCell<Env>>) -
     }
     let func_env = func.env.borrow_mut().enclose();
     let func_env = Rc::new(RefCell::new(func_env));
+
     for (i, val) in arg_values.iter().enumerate() {
         if i < func.params.len() {
             if !type_check(&func.value_type, &val) {
@@ -280,9 +355,22 @@ pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Rc<RefCell<Env>>) -
                     vec![val.to_string(), arg_values[i].to_string()],
                 );
             }
-            func_env
-                .borrow_mut()
-                .define(func.params[i].0.lexeme.clone(), val.clone());
+            let params = func
+                .params
+                .iter()
+                .map(|(a, b)| (a.clone().lexeme, b.clone().lexeme))
+                .collect();
+            func_env.borrow_mut().define_func(
+                func.params[i].0.lexeme.clone(),
+                val.clone(),
+                FuncKind {
+                    params,
+                    is_async: func.is_async,
+                    is_pub: func.is_pub,
+                    is_impl: func.is_impl,
+                    is_mut: func.is_mut,
+                },
+            );
         } else {
             error.throw(E0x405, 0, (0, 0), vec![]);
         }
