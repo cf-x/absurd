@@ -1,0 +1,43 @@
+[project]
+# name of the project
+name = "project_name"
+# version of the project
+version = "0.1.0"
+# description
+description = "project_description"
+# authors
+authors = ["author_name"]
+# license
+license = "license"
+# path to the license file
+license_file = "LICENSE"
+# repository url
+repository = "repository_url"
+# documentation url
+documentation = "documentation_url"
+# path to the readme file
+readme = "README.md"
+# auto update the project
+auto_update = false
+# "stable" or "beta"
+edition = "beta"
+
+[config]
+# number of lines to show before and after the error line
+# set to -1 to disable snippets
+snippet = 1
+# allow side effectus
+# if false: disables: mutability, modality, publicity and other sources of side effects
+side_effects = true
+# disable the standard library
+disable_std = false
+# disable the standard library prelude
+load_std = true
+# disable non-decimal numeric literals
+disable_bases = false
+# disable the analyzer
+disable_analyzer = true
+
+
+[modules]
+name = "version"
