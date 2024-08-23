@@ -20,7 +20,7 @@ pub enum TokenType {
     And,
     /// &&
     AndAnd,
-    /// *
+    /// `*`
     Mult,
     /// **
     Square,
@@ -352,6 +352,7 @@ pub enum Statement {
     Use {
         src: String,
         names: Vec<(Token, Option<Token>)>,
+        all: bool,
     },
     Struct {
         name: Token,

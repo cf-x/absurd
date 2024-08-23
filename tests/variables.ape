@@ -1,0 +1,7 @@
+let name: string = "johny";
+let mut count: number = 0;
+// count = count + 1;
+let pub PI: number = 3.14;
+let pub E: number = 2.71;
+let arr: <number> = [1, 2, 3, 4, 5];
+let value;

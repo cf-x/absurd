@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.1
+
+- added array types
+- added support for importing all values
+- fixed mutability errors
+- fixed error display
+- fixed import of multiple values
+
 ## 0.9.0
 
 - added modality

@@ -132,7 +132,7 @@ impl Env {
         ));
     }
 
-    pub fn define_mod_func(&self, source: String, f: LiteralType, k: String, v: FuncKind) {
+    pub fn _define_mod_func(&self, source: String, f: LiteralType, k: String, v: FuncKind) {
         let mut mod_vals = self.mod_vals.borrow_mut();
         let entry = mod_vals.entry(source).or_insert_with(Vec::new);
         entry.push((

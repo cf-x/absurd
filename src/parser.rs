@@ -346,20 +346,25 @@ impl Parser {
 
     fn use_stmt(&mut self) -> Statement {
         let mut names: Vec<(Token, Option<Token>)> = vec![];
-        while !self.if_token_advance(From) {
-            let name = self.consume(Ident);
-            if self.if_token_consume(As) {
-                let as_name = self.consume(Ident);
-                names.push((name, Some(as_name)))
-            } else {
-                names.push((name, None))
+        let mut all = false;
+        if self.if_token_advance(Mult) {
+            all = true;
+            self.consume(From);
+        } else {
+            while !self.if_token_advance(From) {
+                let name = self.consume(Ident);
+                if self.if_token_consume(As) {
+                    let as_name = self.consume(Ident);
+                    names.push((name, Some(as_name)))
+                } else {
+                    names.push((name, None))
+                }
+                self.if_token_consume(Comma);
             }
-            self.if_token_consume(Comma);
         }
-
         let src = self.consume(StringLit).lexeme;
         self.consume(Semi);
-        Statement::Use { src, names }
+        Statement::Use { src, names, all }
     }
 
     fn struct_stmt(&mut self) -> Statement {

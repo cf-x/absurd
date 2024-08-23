@@ -209,7 +209,7 @@ impl Error {
     pub fn print_lines(&self, line: usize, pos: (usize, usize)) {
         let lines: Vec<&str> = self.source.lines().collect();
     
-        if line > 1 {
+        if line > 1 && line <= lines.len() + 1 {
             eprintln!(
                 "{} | {}",
                 (line - 1).to_string().yellow(),
@@ -217,16 +217,18 @@ impl Error {
             );
         }
     
-        let line_content = lines[line - 1];
-        let (before, to_underscore, after) = split_line_at_char_indices(line_content, pos);
+        if line >= 1 && line <= lines.len() {
+            let line_content = lines[line - 1];
+            let (before, to_underscore, after) = split_line_at_char_indices(line_content, pos);
     
-        eprintln!(
-            "{} | {}{}{}",
-            line.to_string().yellow(),
-            before.red().bold(),
-            to_underscore.red().bold().underline(),
-            after.red().bold()
-        );
+            eprintln!(
+                "{} | {}{}{}",
+                line.to_string().yellow(),
+                before.red().bold(),
+                to_underscore.red().bold().underline(),
+                after.red().bold()
+            );
+        }
     
         if line < lines.len() {
             eprintln!(

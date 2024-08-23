@@ -1,0 +1,4 @@
+mod "tests/variables.ape";
+use PI as pi from "tests/variables.ape";
+use * from "tests/variables.ape";
+use PI as pi, E as e from "tests/variables.ape";

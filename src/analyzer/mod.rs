@@ -91,7 +91,7 @@ impl Analyzer {
                 def_case,
             } => self.matchs(cond, cases, def_case),
             Mod { src } => self.mods(src),
-            Use { src, names } => self.uses(src, names),
+            Use { src, names, all } => self.uses(src, names, all),
             Struct {
                 name,
                 structs,
@@ -186,7 +186,12 @@ impl Analyzer {
         None
     }
 
-    fn uses(&mut self, _src: String, _names: Vec<(Token, Option<Token>)>) -> Option<Statement> {
+    fn uses(
+        &mut self,
+        _src: String,
+        _names: Vec<(Token, Option<Token>)>,
+        _all: bool,
+    ) -> Option<Statement> {
         None
     }
 

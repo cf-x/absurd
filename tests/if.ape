@@ -1,0 +1,17 @@
+if true {
+    print("true");
+}
+
+if false {
+    print("false");
+} else {
+    print("true");
+}
+
+if false {
+    print("false");
+} elif true {
+    print("true");
+} else {
+    print("false");
+}

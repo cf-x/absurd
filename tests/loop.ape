@@ -1,0 +1,9 @@
+let mut i: number = 0;
+
+loop {
+    print(i);
+    i = i + 1;
+    if i == 3 {
+        break;
+    }
+}

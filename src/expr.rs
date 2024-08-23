@@ -93,18 +93,27 @@ impl Expression {
             Expression::Assign { id, .. } => *id,
         }
     }
+    
+    pub fn to_literal(&self) -> LiteralType {
+        match self {
+            Expression::Value { value, .. } => value.clone(),  
+            _ => LiteralType::Null,
+        }
+    }
 
     pub fn eval(&self, env: Rc<RefCell<Env>>) -> LiteralType {
         match self {
             Expression::Assign { name, value, .. } => {
                 let val = (*value).eval(Rc::clone(&env));
                 let t = env.borrow().get(name.lexeme.clone(), self.id());
+                let mut is_mut = false;
                 match t {
                     Some(v) => match v.kind {
                         ValueKind::Var(s) => {
                             if !s.is_mut {
                                 self.err().throw(E0x410, name.line, name.pos, vec![]);
                             }
+                            is_mut = true;
                             if s.is_pub {
                                 self.err().throw(E0x411, name.line, name.pos, vec![]);
                             }
@@ -125,7 +134,7 @@ impl Expression {
                 }
                 let ass_val = ValueType {
                     kind: ValueKind::Var(VarKind {
-                        is_mut: false,
+                        is_mut,
                         is_pub: false,
                         is_func: false,
                     }),

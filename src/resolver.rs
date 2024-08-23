@@ -511,7 +511,37 @@ pub fn type_check(value_type: &Token, val: &LiteralType) -> bool {
                 false
             }
         }
+        TokenType::ArrayIdent => {
+            if let LiteralType::Array(array) = val {
+                array.iter().all(|item| {
+                    type_check(
+                        &Token {
+                            token: string_to_token_type(&value_type.lexeme),
+                            lexeme: value_type.lexeme.clone(),
+                            value: None,
+                            line: value_type.line,
+                            pos: value_type.pos,
+                        },
+                        &item.to_literal(),
+                    )
+                })
+            } else {
+                false
+            }
+        }
         TokenType::AnyIdent => true,
         _ => false,
+    }
+}
+
+fn string_to_token_type(s: &str) -> TokenType {
+    match s {
+        "number" => TokenType::NumberIdent,
+        "string" => TokenType::StringIdent,
+        "boolean" => TokenType::BoolIdent,
+        "char" => TokenType::CharIdent,
+        "null" => TokenType::NullIdent,
+        "void" => TokenType::VoidIdent,
+        _ => TokenType::AnyIdent,
     }
 }

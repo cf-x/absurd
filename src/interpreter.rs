@@ -298,7 +298,7 @@ impl Interpreter {
                     file.read_to_string(&mut contents).unwrap();
                     interpreter_mod(contents.as_str(), Some(src.to_string()), self.env.clone());
                 }
-                Use { src, names } => {
+                Use { src, names, all } => {
                     let mod_vals = self.env.borrow().mod_vals.borrow().clone();
                     let vals = match mod_vals.get(src) {
                         Some(c) => c,
@@ -309,26 +309,25 @@ impl Interpreter {
 
                     self.env.borrow_mut().mod_vals.borrow_mut().remove(src);
 
-                    for val in vals {
-                        let (name, v) = val;
-
-                        if names.iter().any(|(token, _)| token.lexeme == name.clone()) {
-                            let n = names
-                                .iter()
-                                .map(|(token1, token2)| {
-                                    if token2.clone().is_some() {
-                                        token2.clone().unwrap().lexeme
-                                    } else {
-                                        token1.clone().lexeme
-                                    }
-                                })
-                                .next()
-                                .unwrap_or_default();
+                    if *all {
+                        for val in vals {
+                            let (name, v) = val;
                             self.env
                                 .borrow_mut()
                                 .values
                                 .borrow_mut()
-                                .insert(n.clone(), v.clone());
+                                .insert(name.clone(), v.clone());
+                        }
+                    } else {
+                        for (name, alias) in names {
+                            if let Some((_, v)) = vals.iter().find(|(n, _)| n == &name.lexeme) {
+                                let new_name = alias.as_ref().map_or(&name.lexeme, |t| &t.lexeme);
+                                self.env
+                                    .borrow_mut()
+                                    .values
+                                    .borrow_mut()
+                                    .insert(new_name.clone(), v.clone());
+                            }
                         }
                     }
                 }
