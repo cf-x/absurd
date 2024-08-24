@@ -18,5 +18,6 @@ mod std;
 fn main() {
     let mut project = Project::new();
     project.load();
-    cli();
+    
+    cli(project);
 }

@@ -1,7 +1,7 @@
-use crate::ast::{
+use crate::{ast::{
     CallType, FuncBody, LiteralKind, LiteralType, Statement, Token,
     TokenType::{self, *},
-};
+}, manifest::Project};
 use crate::errors::{Error, ErrorCode::*};
 use crate::expr::Expression;
 use std::process::exit;
@@ -14,7 +14,7 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(tokens: Vec<Token>, err: Error) -> Self {
+    pub fn new(tokens: Vec<Token>, err: Error, _project: Project) -> Self {
         Parser {
             tokens,
             err,

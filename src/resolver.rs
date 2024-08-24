@@ -2,6 +2,7 @@ use crate::ast::{FuncBody, LiteralType, Statement, Token, TokenType};
 use crate::env::Env;
 use crate::errors::{Error, ErrorCode::*};
 use crate::expr::Expression;
+use crate::manifest::Project;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -22,13 +23,13 @@ pub struct Resolver {
 }
 
 impl Resolver {
-    pub fn new(src: &str) -> Self {
+    pub fn new(src: &str, project: Project) -> Self {
         Resolver {
             locals: HashMap::new(),
             scopes: Vec::new(),
             is_crnt_fnc: Bool::False,
             is_crnt_loop: Bool::False,
-            err: Error::new(src),
+            err: Error::new(src, project),
         }
     }
     pub fn resolve(

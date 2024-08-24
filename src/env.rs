@@ -1,6 +1,7 @@
 use crate::{
     ast::LiteralType,
     errors::{Error, ErrorCode::*},
+    manifest::Project,
 };
 use std::{borrow::Borrow, cell::RefCell, collections::HashMap, process::exit, rc::Rc};
 
@@ -49,7 +50,7 @@ pub struct Env {
 
 impl Env {
     fn err(&self) -> Error {
-        Error::new("")
+        Error::new("", Project::new())
     }
 
     pub fn new(locals: HashMap<usize, usize>) -> Self {

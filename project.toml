@@ -33,8 +33,6 @@ side_effects = true
 disable_std = false
 # disable the standard library prelude
 load_std = true
-# disable non-decimal numeric literals
-disable_bases = false
 # disable the analyzer
 disable_analyzer = true
 

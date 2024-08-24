@@ -1,7 +1,7 @@
-use crate::ast::{
+use crate::{ast::{
     Base, LiteralKind, Token,
     TokenType::{self, *},
-};
+}, manifest::Project};
 use crate::errors::{Error, ErrorCode::*};
 use std::collections::HashMap;
 use unicode_xid::UnicodeXID;
@@ -19,7 +19,7 @@ pub struct Lexer {
 }
 
 impl Lexer {
-    pub fn new(source: String, err: Error) -> Self {
+    pub fn new(source: String, err: Error, _project: Project) -> Self {
         Self {
             source: source.chars().collect(),
             err,

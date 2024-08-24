@@ -1,11 +1,12 @@
 use crate::ast::{FuncValueType, LiteralKind, LiteralType, Token, TokenType};
 use crate::errors::{Error, ErrorCode::*};
+use crate::manifest::Project;
 use std::fmt;
 use std::process::exit;
 
 impl LiteralType {
     fn err(&self) -> Error {
-        Error::new("")
+        Error::new("", Project::new())
     }
 
     pub fn type_name(&self) -> String {

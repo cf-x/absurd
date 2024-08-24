@@ -1,5 +1,6 @@
 use crate::env::{ValueKind, ValueType, VarKind};
 use crate::errors::{Error, ErrorCode::*};
+use crate::manifest::Project;
 use crate::{
     ast::{CallType, FuncBody, FuncImpl, FuncValueType, LiteralType, Token, TokenType::*},
     env::Env,
@@ -76,7 +77,7 @@ impl Hash for Expression {
 impl Eq for Expression {}
 impl Expression {
     fn err(&self) -> Error {
-        Error::new("")
+        Error::new("", Project::new())
     }
 
     pub fn id(&self) -> usize {

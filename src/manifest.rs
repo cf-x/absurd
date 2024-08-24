@@ -1,6 +1,7 @@
 use ::std::{fs::File, io::Read};
 use toml::{from_str, Value};
 
+#[derive(Debug, Clone)]
 pub struct Project {
     // # project
     pub name: String,
@@ -15,11 +16,10 @@ pub struct Project {
     pub auto_update: bool,
     pub edition: String,
     // # config
-    pub snippet: u8,
+    pub snippet: i8,
     pub side_effects: bool,
     pub disable_std: bool,
     pub load_std: bool,
-    pub disable_bases: bool,
     pub disable_analyzer: bool,
     // # modules
     #[allow(dead_code)]
@@ -46,7 +46,6 @@ impl Project {
             side_effects: true,
             disable_std: false,
             load_std: true,
-            disable_bases: false,
             disable_analyzer: true,
             // # modules
             modules: Vec::new(),
@@ -116,9 +115,6 @@ impl Project {
                         if table.get("load_std").is_some() {
                             self.load_std = self.get_bool(table, "load_std");
                         }
-                        if table.get("disable_bases").is_some() {
-                            self.disable_bases = self.get_bool(table, "disable_bases");
-                        }
                         if table.get("disable_analyzer").is_some() {
                             self.disable_analyzer = self.get_bool(table, "disable_analyzer");
                         }
@@ -143,7 +139,7 @@ impl Project {
         table.get(name).unwrap().as_bool().unwrap()
     }
 
-    fn get_int(&self, table: &Value, name: &str) -> u8 {
-        table.get(name).unwrap().as_integer().unwrap() as u8
+    fn get_int(&self, table: &Value, name: &str) -> i8 {
+        table.get(name).unwrap().as_integer().unwrap() as i8
     }
 }

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.10.0
+
+### core changes
+
+- added `project.toml` manifest for configuration
+- updated cli commands
+
+### new settings
+
+- `snippet` - change the snippet size in error messages
+- `side_effects` - enables/disables side effects in project
+- `disable_std` - disables the standard library
+- `load_std` - enables/disables loading some standard library functions during runtime
+
 ## 0.9.1
 
 - added array types

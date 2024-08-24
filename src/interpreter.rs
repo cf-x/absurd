@@ -2,6 +2,7 @@ use crate::bundler::interpreter_mod;
 use crate::env::{Env, VarKind};
 use crate::errors::{Error, ErrorCode::*};
 use crate::expr::Expression;
+use crate::manifest::Project;
 use crate::resolver::type_check;
 use crate::std::core::io::StdCoreIo;
 use crate::{
@@ -28,20 +29,25 @@ pub struct Interpreter {
     pub is_mod: bool,
     mod_src: Option<String>,
     error: Error,
+    pub project: Project,
 }
 
 impl Interpreter {
-    pub fn new(src: &str) -> Self {
+    pub fn new(src: &str, project: Project) -> Self {
         let env = Rc::new(RefCell::new(Env::new(HashMap::new())));
         let int = Self {
             env: env.clone(),
             specs: Rc::new(RefCell::new(HashMap::new())),
             is_mod: false,
             mod_src: None,
-            error: Error::new(src),
+            error: Error::new(src, project.clone()),
+            project: project.clone(),
         };
-        let mut std_core_io = StdCoreIo::new(env);
-        std_core_io.load();
+       
+        if !project.clone().disable_std || project.clone().load_std {
+            let mut std_core_io = StdCoreIo::new(env);
+            std_core_io.load();
+        }
         int
     }
 
@@ -56,7 +62,8 @@ impl Interpreter {
             specs: Rc::new(RefCell::new(HashMap::new())),
             is_mod,
             mod_src,
-            error: Error::new(src),
+            error: Error::new(src, Project::new()),
+            project: Project::new(),
         };
         if is_mod {
             let mut std_core_io = StdCoreIo::new(env);
@@ -90,6 +97,14 @@ impl Interpreter {
                     ..
                 } => match value {
                     Some(v) => {
+                        if is_mut.clone() && !self.project.side_effects {
+                            panic!("@error enable side effects to allow mutable variables");
+                        }
+
+                        if is_pub.clone() && !self.project.side_effects {
+                            panic!("@error enable side effects to allow public variables");
+                        }
+
                         if !self.is_mod {
                             if is_func.clone() {
                                 if names.len() != 1 {
@@ -185,6 +200,14 @@ impl Interpreter {
                     is_impl,
                     ..
                 } => {
+                    if is_pub.clone() && !self.project.side_effects {
+                        panic!("@error enable side effects to allow public functions");
+                    }
+
+                    if is_mut.clone() && !self.project.side_effects {
+                        panic!("@error enable side effects to allow methods");
+                    }
+
                     let call = self.create_func(stmt);
                     let func = LiteralType::Func(FuncValueType::Func(call));
                     let params = params
@@ -291,14 +314,26 @@ impl Interpreter {
                     // @todo handle match statements
                 }
                 Mod { src } => {
+                    if !self.project.side_effects {
+                        panic!("@error enable side effects to allow modules");
+                    }
+
                     let mut path = current_dir().unwrap();
                     path.push(src.trim_matches('"'));
                     let mut file = File::open(path).unwrap();
                     let mut contents = String::new();
                     file.read_to_string(&mut contents).unwrap();
-                    interpreter_mod(contents.as_str(), Some(src.to_string()), self.env.clone());
+                    interpreter_mod(
+                        contents.as_str(),
+                        Some(src.to_string()),
+                        self.env.clone(),
+                        self.project.clone(),
+                    );
                 }
                 Use { src, names, all } => {
+                    if !self.project.side_effects {
+                        panic!("@error enable side effects to allow modules");
+                    }
                     let mod_vals = self.env.borrow().mod_vals.borrow().clone();
                     let vals = match mod_vals.get(src) {
                         Some(c) => c,
@@ -332,9 +367,15 @@ impl Interpreter {
                     }
                 }
                 Struct { .. } => {
+                    if !self.project.side_effects {
+                        panic!("@error enable side effects to allow structures");
+                    }
                     // @todo handle struct statements
                 }
                 Impl { .. } => {
+                    if !self.project.side_effects {
+                        panic!("@error enable side effects to allow structures");
+                    }
                     // @todo handle impl statements
                 }
                 Enum { .. } => {
@@ -388,7 +429,7 @@ impl Interpreter {
 }
 
 pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Rc<RefCell<Env>>) -> LiteralType {
-    let error = Error::new("");
+    let error = Error::new("", Project::new());
     if args.len() != func.params.len() {
         error.throw(E0x405, 0, (0, 0), vec![]);
     }

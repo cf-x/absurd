@@ -2,6 +2,8 @@ use std::process::exit;
 
 use colored::Colorize;
 use ErrorCode::*;
+
+use crate::manifest::Project;
 mod msgs;
 
 #[allow(dead_code)]
@@ -159,12 +161,14 @@ pub enum ErrorCode {
 #[derive(Debug, Clone)]
 pub struct Error {
     source: String,
+    project: Project,
 }
 
 impl Error {
-    pub fn new(src: &str) -> Self {
+    pub fn new(src: &str, project: Project) -> Self {
         Error {
             source: src.to_string(),
+            project,
         }
     }
 
@@ -208,34 +212,39 @@ impl Error {
 
     pub fn print_lines(&self, line: usize, pos: (usize, usize)) {
         let lines: Vec<&str> = self.source.lines().collect();
-    
-        if line > 1 && line <= lines.len() + 1 {
-            eprintln!(
-                "{} | {}",
-                (line - 1).to_string().yellow(),
-                &lines[line - 2].red()
-            );
+
+        let snippet = self.project.snippet as isize;
+
+        if snippet < 0 {
+            return;
         }
-    
-        if line >= 1 && line <= lines.len() {
-            let line_content = lines[line - 1];
-            let (before, to_underscore, after) = split_line_at_char_indices(line_content, pos);
-    
-            eprintln!(
-                "{} | {}{}{}",
-                line.to_string().yellow(),
-                before.red().bold(),
-                to_underscore.red().bold().underline(),
-                after.red().bold()
-            );
-        }
-    
-        if line < lines.len() {
-            eprintln!(
-                "{} | {}",
-                (line + 1).to_string().yellow(),
-                &lines[line].red()
-            );
+
+        let start = if line as isize > snippet {
+            line - snippet as usize
+        } else {
+            1
+        };
+        let end = if line + snippet as usize <= lines.len() {
+            line + snippet as usize
+        } else {
+            lines.len()
+        };
+
+        for i in start..=end {
+            if i == line {
+                let line_content = lines[i - 1];
+                let (before, to_underscore, after) = split_line_at_char_indices(line_content, pos);
+
+                eprintln!(
+                    "{} | {}{}{}",
+                    i.to_string().yellow(),
+                    before.red().bold(),
+                    to_underscore.red().bold().underline(),
+                    after.red().bold()
+                );
+            } else {
+                eprintln!("{} | {}", i.to_string().yellow(), &lines[i - 1].red());
+            }
         }
     }
 
