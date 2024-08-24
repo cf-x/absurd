@@ -1,6 +1,7 @@
+use super::{errors::raw, manifest::Project};
 use crate::{utils::bundler::interpreter_raw, VERSION};
+use core::panic;
 use std::{env, fs::File, io::Read, process};
-use super::manifest::Project;
 
 struct Args {
     file: String,
@@ -52,9 +53,22 @@ pub fn cli(project: Project) {
     run(args.file, project)
 }
 
-fn run(file: String, project: Project) {
-    let mut file = File::open(file).unwrap();
+fn run(f: String, project: Project) {
+    let mut file = match File::open(f.clone()) {
+        Ok(s) => s,
+        Err(_) => {
+            raw(format!("failed to open file '{f}'").as_str());
+            process::exit(1);
+        }
+    };
     let mut contents = String::new();
-    file.read_to_string(&mut contents).unwrap();
+    match file.read_to_string(&mut contents) {
+        Ok(_) => {}
+        Err(_) => {
+            raw(format!("failed to read file '{f}'").as_str());
+            process::exit(1);
+        }
+    }
+
     interpreter_raw(&contents, project);
 }

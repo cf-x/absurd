@@ -4,7 +4,7 @@ use std::{
     fmt::{self, Debug},
     rc::Rc,
 };
-
+pub mod token;
 use crate::{interpreter::env::Env, interpreter::expr::Expression};
 
 #[derive(Debug, PartialEq, Clone)]

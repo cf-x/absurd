@@ -83,6 +83,11 @@ pub enum ErrorCode {
     E0x413,
     /// `runtime error (E0x414): failed to assign a value`
     E0x414,
+    /// `runtime error (E0x415): side effects are disabled`
+    E0x415,
+    /// `runtime error (E0x416): failed to get values from {0}`
+    /// - {0}: source
+    E0x416,
     /// `environment error (E0x501): failed to get a distance`
     E0x501,
     /// `environment error (E0x502): failed to resolve a value`
@@ -304,6 +309,20 @@ impl Error {
                 line,
                 pos,
             ),
+            E0x415 => self.error(
+                415,
+                "runtime",
+                "side effects are disabled".to_string(),
+                line,
+                pos,
+            ),
+            E0x416 => self.error(
+                416,
+                "runtime",
+                format!("failed to get values from {}", args[0]),
+                line,
+                pos,
+            ),
             E0x501 => self.error(
                 501,
                 "environment",
@@ -330,7 +349,7 @@ impl Error {
             self.print_lines(line, pos)
         }
         let msg = match is_snippet {
-            true => format!("{}, at {}-{}-{}", msg, line, pos.0, pos.1),
+            true => format!("{}, at line {}:{}-{}", msg, line, pos.0, pos.1),
             false => msg,
         };
         self.panic(head, code, msg)
@@ -406,4 +425,9 @@ impl Error {
         let after: String = chars.collect();
         (before, to_underscore, after)
     }
+}
+
+pub fn raw(msg: &str) {
+    eprintln!("{}", msg.red());
+    exit(0);
 }

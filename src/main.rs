@@ -1,15 +1,15 @@
 use utils::cli::cli;
 use utils::manifest::Project;
-mod analyzer;
+// mod analyzer;
 mod ast;
 mod interpreter;
-mod scanner;
 mod parser;
 mod resolver;
+mod scanner;
 mod std;
 mod utils;
 
-pub const VERSION: &str = "0.10.1";
+pub const VERSION: &str = "0.10.2";
 
 fn main() {
     let mut project = Project::new();

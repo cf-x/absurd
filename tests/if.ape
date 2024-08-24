@@ -1,17 +1,5 @@
-if true {
-    print("true");
-}
+if true {}
 
-if false {
-    print("false");
-} else {
-    print("true");
-}
+if false {} else {}
 
-if false {
-    print("false");
-} elif true {
-    print("true");
-} else {
-    print("false");
-}
+if false {} elif true {} else {}

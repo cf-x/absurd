@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.2
+
+- removed `project` category from manifest
+- updated error handling
+- fixed bugs
+
 ## 0.10.1
 
 - reorganized project structure

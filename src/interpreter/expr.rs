@@ -1,14 +1,11 @@
-use super::env::{ValueKind, ValueType, VarKind, Env};
+use super::env::{Env, ValueKind, ValueType, VarKind};
 use crate::utils::errors::{Error, ErrorCode::*};
 use crate::utils::manifest::Project;
 use crate::{
     ast::{CallType, FuncBody, FuncImpl, FuncValueType, LiteralType, Token, TokenType::*},
     interpreter::run_func,
 };
-use core::{
-    cmp::Eq,
-    hash::{Hash, Hasher},
-};
+use core::cmp::Eq;
 use std::process::exit;
 use std::{cell::RefCell, fmt, rc::Rc};
 
@@ -67,12 +64,6 @@ pub enum Expression {
     },
 }
 
-impl Hash for Expression {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        std::ptr::hash(self, state)
-    }
-}
-
 impl Eq for Expression {}
 impl Expression {
     fn err(&self) -> Error {
@@ -93,10 +84,10 @@ impl Expression {
             Expression::Assign { id, .. } => *id,
         }
     }
-    
+
     pub fn to_literal(&self) -> LiteralType {
         match self {
-            Expression::Value { value, .. } => value.clone(),  
+            Expression::Value { value, .. } => value.clone(),
             _ => LiteralType::Null,
         }
     }
@@ -227,7 +218,6 @@ impl Expression {
                 func
             }
             Expression::Array { items, .. } => LiteralType::Array(items.clone()),
-            // @todo handle after adding asynchronocity
             Expression::Await { .. } => LiteralType::Null,
             Expression::Binary {
                 left,

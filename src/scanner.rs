@@ -68,17 +68,33 @@ impl Scanner {
             ',' => self.push_token(Comma, None),
             '?' => self.push_token(Queston, None),
             ':' => self.handle_double_char_token(':', Colon, DblColon),
-            '!' => self.handle_double_char_token('=', Not, NotEq),
+            '!' => self.handle_multiple_char_token(
+                Not,
+                HashMap::from([('=', NotEq), ('!', NotNot), ('=', MinEq)]),
+            ),
             '&' => self.handle_double_char_token('&', And, AndAnd),
-            '+' => self.handle_double_char_token('=', Plus, PlusEq),
-            '-' => self.handle_double_char_token('=', Minus, MinEq),
-            '*' => self.handle_double_char_token('=', Mult, MultEq),
-            '=' => self.handle_double_char_token('=', Assign, Eq),
+            '+' => self.handle_multiple_char_token(
+                Plus,
+                HashMap::from([('+', Increment), ('=', PlusEq), ('=', MinEq)]),
+            ),
+            '-' => self.handle_multiple_char_token(
+                Minus,
+                HashMap::from([('>', Arrow), ('-', Decr), ('=', MinEq)]),
+            ),
+            '*' => {
+                self.handle_multiple_char_token(Mult, HashMap::from([('=', MultEq), ('*', Square)]))
+            }
+            '=' => {
+                self.handle_multiple_char_token(Assign, HashMap::from([('=', Eq), ('>', ArrowBig)]))
+            }
             '|' => self.handle_double_char_token('|', Pipe, Or),
             '.' => self.handle_double_char_token('.', Dot, DotDot),
             '<' => self.handle_double_char_token('=', Less, LessOrEq),
             '>' => self.handle_double_char_token('=', Greater, GreaterOrEq),
-            '\\' => self.handle_escape_sequence(),
+            '\\' => self.handle_multiple_char_token(
+                Escape,
+                HashMap::from([('{', StartParse), ('}', EndParse)]),
+            ),
             '/' => self.handle_division_or_comment(),
             '\r' => {}
             '\t' => self.pos += 4,
@@ -95,27 +111,26 @@ impl Scanner {
         };
     }
 
-    fn handle_double_char_token(&mut self, next_char: char, single: TokenType, double: TokenType) {
-        let token_type = if self.peek() == next_char {
+    fn handle_multiple_char_token(
+        &mut self,
+        single: TokenType,
+        variants: HashMap<char, TokenType>,
+    ) {
+        let token_type = if let Some(token) = variants.get(&self.peek()) {
             self.advance();
-            double
+            token.clone()
         } else {
             single
         };
         self.push_token(token_type, None);
     }
 
-    fn handle_escape_sequence(&mut self) {
-        let token_type = match self.peek() {
-            '{' => {
-                self.advance();
-                StartParse
-            }
-            '}' => {
-                self.advance();
-                EndParse
-            }
-            _ => Escape,
+    fn handle_double_char_token(&mut self, next_char: char, single: TokenType, double: TokenType) {
+        let token_type = if self.peek() == next_char {
+            self.advance();
+            double
+        } else {
+            single
         };
         self.push_token(token_type, None);
     }

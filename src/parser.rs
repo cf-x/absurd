@@ -876,10 +876,10 @@ impl Parser {
 
     /// advances if input token matches
     fn consume(&mut self, t: TokenType) -> Token {
-        if self.if_token_advance(t) {
+        if self.if_token_advance(t.clone()) {
             return self.prev(1);
         }
-        self.throw_error(E0x204, vec![self.prev(1).lexeme]);
+        self.throw_error(E0x204, vec![t.to_string()]);
     }
 
     /// increases current position by 1

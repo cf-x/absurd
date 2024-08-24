@@ -13,7 +13,6 @@ use crate::std::core::io::StdCoreIo;
 use crate::utils::bundler::interpreter_mod;
 use crate::utils::errors::{Error, ErrorCode::*};
 use crate::utils::manifest::Project;
-use core::panic;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::env::current_dir;
@@ -98,11 +97,11 @@ impl Interpreter {
                 } => match value {
                     Some(v) => {
                         if is_mut.clone() && !self.project.side_effects {
-                            panic!("@error enable side effects to allow mutable variables");
-                        }
-
-                        if is_pub.clone() && !self.project.side_effects {
-                            panic!("@error enable side effects to allow public variables");
+                            self.error
+                                .throw(E0x415, names[0].line, names[0].pos, vec![]);
+                        } else if is_pub.clone() && !self.project.side_effects {
+                            self.error
+                                .throw(E0x415, names[0].line, names[0].pos, vec![]);
                         }
 
                         if !self.is_mod {
@@ -201,11 +200,9 @@ impl Interpreter {
                     ..
                 } => {
                     if is_pub.clone() && !self.project.side_effects {
-                        panic!("@error enable side effects to allow public functions");
-                    }
-
-                    if is_mut.clone() && !self.project.side_effects {
-                        panic!("@error enable side effects to allow methods");
+                        self.error.throw(E0x415, name.line, name.pos, vec![]);
+                    } else if is_mut.clone() && !self.project.side_effects {
+                        self.error.throw(E0x415, name.line, name.pos, vec![]);
                     }
 
                     let call = self.create_func(stmt);
@@ -315,14 +312,16 @@ impl Interpreter {
                 }
                 Mod { src } => {
                     if !self.project.side_effects {
-                        panic!("@error enable side effects to allow modules");
+                        self.error.throw(E0x415, 0, (0, 0), vec![]);
                     }
 
-                    let mut path = current_dir().unwrap();
+                    // @todo handle errors
+                    let mut path = current_dir().expect("failed to get current directory");
                     path.push(src.trim_matches('"'));
-                    let mut file = File::open(path).unwrap();
+                    let mut file = File::open(path).expect("failed to open a file");
                     let mut contents = String::new();
-                    file.read_to_string(&mut contents).unwrap();
+                    file.read_to_string(&mut contents)
+                        .expect("failed to read a file");
                     interpreter_mod(
                         contents.as_str(),
                         Some(src.to_string()),
@@ -332,13 +331,20 @@ impl Interpreter {
                 }
                 Use { src, names, all } => {
                     if !self.project.side_effects {
-                        panic!("@error enable side effects to allow modules");
+                        self.error
+                            .throw(E0x415, names[0].0.line, names[0].0.pos, vec![]);
                     }
                     let mod_vals = self.env.borrow().mod_vals.borrow().clone();
                     let vals = match mod_vals.get(src) {
                         Some(c) => c,
                         None => {
-                            panic!("failed to get a value, edit this error");
+                            self.error.throw(
+                                E0x416,
+                                names[0].0.line,
+                                names[0].0.pos,
+                                vec![src.clone()],
+                            );
+                            exit(1);
                         }
                     };
 
@@ -366,15 +372,15 @@ impl Interpreter {
                         }
                     }
                 }
-                Struct { .. } => {
+                Struct { name, .. } => {
                     if !self.project.side_effects {
-                        panic!("@error enable side effects to allow structures");
+                        self.error.throw(E0x415, name.line, name.pos, vec![]);
                     }
                     // @todo handle struct statements
                 }
-                Impl { .. } => {
+                Impl { name, .. } => {
                     if !self.project.side_effects {
-                        panic!("@error enable side effects to allow structures");
+                        self.error.throw(E0x415, name.line, name.pos, vec![]);
                     }
                     // @todo handle impl statements
                 }

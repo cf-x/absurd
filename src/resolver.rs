@@ -85,7 +85,6 @@ impl Resolver {
     fn resolve_var_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
         if let Statement::Var {
             names,
-            pub_names,
             value,
             value_type,
             ..
@@ -110,14 +109,6 @@ impl Resolver {
                     }
                 }
                 self.define(name);
-            }
-            // @todo better handle public names (after adding modality)
-            for pub_name in pub_names {
-                self.declare(pub_name);
-                if let Some(value) = value {
-                    self.resolve_expr(value, env);
-                }
-                self.define(pub_name);
             }
         }
     }
