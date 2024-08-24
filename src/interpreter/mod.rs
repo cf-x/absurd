@@ -2,7 +2,7 @@ pub mod env;
 pub mod expr;
 use env::{Env, FuncKind, VarKind};
 use expr::Expression;
-
+pub mod load_std;
 use crate::ast::{
     FuncBody, FuncImpl, FuncValueType, LiteralType,
     Statement::{self, *},
@@ -43,7 +43,7 @@ impl Interpreter {
             project: project.clone(),
         };
 
-        if !project.clone().disable_std || project.clone().load_std {
+        if !project.clone().disable_std && project.clone().load_std {
             let mut std_core_io = StdCoreIo::new(env);
             std_core_io.load();
         }
@@ -124,8 +124,6 @@ impl Interpreter {
                                         params,
                                         is_async: call.is_async,
                                         is_pub: is_pub.clone(),
-                                        is_impl: call.is_impl,
-                                        is_mut: call.is_mut,
                                     },
                                 );
                             } else {
@@ -195,34 +193,41 @@ impl Interpreter {
                     is_pub,
                     params,
                     is_async,
-                    is_mut,
-                    is_impl,
                     ..
                 } => {
                     if is_pub.clone() && !self.project.side_effects {
-                        self.error.throw(E0x415, name.line, name.pos, vec![]);
-                    } else if is_mut.clone() && !self.project.side_effects {
                         self.error.throw(E0x415, name.line, name.pos, vec![]);
                     }
 
                     let call = self.create_func(stmt);
                     let func = LiteralType::Func(FuncValueType::Func(call));
-                    let params = params
+                    let params: Vec<(String, String)> = params
                         .iter()
                         .map(|(a, b)| (a.clone().lexeme, b.clone().lexeme))
                         .collect();
                     if is_pub.clone() {
-                        self.env.borrow_mut().define_pub_func(
-                            name.lexeme.clone(),
-                            func.clone(),
-                            FuncKind {
-                                params,
-                                is_async: *is_async,
-                                is_pub: true,
-                                is_impl: *is_impl,
-                                is_mut: *is_mut,
-                            },
-                        );
+                        if self.is_mod {
+                            self.env.borrow_mut().define_mod_func(
+                                self.mod_src.clone().unwrap(),
+                                func.clone(),
+                                name.lexeme.clone(),
+                                FuncKind {
+                                    params: params.clone(),
+                                    is_async: *is_async,
+                                    is_pub: true,
+                                },
+                            );
+                        } else {
+                            self.env.borrow_mut().define_pub_func(
+                                name.lexeme.clone(),
+                                func.clone(),
+                                FuncKind {
+                                    params,
+                                    is_async: *is_async,
+                                    is_pub: true,
+                                },
+                            );
+                        }
                     } else if !self.is_mod {
                         self.env.borrow_mut().define_func(
                             name.lexeme.clone(),
@@ -231,8 +236,6 @@ impl Interpreter {
                                 params,
                                 is_async: *is_async,
                                 is_pub: false,
-                                is_impl: *is_impl,
-                                is_mut: *is_mut,
                             },
                         );
                     }
@@ -331,58 +334,50 @@ impl Interpreter {
                 }
                 Use { src, names, all } => {
                     if !self.project.side_effects {
-                        self.error
-                            .throw(E0x415, names[0].0.line, names[0].0.pos, vec![]);
+                        self.error.throw(E0x415, 0, (0, 0), vec![]);
                     }
-                    let mod_vals = self.env.borrow().mod_vals.borrow().clone();
-                    let vals = match mod_vals.get(src) {
-                        Some(c) => c,
-                        None => {
-                            self.error.throw(
-                                E0x416,
-                                names[0].0.line,
-                                names[0].0.pos,
-                                vec![src.clone()],
-                            );
-                            exit(1);
-                        }
-                    };
 
-                    self.env.borrow_mut().mod_vals.borrow_mut().remove(src);
-
-                    if *all {
-                        for val in vals {
-                            let (name, v) = val;
-                            self.env
-                                .borrow_mut()
-                                .values
-                                .borrow_mut()
-                                .insert(name.clone(), v.clone());
-                        }
+                    if src.clone().contains("::") {
+                        self.load_std(
+                            src.trim_matches('"').to_string().clone(),
+                            names.clone(),
+                            all.clone(),
+                        );
                     } else {
-                        for (name, alias) in names {
-                            if let Some((_, v)) = vals.iter().find(|(n, _)| n == &name.lexeme) {
-                                let new_name = alias.as_ref().map_or(&name.lexeme, |t| &t.lexeme);
+                        let mod_vals = self.env.borrow().mod_vals.borrow().clone();
+                        let vals = match mod_vals.get(src) {
+                            Some(c) => c,
+                            None => {
+                                self.error.throw(E0x416, 0, (0, 0), vec![src.clone()]);
+                                exit(1);
+                            }
+                        };
+
+                        self.env.borrow_mut().mod_vals.borrow_mut().remove(src);
+
+                        if *all {
+                            for val in vals {
+                                let (name, v) = val;
                                 self.env
                                     .borrow_mut()
                                     .values
                                     .borrow_mut()
-                                    .insert(new_name.clone(), v.clone());
+                                    .insert(name.clone(), v.clone());
+                            }
+                        } else {
+                            for (name, alias) in names {
+                                if let Some((_, v)) = vals.iter().find(|(n, _)| n == &name.lexeme) {
+                                    let new_name =
+                                        alias.as_ref().map_or(&name.lexeme, |t| &t.lexeme);
+                                    self.env
+                                        .borrow_mut()
+                                        .values
+                                        .borrow_mut()
+                                        .insert(new_name.clone(), v.clone());
+                                }
                             }
                         }
                     }
-                }
-                Struct { name, .. } => {
-                    if !self.project.side_effects {
-                        self.error.throw(E0x415, name.line, name.pos, vec![]);
-                    }
-                    // @todo handle struct statements
-                }
-                Impl { name, .. } => {
-                    if !self.project.side_effects {
-                        self.error.throw(E0x415, name.line, name.pos, vec![]);
-                    }
-                    // @todo handle impl statements
                 }
                 Enum { .. } => {
                     // @todo handle enum statements
@@ -400,8 +395,6 @@ impl Interpreter {
             params,
             is_async,
             is_pub,
-            is_impl,
-            is_mut,
         } = stmt
         {
             let params: Vec<(Token, Token)> = params
@@ -423,8 +416,6 @@ impl Interpreter {
                 params,
                 is_async: *is_async,
                 is_pub: *is_pub,
-                is_impl: *is_impl,
-                is_mut: *is_mut,
                 env: Rc::clone(&self.env),
             }
         } else {
@@ -468,8 +459,6 @@ pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Rc<RefCell<Env>>) -
                     params,
                     is_async: func.is_async,
                     is_pub: func.is_pub,
-                    is_impl: func.is_impl,
-                    is_mut: func.is_mut,
                 },
             );
         } else {

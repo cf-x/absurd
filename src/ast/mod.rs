@@ -144,12 +144,6 @@ pub enum TokenType {
     As,
     /// from
     From,
-    /// struct
-    Struct,
-    /// self
-    Slf,
-    /// impl
-    Impl,
     /// enum
     Enum,
     /// async
@@ -269,8 +263,6 @@ pub struct FuncImpl {
     pub params: Vec<(Token, Token)>,
     pub is_async: bool,
     pub is_pub: bool,
-    pub is_impl: bool,
-    pub is_mut: bool,
     pub env: Rc<RefCell<Env>>,
 }
 
@@ -319,10 +311,6 @@ pub enum Statement {
         params: Vec<(Token, Token)>,
         is_async: bool,
         is_pub: bool,
-        // if function is method (implemented)
-        is_impl: bool,
-        // if function contains `self` parameter
-        is_mut: bool,
     },
     If {
         cond: Expression,
@@ -354,16 +342,6 @@ pub enum Statement {
         src: String,
         names: Vec<(Token, Option<Token>)>,
         all: bool,
-    },
-    Struct {
-        name: Token,
-        structs: Vec<(Token, TokenType, bool)>,
-        is_pub: bool,
-        methods: Vec<(Expression, bool)>,
-    },
-    Impl {
-        name: Token,
-        body: Vec<Statement>,
     },
     Enum {
         name: Token,

@@ -49,21 +49,13 @@ impl Resolver {
             Statement::Enum { .. } => self.resolve_enum_stmt(stmt),
             Statement::Expression { expr } => self.resolve_expr(expr, env),
             Statement::Func { .. } => self.resolve_func_stmt(stmt, env),
-            Statement::Impl { .. } => self.resolve_impl_stmt(stmt, env),
             Statement::Loop { .. } => self.resolve_loop_stmt(stmt, env),
             Statement::Match { .. } => self.resolve_match_stmt(stmt, env),
             Statement::Mod { .. } => {}
             Statement::Return { .. } => self.resolve_return_stmt(stmt, env),
-            Statement::Struct { .. } => self.resolve_struct_stmt(stmt, env),
             Statement::Use { .. } => self.resolve_use_stmt(stmt),
             Statement::Var { .. } => self.resolve_var_stmt(stmt, env),
             Statement::While { .. } => self.resolve_while_stmt(stmt, env),
-        }
-    }
-
-    fn resolve_struct_stmt(&mut self, stmt: &Statement, _env: &Rc<RefCell<Env>>) {
-        if let Statement::Struct { .. } = stmt {
-            // @todo
         }
     }
 
@@ -177,14 +169,6 @@ impl Resolver {
 
             self.scope_end();
             self.is_crnt_fnc = encl_func;
-        }
-    }
-
-    fn resolve_impl_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
-        if let Statement::Impl { body, .. } = stmt {
-            self.scope_start();
-            self.resolve_many(body, env);
-            self.scope_end();
         }
     }
 

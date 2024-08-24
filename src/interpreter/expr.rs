@@ -210,8 +210,6 @@ impl Expression {
                         .collect(),
                     is_pub: *is_pub,
                     is_async: *is_async,
-                    is_impl: false,
-                    is_mut: false,
                     env: Rc::clone(&env),
                 };
                 let func = LiteralType::Func(FuncValueType::Func(call));

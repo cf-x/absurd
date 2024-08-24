@@ -19,8 +19,6 @@ pub fn func(name: &str, arity: usize, env: &mut Rc<RefCell<Env>>, func: Rc<dyn F
             params,
             is_async: false,
             is_pub: false,
-            is_impl: false,
-            is_mut: false,
         },
     )
 }

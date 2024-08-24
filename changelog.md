@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.3
+
+- added support for loading standard library functions during runtime
+- added support for function modality
+
 ## 0.10.2
 
 - removed `project` category from manifest

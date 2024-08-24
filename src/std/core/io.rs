@@ -1,5 +1,5 @@
 use crate::{
-    ast::{LiteralType, Wrapper},
+    ast::{LiteralType, Token, Wrapper},
     interpreter::env::Env,
     std::func,
 };
@@ -16,21 +16,25 @@ impl StdCoreIo {
     }
 
     pub fn load(&mut self) {
-        self.load_print();
-        self.load_eprint();
-        self.load_warn();
-        self.load_panic();
-        self.load_exit();
-        self.load_read_num();
-        self.load_read_str();
-        self.load_read_char();
-        self.load_read_bool();
+        self.load_print(None);
+        self.load_eprint(None);
+        self.load_warn(None);
+        self.load_panic(None);
+        self.load_exit(None);
+        self.load_read_num(None);
+        self.load_read_str(None);
+        self.load_read_char(None);
+        self.load_read_bool(None);
     }
 
     /// print(text) - prints text to the terminal
-    pub fn load_print(&mut self) {
+    pub fn load_print(&mut self, name: Option<Token>) {
+        let name = match name {
+            Some(n) => n.lexeme.clone(),
+            None => "print".to_string(),
+        };
         func(
-            "print",
+            name.as_str(),
             1,
             &mut self.env,
             Rc::new(Wrapper {
@@ -43,9 +47,13 @@ impl StdCoreIo {
     }
 
     /// eprint(text) - prints error text to the terminal
-    pub fn load_eprint(&mut self) {
+    pub fn load_eprint(&mut self, name: Option<Token>) {
+        let name = match name {
+            Some(n) => n.lexeme.clone(),
+            None => "eprint".to_string(),
+        };
         func(
-            "eprint",
+            name.as_str(),
             1,
             &mut self.env,
             Rc::new(Wrapper {
@@ -57,9 +65,13 @@ impl StdCoreIo {
         );
     }
 
-    pub fn load_warn(&mut self) {
+    pub fn load_warn(&mut self, name: Option<Token>) {
+        let name = match name {
+            Some(n) => n.lexeme.clone(),
+            None => "warn".to_string(),
+        };
         func(
-            "warn",
+            name.as_str(),
             1,
             &mut self.env,
             Rc::new(Wrapper {
@@ -71,9 +83,13 @@ impl StdCoreIo {
         );
     }
 
-    pub fn load_panic(&mut self) {
+    pub fn load_panic(&mut self, name: Option<Token>) {
+        let name = match name {
+            Some(n) => n.lexeme.clone(),
+            None => "panic".to_string(),
+        };
         func(
-            "panic",
+            name.as_str(),
             1,
             &mut self.env,
             Rc::new(Wrapper {
@@ -85,9 +101,13 @@ impl StdCoreIo {
         );
     }
 
-    pub fn load_exit(&mut self) {
+    pub fn load_exit(&mut self, name: Option<Token>) {
+        let name = match name {
+            Some(n) => n.lexeme.clone(),
+            None => "exit".to_string(),
+        };
         func(
-            "exit",
+            name.as_str(),
             1,
             &mut self.env,
             Rc::new(Wrapper {
@@ -103,9 +123,13 @@ impl StdCoreIo {
         );
     }
 
-    pub fn load_read_str(&mut self) {
+    pub fn load_read_str(&mut self, name: Option<Token>) {
+        let name = match name {
+            Some(n) => n.lexeme.clone(),
+            None => "read_str".to_string(),
+        };
         func(
-            "read_str",
+            name.as_str(),
             0,
             &mut self.env,
             Rc::new(Wrapper {
@@ -118,9 +142,13 @@ impl StdCoreIo {
         );
     }
 
-    pub fn load_read_num(&mut self) {
+    pub fn load_read_num(&mut self, name: Option<Token>) {
+        let name = match name {
+            Some(n) => n.lexeme.clone(),
+            None => "read_num".to_string(),
+        };
         func(
-            "read_num",
+            name.as_str(),
             0,
             &mut self.env,
             Rc::new(Wrapper {
@@ -134,9 +162,13 @@ impl StdCoreIo {
         );
     }
 
-    pub fn load_read_bool(&mut self) {
+    pub fn load_read_bool(&mut self, name: Option<Token>) {
+        let name = match name {
+            Some(n) => n.lexeme.clone(),
+            None => "read_bool".to_string(),
+        };
         func(
-            "read_bool",
+            name.as_str(),
             0,
             &mut self.env,
             Rc::new(Wrapper {
@@ -150,9 +182,13 @@ impl StdCoreIo {
         );
     }
 
-    pub fn load_read_char(&mut self) {
+    pub fn load_read_char(&mut self, name: Option<Token>) {
+        let name = match name {
+            Some(n) => n.lexeme.clone(),
+            None => "read_char".to_string(),
+        };
         func(
-            "read_char",
+            name.as_str(),
             0,
             &mut self.env,
             Rc::new(Wrapper {

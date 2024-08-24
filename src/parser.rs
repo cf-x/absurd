@@ -48,8 +48,6 @@ impl Parser {
             Match => self.match_stmt(),
             Mod => self.mod_stmt(),
             Use => self.use_stmt(),
-            Struct => self.struct_stmt(),
-            Impl => self.impl_stmt(),
             Enum => self.enum_stmt(),
             LeftBrace => self.block_stmt(),
             _ => self.expr_stmt(),
@@ -142,8 +140,6 @@ impl Parser {
         let mut params = vec![];
         let mut is_async = false;
         let mut is_pub = false;
-        let mut is_impl = false;
-        let mut is_mut = false;
 
         if self.if_token_consume(Pub) {
             is_pub = true;
@@ -168,12 +164,6 @@ impl Parser {
                 self.consume(Colon);
                 let param_type = self.consume_type_ident();
                 params.push((param_name, param_type))
-            } else if self.if_token_consume(Mut) {
-                self.consume(Slf);
-                is_mut = true;
-                is_impl = true;
-            } else if self.if_token_consume(Slf) {
-                is_impl = true;
             } else if self.if_token_consume(Comma) {
             } else if !self.is_token(RightParen) {
                 self.throw_error(E0x201, vec![self.peek().lexeme]);
@@ -192,8 +182,6 @@ impl Parser {
                 params,
                 is_async,
                 is_pub,
-                is_impl,
-                is_mut,
             };
         }
 
@@ -207,8 +195,6 @@ impl Parser {
             params,
             is_async,
             is_pub,
-            is_impl,
-            is_mut,
         }
     }
 
@@ -348,51 +334,6 @@ impl Parser {
         let src = self.consume(StringLit).lexeme;
         self.consume(Semi);
         Statement::Use { src, names, all }
-    }
-
-    fn struct_stmt(&mut self) -> Statement {
-        let mut is_pub = false;
-        if self.if_token_consume(Pub) {
-            is_pub = true;
-        }
-
-        let name = self.consume_uppercase_ident();
-        self.consume(LeftBrace);
-        let mut structs = vec![];
-        while !self.if_token_consume(RightBrace) {
-            let mut struct_is_pub = false;
-            if self.if_token_consume(Pub) {
-                struct_is_pub = true;
-            }
-
-            let struct_name = self.consume(Ident);
-            self.consume(Colon);
-            let struct_type = self.consume_type_ident().token;
-            structs.push((struct_name, struct_type, struct_is_pub));
-
-            if !self.if_token_consume(Comma) && !self.is_token(RightBrace) {
-                self.throw_error(E0x201, vec![self.peek().lexeme]);
-            }
-        }
-        Statement::Struct {
-            name,
-            structs,
-            is_pub,
-            methods: vec![],
-        }
-    }
-
-    fn impl_stmt(&mut self) -> Statement {
-        let name = self.consume_uppercase_ident();
-        self.consume(LeftBrace);
-        let mut body = vec![];
-        while !self.if_token_consume(RightBrace) && !self.is_token(Eof) {
-            self.advance();
-            let func = self.func_stmt();
-            body.push(func);
-        }
-
-        Statement::Impl { name, body }
     }
 
     fn enum_stmt(&mut self) -> Statement {
