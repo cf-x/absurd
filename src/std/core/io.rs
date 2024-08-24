@@ -1,6 +1,6 @@
 use crate::{
     ast::{LiteralType, Wrapper},
-    env::Env,
+    interpreter::env::Env,
     std::func,
 };
 use colored::Colorize;

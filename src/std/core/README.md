@@ -1,7 +1,3 @@
-# io standard library module
-
-library module for input/output operations
-
 ## usage
 
 ```
@@ -9,6 +5,8 @@ use "std::core::io";
 ```
 
 ## library
+
+### core::io
 
 - `print(text)` - print text to the terminal
 - `println(text)` - print text to the terminal with a newline

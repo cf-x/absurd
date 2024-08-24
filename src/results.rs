@@ -1,3 +1,0 @@
-/*
-@todo for handling outputs
-*/

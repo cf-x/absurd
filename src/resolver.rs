@@ -1,49 +1,43 @@
 use crate::ast::{FuncBody, LiteralType, Statement, Token, TokenType};
-use crate::env::Env;
-use crate::errors::{Error, ErrorCode::*};
-use crate::expr::Expression;
-use crate::manifest::Project;
+use crate::interpreter::env::Env;
+use crate::interpreter::expr::Expression;
+use crate::utils::errors::{Error, ErrorCode::*};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-
-#[derive(Debug, Clone, Copy)]
-enum Bool {
-    True,
-    False,
-}
 
 #[derive(Debug, Clone)]
 pub struct Resolver {
     locals: HashMap<usize, usize>,
     scopes: Vec<HashMap<String, bool>>,
-    is_crnt_fnc: Bool,
-    is_crnt_loop: Bool,
+    is_crnt_fnc: bool,
+    is_crnt_loop: bool,
     err: Error,
 }
 
 impl Resolver {
-    pub fn new(src: &str, project: Project) -> Self {
+    pub fn new(err: Error) -> Self {
         Resolver {
             locals: HashMap::new(),
             scopes: Vec::new(),
-            is_crnt_fnc: Bool::False,
-            is_crnt_loop: Bool::False,
-            err: Error::new(src, project),
+            is_crnt_fnc: false,
+            is_crnt_loop: false,
+            err,
         }
     }
+
     pub fn resolve(
         &mut self,
-        stmts: &Vec<&Statement>,
+        stmts: &[Statement],
         env: &Rc<RefCell<Env>>,
     ) -> HashMap<usize, usize> {
         self.resolve_stmts(stmts, env);
         self.locals.clone()
     }
 
-    fn resolve_stmts(&mut self, stmts: &Vec<&Statement>, env: &Rc<RefCell<Env>>) {
+    fn resolve_stmts(&mut self, stmts: &[Statement], env: &Rc<RefCell<Env>>) {
         for stmt in stmts {
-            self.resolve_int(stmt, env)
+            self.resolve_int(stmt, env);
         }
     }
 
@@ -77,9 +71,9 @@ impl Resolver {
         if let Statement::Use { names, .. } = stmt {
             for name in names {
                 let (old, new) = name;
-                if new.is_some() {
-                    self.declare(new.as_ref().unwrap());
-                    self.define(new.as_ref().unwrap());
+                if let Some(new_name) = new {
+                    self.declare(new_name);
+                    self.define(new_name);
                 } else {
                     self.declare(old);
                     self.define(old);
@@ -132,18 +126,15 @@ impl Resolver {
         if let Statement::While { body, cond } = stmt {
             let encl_loop = self.is_crnt_loop;
             self.resolve_expr(cond, env);
-            self.is_crnt_loop = Bool::True;
-            self.resolve_many(&body.iter().collect(), env);
+            self.is_crnt_loop = true;
+            self.resolve_many(body, env);
             self.is_crnt_loop = encl_loop;
         }
     }
 
     fn resolve_break_stmt(&mut self) {
-        match self.is_crnt_loop {
-            Bool::True => {}
-            Bool::False => {
-                self.err.throw(E0x302, 0, (0, 0), vec![]);
-            }
+        if !self.is_crnt_loop {
+            self.err.throw(E0x302, 0, (0, 0), vec![]);
         }
     }
 
@@ -164,36 +155,33 @@ impl Resolver {
         } = stmt
         {
             let encl_func = self.is_crnt_fnc;
-            self.is_crnt_fnc = Bool::True;
+            self.is_crnt_fnc = true;
             self.scope_start();
             for (parname, _) in params {
                 self.declare(parname);
                 self.define(parname);
             }
 
-            match body {
-                FuncBody::Statements(body) => {
-                    self.resolve_many(&body.iter().collect(), env);
+            if let FuncBody::Statements(body) = body {
+                self.resolve_many(body, env);
 
-                    for stmt in body {
-                        if let Statement::Return { expr } = stmt {
-                            let val = (*expr).eval(Rc::clone(&env));
-                            if type_check(value_type, &val) {
-                                self.resolve_expr(expr, env);
-                            } else if params.len() == 0 {
-                                self.err.throw(
-                                    E0x301,
-                                    name.line,
-                                    name.pos,
-                                    vec![value_type.clone().lexeme, val.to_string()],
-                                );
-                            }
+                for stmt in body {
+                    if let Statement::Return { expr } = stmt {
+                        let val = (*expr).eval(Rc::clone(&env));
+                        if type_check(value_type, &val) {
+                            self.resolve_expr(expr, env);
+                        } else if params.is_empty() {
+                            self.err.throw(
+                                E0x301,
+                                name.line,
+                                name.pos,
+                                vec![value_type.clone().lexeme, val.to_string()],
+                            );
                         }
                     }
                 }
-                _ => {
-                    self.err.throw(E0x305, 0, (0, 0), vec![]);
-                }
+            } else {
+                self.err.throw(E0x305, 0, (0, 0), vec![]);
             }
 
             self.scope_end();
@@ -204,7 +192,7 @@ impl Resolver {
     fn resolve_impl_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
         if let Statement::Impl { body, .. } = stmt {
             self.scope_start();
-            self.resolve_many(&body.iter().collect(), env);
+            self.resolve_many(body, env);
             self.scope_end();
         }
     }
@@ -213,8 +201,8 @@ impl Resolver {
         if let Statement::Loop { body, .. } = stmt {
             self.scope_start();
             let encl_loop = self.is_crnt_loop;
-            self.is_crnt_loop = Bool::True;
-            self.resolve_many(&body.iter().collect(), env);
+            self.is_crnt_loop = true;
+            self.resolve_many(body, env);
             self.is_crnt_loop = encl_loop;
             self.scope_end();
         }
@@ -233,7 +221,7 @@ impl Resolver {
                 self.resolve_expr(case, env);
                 match body {
                     FuncBody::Statements(stmts) => {
-                        self.resolve_many(&stmts.iter().collect(), env);
+                        self.resolve_many(stmts, env);
                     }
                     FuncBody::Expression(expr) => {
                         self.resolve_expr(expr, env);
@@ -246,7 +234,7 @@ impl Resolver {
                 FuncBody::Statements(stmts) => {
                     if !stmts.is_empty() {
                         self.scope_start();
-                        self.resolve_many(&stmts.iter().collect(), env);
+                        self.resolve_many(stmts, env);
                         self.scope_end();
                     }
                 }
@@ -258,15 +246,12 @@ impl Resolver {
     }
 
     fn resolve_return_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
-        match self.is_crnt_fnc {
-            Bool::True => {
-                if let Statement::Return { expr } = stmt {
-                    self.resolve_expr(expr, env);
-                }
+        if self.is_crnt_fnc {
+            if let Statement::Return { expr } = stmt {
+                self.resolve_expr(expr, env);
             }
-            _ => {
-                self.err.throw(E0x303, 0, (0, 0), vec![]);
-            }
+        } else {
+            self.err.throw(E0x303, 0, (0, 0), vec![]);
         }
     }
 
@@ -280,32 +265,30 @@ impl Resolver {
         {
             self.resolve_expr(cond, env);
             self.scope_start();
-            self.resolve_many(&body.iter().collect(), env);
+            self.resolve_many(body, env);
             self.scope_end();
             for (elif_pred, elif_stmt) in else_if_branches {
                 self.resolve_expr(elif_pred, env);
                 self.scope_start();
-                self.resolve_many(&elif_stmt.iter().collect(), env);
+                self.resolve_many(elif_stmt, env);
                 self.scope_end();
             }
             if let Some(branch) = else_branch {
                 self.scope_start();
-                self.resolve_many(&branch.iter().collect(), env);
+                self.resolve_many(branch, env);
                 self.scope_end();
             }
         }
     }
 
     fn resolve_block(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
-        match stmt {
-            Statement::Block { stmts } => {
-                self.scope_start();
-                self.resolve_many(&stmts.iter().collect(), env);
-                self.scope_end();
-            }
-            _ => self
-                .err
-                .throw(E0x306, 0, (0, 0), vec!["a block statement".to_string()]),
+        if let Statement::Block { stmts } = stmt {
+            self.scope_start();
+            self.resolve_many(stmts, env);
+            self.scope_end();
+        } else {
+            self.err
+                .throw(E0x306, 0, (0, 0), vec!["a block statement".to_string()]);
         }
     }
 
@@ -316,14 +299,14 @@ impl Resolver {
             }
             Expression::Array { items, .. } => {
                 for item in items {
-                    self.resolve_expr(item, env)
+                    self.resolve_expr(item, env);
                 }
             }
             Expression::Var { .. } => self.resolve_var_expr(expr),
             Expression::Call { name, args, .. } => {
                 self.resolve_expr(name.as_ref(), env);
                 for arg in args {
-                    self.resolve_expr(arg, env)
+                    self.resolve_expr(arg, env);
                 }
             }
             Expression::Func {
@@ -333,7 +316,7 @@ impl Resolver {
                 is_async,
                 is_pub,
                 ..
-            } => self.resolve_func_expr(value_type, body, params, is_async, is_pub, env),
+            } => self.resolve_func_expr(value_type, body, params, *is_async, *is_pub, env),
             Expression::Await { expr, .. } => self.resolve_expr(expr, env),
             Expression::Unary { left, .. } => self.resolve_expr(left, env),
             Expression::Value { .. } => {}
@@ -349,42 +332,39 @@ impl Resolver {
         &mut self,
         value_type: &Token,
         body: &FuncBody,
-        params: &Vec<(Token, Token)>,
-        _is_async: &bool,
-        _is_pub: &bool,
+        params: &[(Token, Token)],
+        _is_async: bool,
+        _is_pub: bool,
         env: &Rc<RefCell<Env>>,
     ) {
         let encl_func = self.is_crnt_fnc;
-        self.is_crnt_fnc = Bool::True;
+        self.is_crnt_fnc = true;
         self.scope_start();
         for (parname, _) in params {
             self.declare(parname);
             self.define(parname);
         }
 
-        match body {
-            FuncBody::Statements(body) => {
-                self.resolve_many(&body.iter().collect(), env);
+        if let FuncBody::Statements(body) = body {
+            self.resolve_many(body, env);
 
-                for stmt in body {
-                    if let Statement::Return { expr } = stmt {
-                        let val = (*expr).eval(Rc::clone(&env));
-                        if type_check(value_type, &val) {
-                            self.resolve_expr(expr, env);
-                        } else {
-                            self.err.throw(
-                                E0x301,
-                                0,
-                                (0, 0),
-                                vec![value_type.clone().lexeme, val.to_string()],
-                            );
-                        }
+            for stmt in body {
+                if let Statement::Return { expr } = stmt {
+                    let val = (*expr).eval(Rc::clone(&env));
+                    if type_check(value_type, &val) {
+                        self.resolve_expr(expr, env);
+                    } else {
+                        self.err.throw(
+                            E0x301,
+                            0,
+                            (0, 0),
+                            vec![value_type.clone().lexeme, val.to_string()],
+                        );
                     }
                 }
             }
-            _ => {
-                self.err.throw(E0x305, 0, (0, 0), vec![]);
-            }
+        } else {
+            self.err.throw(E0x305, 0, (0, 0), vec![]);
         }
 
         self.scope_end();
@@ -392,65 +372,56 @@ impl Resolver {
     }
 
     fn resolve_var_expr(&mut self, expr: &Expression) {
-        match expr {
-            Expression::Var { name, .. } => {
-                if !self.scopes.is_empty() {
-                    if let Some(false) = self.scopes[self.scopes.len() - 1].get(&name.lexeme) {
-                        self.err.throw(
-                            E0x306,
-                            name.line,
-                            name.pos,
-                            vec!["a local variable".to_string()],
-                        )
-                    }
-                }
+        if let Expression::Var { name, .. } = expr {
+            if let Some(false) = self.scopes.last().and_then(|scope| scope.get(&name.lexeme)) {
+                self.err.throw(
+                    E0x306,
+                    name.line,
+                    name.pos,
+                    vec!["a local variable".to_string()],
+                );
             }
-            Expression::Call { name, .. } => match name.as_ref() {
-                Expression::Var { name, .. } => self.resolve_local(&name, expr.clone().id()),
-                _ => self
-                    .err
-                    .throw(E0x306, 0, (0, 0), vec!["a variable".to_string()]),
-            },
-            _ => self
-                .err
-                .throw(E0x306, 0, (0, 0), vec!["a variable".to_string()]),
+        } else if let Expression::Call { name, .. } = expr {
+            if let Expression::Var { name, .. } = name.as_ref() {
+                self.resolve_local(name, expr.id());
+            } else {
+                self.err
+                    .throw(E0x306, 0, (0, 0), vec!["a variable".to_string()]);
+            }
+        } else {
+            self.err
+                .throw(E0x306, 0, (0, 0), vec!["a variable".to_string()]);
         }
     }
 
     fn declare(&mut self, name: &Token) {
-        let s = self.scopes.len();
-        if self.scopes.is_empty() {
-            return;
-        } else if self.scopes[s - 1].contains_key(&name.lexeme.clone()) {
-            self.err
-                .throw(E0x307, name.line, name.pos, vec![name.clone().lexeme]);
+        if let Some(scope) = self.scopes.last_mut() {
+            if scope.contains_key(&name.lexeme) {
+                self.err
+                    .throw(E0x307, name.line, name.pos, vec![name.lexeme.clone()]);
+            }
+            scope.insert(name.lexeme.clone(), false);
         }
-        self.scopes[s - 1].insert(name.lexeme.clone(), false);
     }
 
     fn define(&mut self, name: &Token) {
-        if !self.scopes.is_empty() {
-            let s = self.scopes.len();
-            self.scopes[s - 1].insert(name.lexeme.clone(), true);
+        if let Some(scope) = self.scopes.last_mut() {
+            scope.insert(name.lexeme.clone(), true);
         }
     }
 
     fn resolve_local(&mut self, name: &Token, id: usize) {
-        let s = self.scopes.len();
-        if s != 0 {
-            for i in (0..=(s - 1)).rev() {
-                let scope = &self.scopes[i];
-                if scope.contains_key(&name.lexeme) {
-                    self.locals.insert(id, s - i - 1);
-                    return;
-                }
+        for (i, scope) in self.scopes.iter().rev().enumerate() {
+            if scope.contains_key(&name.lexeme) {
+                self.locals.insert(id, i);
+                return;
             }
         }
     }
 
-    fn resolve_many(&mut self, stmts: &Vec<&Statement>, env: &Rc<RefCell<Env>>) {
+    fn resolve_many(&mut self, stmts: &[Statement], env: &Rc<RefCell<Env>>) {
         for stmt in stmts {
-            self.resolve_int(stmt, env)
+            self.resolve_int(stmt, env);
         }
     }
 
@@ -459,59 +430,20 @@ impl Resolver {
     }
 
     fn scope_end(&mut self) {
-        match self.scopes.pop() {
-            Some(_) => {}
-            None => {
-                self.err.throw(E0x308, 0, (0, 0), vec![]);
-            }
+        if self.scopes.pop().is_none() {
+            self.err.throw(E0x308, 0, (0, 0), vec![]);
         }
     }
 }
 
 pub fn type_check(value_type: &Token, val: &LiteralType) -> bool {
     match value_type.token {
-        TokenType::NumberIdent => {
-            if let LiteralType::Number(_) = val {
-                true
-            } else {
-                false
-            }
-        }
-        TokenType::StringIdent => {
-            if let LiteralType::String(_) = val {
-                true
-            } else {
-                false
-            }
-        }
-        TokenType::BoolIdent => {
-            if let LiteralType::Boolean(_) = val {
-                true
-            } else {
-                false
-            }
-        }
-        TokenType::CharIdent => {
-            if let LiteralType::Char(_) = val {
-                true
-            } else {
-                false
-            }
-        }
-        TokenType::NullIdent => {
-            if let LiteralType::Null = val {
-                true
-            } else {
-                false
-            }
-        }
-        TokenType::VoidIdent => {
-            if let LiteralType::Void = val {
-                true
-            } else {
-                false
-            }
-        }
+        TokenType::NumberIdent => matches!(val, LiteralType::Number(_)),
+        TokenType::StringIdent => matches!(val, LiteralType::String(_)),
+        TokenType::BoolIdent => matches!(val, LiteralType::Boolean(_)),
+        TokenType::CharIdent => matches!(val, LiteralType::Char(_)),
+        TokenType::NullIdent => matches!(val, LiteralType::Null),
+        TokenType::VoidIdent => matches!(val, LiteralType::Void),
         TokenType::ArrayIdent => {
             if let LiteralType::Array(array) = val {
                 array.iter().all(|item| {

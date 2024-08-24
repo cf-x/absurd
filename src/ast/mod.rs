@@ -1,10 +1,11 @@
+pub mod literals;
 use std::{
     cell::RefCell,
     fmt::{self, Debug},
     rc::Rc,
 };
 
-use crate::{env::Env, expr::Expression};
+use crate::{interpreter::env::Env, interpreter::expr::Expression};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {

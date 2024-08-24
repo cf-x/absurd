@@ -1,9 +1,12 @@
-use crate::{ast::{
+use crate::ast::{
     CallType, FuncBody, LiteralKind, LiteralType, Statement, Token,
     TokenType::{self, *},
-}, manifest::Project};
-use crate::errors::{Error, ErrorCode::*};
-use crate::expr::Expression;
+};
+use crate::interpreter::expr::Expression;
+use crate::utils::errors::{
+    Error,
+    ErrorCode::{self, *},
+};
 use std::process::exit;
 
 pub struct Parser {
@@ -14,8 +17,8 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(tokens: Vec<Token>, err: Error, _project: Project) -> Self {
-        Parser {
+    pub fn new(tokens: Vec<Token>, err: Error) -> Self {
+        Self {
             tokens,
             err,
             crnt: 0,
@@ -54,8 +57,8 @@ impl Parser {
     }
 
     fn var_stmt(&mut self) -> Statement {
-        let mut names: Vec<Token> = vec![];
-        let mut pub_names: Vec<Token> = vec![];
+        let mut names = vec![];
+        let mut pub_names = vec![];
         let mut is_mut = false;
         let mut is_pub = false;
         let mut is_null = false;
@@ -97,15 +100,9 @@ impl Parser {
 
         let null_var = Statement::Var {
             names: names.clone(),
-            value_type: Token {
-                token: NullIdent,
-                pos: self.peek().pos,
-                lexeme: "null".to_string(),
-                value: None,
-                line: names[0].line,
-            },
+            value_type: self.create_null_token(names[0].line),
             value: Some(Expression::Value {
-                id: self.id,
+                id: self.id(),
                 value: LiteralType::Null,
             }),
             is_mut,
@@ -142,7 +139,7 @@ impl Parser {
     }
 
     fn func_stmt(&mut self) -> Statement {
-        let mut params: Vec<(Token, Token)> = vec![];
+        let mut params = vec![];
         let mut is_async = false;
         let mut is_pub = false;
         let mut is_impl = false;
@@ -179,12 +176,7 @@ impl Parser {
                 is_impl = true;
             } else if self.if_token_consume(Comma) {
             } else if !self.is_token(RightParen) {
-                self.err.throw(
-                    E0x201,
-                    self.peek().line,
-                    self.peek().pos,
-                    vec![self.peek().lexeme],
-                );
+                self.throw_error(E0x201, vec![self.peek().lexeme]);
             }
         }
         self.consume(Arrow);
@@ -246,15 +238,14 @@ impl Parser {
     }
 
     fn return_stmt(&mut self) -> Statement {
-        let expr;
-        if self.is_token(Semi) {
-            expr = Expression::Value {
+        let expr = if self.is_token(Semi) {
+            Expression::Value {
                 id: self.id(),
                 value: LiteralType::Null,
             }
         } else {
-            expr = self.expr()
-        }
+            self.expr()
+        };
         self.consume(Semi);
         Statement::Return { expr }
     }
@@ -269,15 +260,7 @@ impl Parser {
         let iter = if self.is_token(NumberLit) {
             let num = match self.consume(NumberLit).value {
                 Some(LiteralKind::Number { value, .. }) => value,
-                _ => {
-                    self.err.throw(
-                        E0x202,
-                        self.peek().line,
-                        self.peek().pos,
-                        vec![self.peek().lexeme],
-                    );
-                    exit(1);
-                }
+                _ => self.throw_error(E0x202, vec![self.peek().lexeme]),
             };
             if num < 0.0 {
                 Some(1)
@@ -345,7 +328,7 @@ impl Parser {
     }
 
     fn use_stmt(&mut self) -> Statement {
-        let mut names: Vec<(Token, Option<Token>)> = vec![];
+        let mut names = vec![];
         let mut all = false;
         if self.if_token_advance(Mult) {
             all = true;
@@ -375,7 +358,7 @@ impl Parser {
 
         let name = self.consume_uppercase_ident();
         self.consume(LeftBrace);
-        let mut structs: Vec<(Token, TokenType, bool)> = vec![];
+        let mut structs = vec![];
         while !self.if_token_consume(RightBrace) {
             let mut struct_is_pub = false;
             if self.if_token_consume(Pub) {
@@ -388,12 +371,7 @@ impl Parser {
             structs.push((struct_name, struct_type, struct_is_pub));
 
             if !self.if_token_consume(Comma) && !self.is_token(RightBrace) {
-                self.err.throw(
-                    E0x201,
-                    self.peek().line,
-                    self.peek().pos,
-                    vec![self.peek().lexeme],
-                );
+                self.throw_error(E0x201, vec![self.peek().lexeme]);
             }
         }
         Statement::Struct {
@@ -407,7 +385,7 @@ impl Parser {
     fn impl_stmt(&mut self) -> Statement {
         let name = self.consume_uppercase_ident();
         self.consume(LeftBrace);
-        let mut body: Vec<Statement> = vec![];
+        let mut body = vec![];
         while !self.if_token_consume(RightBrace) && !self.is_token(Eof) {
             self.advance();
             let func = self.func_stmt();
@@ -427,17 +405,12 @@ impl Parser {
         let name = self.consume_uppercase_ident();
         self.consume(LeftBrace);
 
-        let mut enums: Vec<Token> = vec![];
+        let mut enums = vec![];
         while !self.if_token_consume(RightBrace) {
             let enm = self.consume(Ident);
             enums.push(enm);
             if !self.if_token_consume(Comma) && !self.is_token(RightBrace) {
-                self.err.throw(
-                    E0x201,
-                    self.peek().line,
-                    self.peek().pos,
-                    vec![self.peek().lexeme],
-                );
+                self.throw_error(E0x201, vec![self.peek().lexeme]);
             }
         }
         Statement::Enum {
@@ -451,17 +424,9 @@ impl Parser {
         match self.block_stmt() {
             Statement::Block { stmts } => {
                 self.consume(RightBrace);
-                return stmts;
+                stmts
             }
-            _ => {
-                self.err.throw(
-                    E0x203,
-                    self.peek().line,
-                    self.peek().pos,
-                    vec!["a block statement".to_string()],
-                );
-                exit(1)
-            }
+            _ => self.throw_error(E0x203, vec!["a block statement".to_string()]),
         }
     }
 
@@ -492,24 +457,18 @@ impl Parser {
     fn assign(&mut self, expr: Expression) -> Expression {
         let value = self.expr();
         if let Expression::Var { id: _, name } = expr {
-            return Expression::Assign {
+            Expression::Assign {
                 id: self.id(),
                 name,
                 value: Box::new(value),
-            };
+            }
         } else {
-            self.err.throw(
-                E0x201,
-                self.peek().line,
-                self.peek().pos,
-                vec!["Invalid assignment target".to_string()],
-            );
-            exit(1);
+            self.throw_error(E0x201, vec!["Invalid assignment target".to_string()]);
         }
     }
 
     fn binary(&mut self) -> Expression {
-        let mut expr: Expression = self.unary();
+        let mut expr = self.unary();
         while self.are_tokens(vec![
             Plus,
             Minus,
@@ -644,12 +603,7 @@ impl Parser {
                 break;
             }
             if !self.if_token_consume(Comma) && !self.is_token(RightParen) {
-                self.err.throw(
-                    E0x201,
-                    self.peek().line,
-                    self.peek().pos,
-                    vec![self.peek().lexeme],
-                );
+                self.throw_error(E0x201, vec![self.peek().lexeme]);
             }
         }
         self.consume(RightParen);
@@ -691,67 +645,36 @@ impl Parser {
             _ => {
                 if self.is_literal() {
                     self.advance();
-                    return Expression::Value {
+                    Expression::Value {
                         id: self.id(),
                         value: self.to_value_type(token),
-                    };
+                    }
+                } else {
+                    self.throw_error(E0x201, vec![self.peek().lexeme]);
                 }
-                self.err.throw(
-                    E0x201,
-                    self.peek().line,
-                    self.peek().pos,
-                    vec![self.peek().lexeme],
-                );
-                exit(1)
             }
         }
     }
-
     fn to_value_type(&mut self, token: Token) -> LiteralType {
         match token.token {
             NumberLit => {
                 let number = match token.value {
                     Some(LiteralKind::Number { value, .. }) => value,
-                    _ => {
-                        self.err.throw(
-                            E0x202,
-                            self.peek().line,
-                            self.peek().pos,
-                            vec![self.peek().lexeme],
-                        );
-                        exit(1)
-                    }
+                    _ => self.throw_error(E0x202, vec![self.peek().lexeme]),
                 };
-
                 LiteralType::Number(number)
             }
             StringLit => {
                 let string = match token.value {
                     Some(LiteralKind::String { value }) => value,
-                    _ => {
-                        self.err.throw(
-                            E0x202,
-                            self.peek().line,
-                            self.peek().pos,
-                            vec![self.peek().lexeme],
-                        );
-                        exit(1)
-                    }
+                    _ => self.throw_error(E0x202, vec![self.peek().lexeme]),
                 };
                 LiteralType::String(string)
             }
             CharLit => {
                 let char = match token.value {
                     Some(LiteralKind::Char { value }) => value,
-                    _ => {
-                        self.err.throw(
-                            E0x202,
-                            self.peek().line,
-                            self.peek().pos,
-                            vec![self.peek().lexeme],
-                        );
-                        exit(1)
-                    }
+                    _ => self.throw_error(E0x202, vec![self.peek().lexeme]),
                 };
                 LiteralType::Char(char)
             }
@@ -768,12 +691,7 @@ impl Parser {
             let item = self.expr();
             items.push(item);
             if !self.if_token_consume(Comma) && !self.is_token(RightBracket) {
-                self.err.throw(
-                    E0x201,
-                    self.peek().line,
-                    self.peek().pos,
-                    vec![self.peek().lexeme],
-                );
+                self.throw_error(E0x201, vec![self.peek().lexeme]);
             }
         }
         Expression::Array {
@@ -795,7 +713,7 @@ impl Parser {
     fn func_expr(&mut self) -> Expression {
         self.advance();
         let value_type = self.prev(3);
-        let mut params: Vec<(Token, Token)> = vec![];
+        let mut params = vec![];
         let is_async = false;
         let mut is_pub = false;
         let add = if params.len() > 1 {
@@ -820,12 +738,7 @@ impl Parser {
                     params.push((param_name, param_type))
                 } else if self.if_token_consume(Comma) {
                 } else if !self.is_token(Pipe) {
-                    self.err.throw(
-                        E0x201,
-                        self.peek().line,
-                        self.peek().pos,
-                        vec![self.peek().lexeme],
-                    );
+                    self.throw_error(E0x201, vec![self.peek().lexeme]);
                 }
             }
         }
@@ -890,11 +803,8 @@ impl Parser {
 
     fn is_uppercase_ident(&mut self) -> bool {
         let token = self.peek();
-        let first_char = token.lexeme.chars().nth(0).unwrap();
-        if first_char.is_uppercase() {
-            return true;
-        }
-        false
+        let first_char = token.lexeme.chars().next().unwrap_or('\0');
+        first_char.is_uppercase()
     }
 
     /// consumes identifiers with Uppercase lexeme
@@ -904,14 +814,7 @@ impl Parser {
             self.consume(Ident);
             return token;
         }
-        // @error expected uppercase identifier
-        self.err.throw(
-            E0x204,
-            self.peek().line,
-            self.peek().pos,
-            vec!["uppercase Ident".to_string()],
-        );
-        token
+        self.throw_error(E0x204, vec!["uppercase Ident".to_string()]);
     }
 
     /// advances if token is type identifier
@@ -935,12 +838,7 @@ impl Parser {
                     let arg = self.consume_type_ident();
                     args.push(arg);
                     if !self.if_token_consume(Comma) && !self.is_token(Pipe) {
-                        self.err.throw(
-                            E0x201,
-                            self.peek().line,
-                            self.peek().pos,
-                            vec![self.peek().lexeme],
-                        );
+                        self.throw_error(E0x201, vec![self.peek().lexeme]);
                     }
                 }
             }
@@ -973,14 +871,7 @@ impl Parser {
                 return self.prev(1);
             }
         }
-        let token = self.prev(1);
-        self.err.throw(
-            E0x204,
-            self.peek().line,
-            self.peek().pos,
-            vec![token.clone().lexeme],
-        );
-        token
+        self.throw_error(E0x204, vec![self.prev(1).lexeme]);
     }
 
     /// advances if input token matches
@@ -988,14 +879,7 @@ impl Parser {
         if self.if_token_advance(t) {
             return self.prev(1);
         }
-        let token = self.prev(1);
-        self.err.throw(
-            E0x204,
-            self.peek().line,
-            self.peek().pos,
-            vec![token.clone().lexeme],
-        );
-        token
+        self.throw_error(E0x204, vec![self.prev(1).lexeme]);
     }
 
     /// increases current position by 1
@@ -1006,6 +890,7 @@ impl Parser {
         }
         self.prev(1)
     }
+
     /// decreases current position by 1
     /// and returns advanced token
     fn retreat(&mut self) -> Token {
@@ -1031,21 +916,13 @@ impl Parser {
 
     /// bulk checks if one of the token matches current token
     fn are_tokens(&self, tokens: Vec<TokenType>) -> bool {
-        for token in tokens {
-            if self.is_token(token.clone()) {
-                return true;
-            }
-        }
-        false
+        tokens.iter().any(|token| self.is_token(token.clone()))
     }
 
     /// checks if token matches current token and
     /// handles EoF
     fn is_token(&self, token: TokenType) -> bool {
-        if !self.check(Eof) && self.check(token) {
-            return true;
-        }
-        false
+        !self.check(Eof) && self.check(token)
     }
 
     /// checks if token matches current token
@@ -1062,5 +939,23 @@ impl Parser {
     fn id(&mut self) -> usize {
         self.id += 1;
         self.id - 1
+    }
+
+    /// Helper function to throw errors
+    fn throw_error(&mut self, code: ErrorCode, args: Vec<String>) -> ! {
+        self.err
+            .throw(code, self.peek().line, self.peek().pos, args);
+        exit(1);
+    }
+
+    /// Helper function to create a null token
+    fn create_null_token(&self, line: usize) -> Token {
+        Token {
+            token: NullIdent,
+            pos: self.peek().pos,
+            lexeme: "null".to_string(),
+            value: None,
+            line,
+        }
     }
 }

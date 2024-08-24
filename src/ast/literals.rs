@@ -1,6 +1,6 @@
 use crate::ast::{FuncValueType, LiteralKind, LiteralType, Token, TokenType};
-use crate::errors::{Error, ErrorCode::*};
-use crate::manifest::Project;
+use crate::utils::errors::{Error, ErrorCode::*};
+use crate::utils::manifest::Project;
 use std::fmt;
 use std::process::exit;
 

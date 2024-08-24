@@ -1,7 +1,7 @@
 use crate::{
     ast::LiteralType,
-    errors::{Error, ErrorCode::*},
-    manifest::Project,
+    utils::errors::{Error, ErrorCode::*},
+    utils::manifest::Project,
 };
 use std::{borrow::Borrow, cell::RefCell, collections::HashMap, process::exit, rc::Rc};
 

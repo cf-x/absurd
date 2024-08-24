@@ -3,7 +3,7 @@ pub mod core;
 
 use crate::{
     ast::{DeclrFuncType, FuncValType, LiteralType},
-    env::{Env, FuncKind},
+    interpreter::env::{Env, FuncKind},
 };
 
 pub fn func(name: &str, arity: usize, env: &mut Rc<RefCell<Env>>, func: Rc<dyn FuncValType>) {

@@ -1,9 +1,8 @@
-use crate::env::{ValueKind, ValueType, VarKind};
-use crate::errors::{Error, ErrorCode::*};
-use crate::manifest::Project;
+use super::env::{ValueKind, ValueType, VarKind, Env};
+use crate::utils::errors::{Error, ErrorCode::*};
+use crate::utils::manifest::Project;
 use crate::{
     ast::{CallType, FuncBody, FuncImpl, FuncValueType, LiteralType, Token, TokenType::*},
-    env::Env,
     interpreter::run_func,
 };
 use core::{

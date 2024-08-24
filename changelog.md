@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.1
+
+- reorganized project structure
+- updated error handling system
+- optimized most of the code
+- reduced binary size
+- increased execution speed
+
 ## 0.10.0
 
 ### core changes

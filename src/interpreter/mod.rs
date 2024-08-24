@@ -1,18 +1,18 @@
-use crate::bundler::interpreter_mod;
-use crate::env::{Env, VarKind};
-use crate::errors::{Error, ErrorCode::*};
-use crate::expr::Expression;
-use crate::manifest::Project;
+pub mod env;
+pub mod expr;
+use env::{Env, FuncKind, VarKind};
+use expr::Expression;
+
+use crate::ast::{
+    FuncBody, FuncImpl, FuncValueType, LiteralType,
+    Statement::{self, *},
+    Token,
+};
 use crate::resolver::type_check;
 use crate::std::core::io::StdCoreIo;
-use crate::{
-    ast::{
-        FuncBody, FuncImpl, FuncValueType, LiteralType,
-        Statement::{self, *},
-        Token,
-    },
-    env::FuncKind,
-};
+use crate::utils::bundler::interpreter_mod;
+use crate::utils::errors::{Error, ErrorCode::*};
+use crate::utils::manifest::Project;
 use core::panic;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -33,17 +33,17 @@ pub struct Interpreter {
 }
 
 impl Interpreter {
-    pub fn new(src: &str, project: Project) -> Self {
+    pub fn new(project: Project, error: Error) -> Self {
         let env = Rc::new(RefCell::new(Env::new(HashMap::new())));
         let int = Self {
             env: env.clone(),
             specs: Rc::new(RefCell::new(HashMap::new())),
             is_mod: false,
             mod_src: None,
-            error: Error::new(src, project.clone()),
+            error,
             project: project.clone(),
         };
-       
+
         if !project.clone().disable_std || project.clone().load_std {
             let mut std_core_io = StdCoreIo::new(env);
             std_core_io.load();
