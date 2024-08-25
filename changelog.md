@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.4
+
+- fixed manifest
+
 ## 0.10.3
 
 - added support for loading standard library functions during runtime

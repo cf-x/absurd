@@ -72,8 +72,8 @@ impl Project {
                 }
             }
             Err(_) => {
-                raw(format!("failed to open file 'project.toml'").as_str());
-                exit(1);
+                // raw(format!("failed to open file 'project.toml'").as_str());
+                // exit(1);
             }
         };
     }
