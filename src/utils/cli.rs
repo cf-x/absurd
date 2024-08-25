@@ -1,6 +1,5 @@
 use super::{errors::raw, manifest::Project};
 use crate::{utils::bundler::interpreter_raw, VERSION};
-use core::panic;
 use std::{env, fs::File, io::Read, process};
 
 struct Args {
@@ -22,11 +21,11 @@ fn print_version() {
     println!("Aperture version {}", VERSION);
 }
 
-fn parse_args() -> Args {
+fn parse_args(project: &mut Project) -> Args {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
-        panic!("@error: Missing required argument <file>");
+        raw("missing required argument <file>");
     }
 
     for arg in &args {
@@ -39,6 +38,9 @@ fn parse_args() -> Args {
                 print_version();
                 process::exit(0);
             }
+            "--side-effects" | "-s" => {
+                project.side_effects = false;
+            }
             _ => {}
         }
     }
@@ -48,9 +50,9 @@ fn parse_args() -> Args {
     }
 }
 
-pub fn cli(project: Project) {
-    let args = parse_args();
-    run(args.file, project)
+pub fn cli(project: &mut Project) {
+    let args = parse_args(project);
+    run(args.file, project.clone())
 }
 
 fn run(f: String, project: Project) {

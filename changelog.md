@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.0
+
+- added methods for literals (`5.sqr()`) (works only on calls and isnt chained)
+- added 44 new standard library functions
+- side effects can no be disabled via CLI (`--side-effects` or `-s`)
+- fixed negative numbers
+
 ## 0.10.4
 
 - fixed manifest

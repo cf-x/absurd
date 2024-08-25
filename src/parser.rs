@@ -13,7 +13,7 @@ pub struct Parser {
     tokens: Vec<Token>,
     err: Error,
     crnt: usize,
-    id: usize,
+    pub id: usize,
 }
 
 impl Parser {
@@ -445,7 +445,7 @@ impl Parser {
     }
 
     fn unary(&mut self) -> Expression {
-        if self.are_tokens(vec![Not, NotNot, Queston, Decr, Increment]) {
+        if self.are_tokens(vec![Not, NotNot, Queston, Decr, Increment, Minus]) {
             self.advance();
             let operator = self.prev(1);
             let rhs = self.unary();

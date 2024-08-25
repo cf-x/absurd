@@ -1,5 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 pub mod core;
+pub mod literal;
 
 use crate::{
     ast::{DeclrFuncType, FuncValType, LiteralType},
