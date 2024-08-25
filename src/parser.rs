@@ -466,11 +466,15 @@ impl Parser {
             self.consume(RightBracket);
             return arr;
         }
-        let mut expr = self.primary();
+        let mut expr = self.method();
 
         loop {
             if self.if_token_consume(Dot) {
-                expr = self.struct_call();
+                if let Expression::Method { .. } = expr {
+                    expr = self.method_body(expr.clone());
+                } else {
+                    expr = self.struct_call();
+                }
             } else if self.if_token_consume(DblColon) {
                 expr = self.enum_call();
             } else if self.if_token_consume(LeftParen) {
@@ -556,6 +560,30 @@ impl Parser {
             }),
             args,
             call_type: CallType::Func,
+        }
+    }
+
+    fn method(&mut self) -> Expression {
+        let mut expr = self.primary();
+        if self.if_token_consume(Dot) {
+            expr = self.method_body(expr.clone())
+        }
+        expr
+    }
+
+    fn method_body(&mut self, expr: Expression) -> Expression {
+        let name = self.consume(Ident);
+        self.consume(LeftParen);
+        let mut args = vec![];
+        while !self.if_token_consume(RightParen) {
+            args.push(self.expr());
+            self.if_token_consume(Comma);
+        }
+        Expression::Method {
+            id: self.id(),
+            name,
+            left: Box::new(expr),
+            args,
         }
     }
 

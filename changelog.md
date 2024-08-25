@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.1
+
+- fixed methods for literals
+- fixed method chaining
+- fixed other method related bugs
+
 ## 0.11.0
 
 - added methods for literals (`5.sqr()`) (works only on calls and isnt chained)

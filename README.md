@@ -2,17 +2,6 @@
 
 Aperture is an interpreted programming language that is designed to be simple but powerful. Interpreter is currently under the heavy development and is not ready for use.
 
-## Features
-
-- Easy to learn
-- Open-source
-- Lightweight
-- Strongly typed & type-safe
-- Efficient
-- Cross-platform (Windows, Linux)
-- Multi-threaded (soon)
-- Asynchronous (soon)
-
 ## Installation
 
 To install Aperture on Linux, run the following command in your terminal:

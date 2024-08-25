@@ -59,9 +59,10 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n * n),
-                    _ => {
+                0: Box::new(|args: &[LiteralType]| {
+                    if let LiteralType::Number(n) = args[0] {
+                        LiteralType::Number(n * n)
+                    } else {
                         raw("sqr() expects a number");
                         process::exit(1)
                     }

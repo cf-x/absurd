@@ -269,6 +269,11 @@ impl Resolver {
 
     fn resolve_expr(&mut self, expr: &Expression, env: &Rc<RefCell<Env>>) {
         match expr {
+            Expression::Method { args, .. } => {
+                for arg in args {
+                    self.resolve_expr(arg, env);
+                }
+            }
             Expression::Assign { value, .. } => {
                 self.resolve_expr(value, env);
             }

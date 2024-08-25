@@ -41,6 +41,12 @@ pub enum Expression {
         operator: Token,
         right: Box<Expression>,
     },
+    Method {
+        id: usize,
+        left: Box<Expression>,
+        name: Token,
+        args: Vec<Expression>,
+    },
     Grouping {
         id: usize,
         expression: Box<Expression>,
@@ -82,6 +88,7 @@ impl Expression {
             Expression::Value { id, .. } => *id,
             Expression::Grouping { id, .. } => *id,
             Expression::Assign { id, .. } => *id,
+            Expression::Method { id, .. } => *id,
         }
     }
 
@@ -151,10 +158,15 @@ impl Expression {
                     },
                 }
             }
+            Expression::Method {
+                left, name, args, ..
+            } => {
+                let literal = left.eval(env.clone());
+                self.eval_literal_method_b(literal, name.clone(), args.clone(), env)
+            }
             Expression::Call {
                 name,
                 args,
-                call_type,
                 ..
             } => {
                 let call: LiteralType = name.eval(Rc::clone(&env));
@@ -174,215 +186,7 @@ impl Expression {
 
                         (*func.func).call(args_eval)
                     }
-                    LiteralType::Number(n) => {
-                        if call_type.clone() == CallType::Struct {
-                            if let Expression::Call { name, .. } = &args[0] {
-                                if let Expression::Var { name, .. } = *name.clone() {
-                                    let name_s = name.lexeme;
-                                    match name_s.as_str() {
-                                        "sqr" => return LiteralType::Number(n * n),
-                                        "add" => {
-                                            if args.len() > 1 {
-                                                let m = args[1].eval(env.clone());
-                                                if let LiteralType::Number(m) = m {
-                                                    return LiteralType::Number(n + m);
-                                                }
-                                            }
-                                        }
-                                        "sub" => {
-                                            if args.len() > 1 {
-                                                let m = args[1].eval(env.clone());
-                                                if let LiteralType::Number(m) = m {
-                                                    return LiteralType::Number(n - m);
-                                                }
-                                            }
-                                        }
-                                        "mult" => {
-                                            if args.len() > 1 {
-                                                let m = args[1].eval(env.clone());
-                                                if let LiteralType::Number(m) = m {
-                                                    return LiteralType::Number(n * m);
-                                                }
-                                            }
-                                        }
-                                        "div" => {
-                                            if args.len() > 1 {
-                                                let m = args[1].eval(env.clone());
-                                                if let LiteralType::Number(m) = m {
-                                                    return LiteralType::Number(n / m);
-                                                }
-                                            }
-                                        }
-                                        "rem" => {
-                                            if args.len() > 1 {
-                                                let m = args[1].eval(env.clone());
-                                                if let LiteralType::Number(m) = m {
-                                                    return LiteralType::Number(n % m);
-                                                }
-                                            }
-                                        }
-                                        "sqrt" => return LiteralType::Number(n.sqrt()),
-                                        "cbrt" => return LiteralType::Number(n.cbrt()),
-                                        "pow" => {
-                                            if args.len() > 1 {
-                                                let m = args[1].eval(env.clone());
-                                                if let LiteralType::Number(m) = m {
-                                                    return LiteralType::Number(n.powf(m));
-                                                }
-                                            }
-                                        }
-                                        "log" => {
-                                            if args.len() > 1 {
-                                                let m = args[1].eval(env.clone());
-                                                if let LiteralType::Number(m) = m {
-                                                    return LiteralType::Number(n.log(m));
-                                                }
-                                            }
-                                        }
-                                        "sin" => return LiteralType::Number(n.sin()),
-                                        "asin" => return LiteralType::Number(n.asin()),
-                                        "cos" => return LiteralType::Number(n.cos()),
-                                        "acos" => return LiteralType::Number(n.acos()),
-                                        "tan" => return LiteralType::Number(n.tan()),
-                                        "atan" => return LiteralType::Number(n.atan()),
-                                        "abs" => return LiteralType::Number(n.abs()),
-                                        "floor" => return LiteralType::Number(n.floor()),
-                                        "ceil" => return LiteralType::Number(n.ceil()),
-                                        "round" => return LiteralType::Number(n.round()),
-                                        "signum" => return LiteralType::Number(n.signum()),
-                                        "hypot" => {
-                                            if args.len() > 1 {
-                                                let m = args[1].eval(env.clone());
-                                                if let LiteralType::Number(m) = m {
-                                                    return LiteralType::Number(n.hypot(m));
-                                                }
-                                            }
-                                        }
-                                        "exp" => return LiteralType::Number(n.exp()),
-                                        "exp2" => return LiteralType::Number(n.exp2()),
-                                        "exp_m1" => return LiteralType::Number(n.exp_m1()),
-                                        "ln" => return LiteralType::Number(n.ln()),
-                                        "max" => {
-                                            if args.len() > 1 {
-                                                let m = args[1].eval(env.clone());
-                                                if let LiteralType::Number(m) = m {
-                                                    return LiteralType::Number(n.max(m));
-                                                }
-                                            }
-                                        }
-                                        "min" => {
-                                            if args.len() > 1 {
-                                                let m = args[1].eval(env.clone());
-                                                if let LiteralType::Number(m) = m {
-                                                    return LiteralType::Number(n.min(m));
-                                                }
-                                            }
-                                        }
-                                        "avg" => {
-                                            if args.len() > 1 {
-                                                let m = args[1].eval(env.clone());
-                                                if let LiteralType::Number(m) = m {
-                                                    return LiteralType::Number((n + m) / 2.0);
-                                                }
-                                            }
-                                        }
-                                        "to_degrees" => return LiteralType::Number(n.to_degrees()),
-                                        "to_radians" => return LiteralType::Number(n.to_radians()),
-                                        _ => {}
-                                    }
-                                }
-                            }
-                            LiteralType::Null
-                        } else {
-                            LiteralType::Number(n)
-                        }
-                    }
-                    LiteralType::String(s) => {
-                        if call_type.clone() == CallType::Struct {
-                            if let Expression::Call { name, .. } = &args[0] {
-                                if let Expression::Var { name, .. } = *name.clone() {
-                                    let name_s = name.lexeme;
-                                    match name_s.as_str() {
-                                        "len" => return LiteralType::Number(s.len() as f32),
-                                        "is_empty" => return LiteralType::Boolean(s.is_empty()),
-                                        "contains" => {
-                                            if args.len() > 1 {
-                                                let substr = args[1].eval(env.clone());
-                                                if let LiteralType::String(substr) = substr {
-                                                    return LiteralType::Boolean(
-                                                        s.contains(&substr),
-                                                    );
-                                                }
-                                            }
-                                        }
-                                        "starts_with" => {
-                                            if args.len() > 1 {
-                                                let prefix = args[1].eval(env.clone());
-                                                if let LiteralType::String(prefix) = prefix {
-                                                    return LiteralType::Boolean(
-                                                        s.starts_with(&prefix),
-                                                    );
-                                                }
-                                            }
-                                        }
-                                        "ends_with" => {
-                                            if args.len() > 1 {
-                                                let suffix = args[1].eval(env.clone());
-                                                if let LiteralType::String(suffix) = suffix {
-                                                    return LiteralType::Boolean(
-                                                        s.ends_with(&suffix),
-                                                    );
-                                                }
-                                            }
-                                        }
-                                        "to_uppercase" => {
-                                            return LiteralType::String(s.to_uppercase())
-                                        }
-                                        "to_lowercase" => {
-                                            return LiteralType::String(s.to_lowercase())
-                                        }
-                                        "trim" => return LiteralType::String(s.trim().to_string()),
-                                        "trim_start" => {
-                                            return LiteralType::String(s.trim_start().to_string())
-                                        }
-                                        "trim_end" => {
-                                            return LiteralType::String(s.trim_end().to_string())
-                                        }
-                                        "replace" => {
-                                            if args.len() > 2 {
-                                                let from = args[1].eval(env.clone());
-                                                let to = args[2].eval(env.clone());
-                                                if let (
-                                                    LiteralType::String(from),
-                                                    LiteralType::String(to),
-                                                ) = (from, to)
-                                                {
-                                                    return LiteralType::String(
-                                                        s.replace(&from, &to),
-                                                    );
-                                                }
-                                            }
-                                        }
-                                        "find" => {
-                                            if args.len() > 1 {
-                                                let substr = args[1].eval(env.clone());
-                                                if let LiteralType::String(substr) = substr {
-                                                    if let Some(index) = s.find(&substr) {
-                                                        return LiteralType::Number(index as f32);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        _ => {}
-                                    }
-                                }
-                            }
-                            LiteralType::Null
-                        } else {
-                            LiteralType::String(s)
-                        }
-                    }
-                    _ => LiteralType::Null,
+                    _ => self.eval_literal_method(call, args, env),
                 }
             }
             Expression::Grouping { expression, .. } => expression.eval(env),
@@ -426,6 +230,209 @@ impl Expression {
                 ..
             } => self.eval_binary(left, operator, right, env),
             Expression::Unary { operator, left, .. } => self.eval_unary(operator, left, env),
+        }
+    }
+
+    fn eval_literal_method_b(
+        &self,
+        literal: LiteralType,
+        name: Token,
+        args: Vec<Expression>,
+        env: Rc<RefCell<Env>>,
+    ) -> LiteralType {
+        match literal {
+            LiteralType::Number(n) => {
+                let name_s = name.lexeme;
+                match name_s.as_str() {
+                    "sqr" => return LiteralType::Number(n * n),
+                    "add" => {
+                        if !args.is_empty() {
+                            let m = args[0].eval(env.clone());
+                            if let LiteralType::Number(m) = m {
+                                return LiteralType::Number(n + m);
+                            }
+                        }
+                    }
+                    "sub" => {
+                        if !args.is_empty() {
+                            let m = args[0].eval(env.clone());
+                            if let LiteralType::Number(m) = m {
+                                return LiteralType::Number(n - m);
+                            }
+                        }
+                    }
+                    "mult" => {
+                        if !args.is_empty() {
+                            let m = args[0].eval(env.clone());
+                            if let LiteralType::Number(m) = m {
+                                return LiteralType::Number(n * m);
+                            }
+                        }
+                    }
+                    "div" => {
+                        if !args.is_empty() {
+                            let m = args[0].eval(env.clone());
+                            if let LiteralType::Number(m) = m {
+                                return LiteralType::Number(n / m);
+                            }
+                        }
+                    }
+                    "rem" => {
+                        if !args.is_empty() {
+                            let m = args[0].eval(env.clone());
+                            if let LiteralType::Number(m) = m {
+                                return LiteralType::Number(n % m);
+                            }
+                        }
+                    }
+                    "sqrt" => return LiteralType::Number(n.sqrt()),
+                    "cbrt" => return LiteralType::Number(n.cbrt()),
+                    "pow" => {
+                        if !args.is_empty() {
+                            let m = args[0].eval(env.clone());
+                            if let LiteralType::Number(m) = m {
+                                return LiteralType::Number(n.powf(m));
+                            }
+                        }
+                    }
+                    "log" => {
+                        if !args.is_empty() {
+                            let m = args[0].eval(env.clone());
+                            if let LiteralType::Number(m) = m {
+                                return LiteralType::Number(n.log(m));
+                            }
+                        }
+                    }
+                    "sin" => return LiteralType::Number(n.sin()),
+                    "asin" => return LiteralType::Number(n.asin()),
+                    "cos" => return LiteralType::Number(n.cos()),
+                    "acos" => return LiteralType::Number(n.acos()),
+                    "tan" => return LiteralType::Number(n.tan()),
+                    "atan" => return LiteralType::Number(n.atan()),
+                    "abs" => return LiteralType::Number(n.abs()),
+                    "floor" => return LiteralType::Number(n.floor()),
+                    "ceil" => return LiteralType::Number(n.ceil()),
+                    "round" => return LiteralType::Number(n.round()),
+                    "signum" => return LiteralType::Number(n.signum()),
+                    "hypot" => {
+                        if !args.is_empty() {
+                            let m = args[0].eval(env.clone());
+                            if let LiteralType::Number(m) = m {
+                                return LiteralType::Number(n.hypot(m));
+                            }
+                        }
+                    }
+                    "exp" => return LiteralType::Number(n.exp()),
+                    "exp2" => return LiteralType::Number(n.exp2()),
+                    "exp_m1" => return LiteralType::Number(n.exp_m1()),
+                    "ln" => return LiteralType::Number(n.ln()),
+                    "max" => {
+                        if !args.is_empty() {
+                            let m = args[0].eval(env.clone());
+                            if let LiteralType::Number(m) = m {
+                                return LiteralType::Number(n.max(m));
+                            }
+                        }
+                    }
+                    "min" => {
+                        if !args.is_empty() {
+                            let m = args[0].eval(env.clone());
+                            if let LiteralType::Number(m) = m {
+                                return LiteralType::Number(n.min(m));
+                            }
+                        }
+                    }
+                    "avg" => {
+                        if !args.is_empty() {
+                            let m = args[0].eval(env.clone());
+                            if let LiteralType::Number(m) = m {
+                                return LiteralType::Number((n + m) / 2.0);
+                            }
+                        }
+                    }
+                    "to_degrees" => return LiteralType::Number(n.to_degrees()),
+                    "to_radians" => return LiteralType::Number(n.to_radians()),
+                    _ => {}
+                }
+            }
+            LiteralType::String(s) => {
+                let name_s = name.lexeme;
+                match name_s.as_str() {
+                    "len" => return LiteralType::Number(s.len() as f32),
+                    "is_empty" => return LiteralType::Boolean(s.is_empty()),
+                    "contains" => {
+                        if !args.is_empty() {
+                            let substr = args[0].eval(env.clone());
+                            if let LiteralType::String(substr) = substr {
+                                return LiteralType::Boolean(s.contains(&substr));
+                            }
+                        }
+                    }
+                    "starts_with" => {
+                        if !args.is_empty() {
+                            let prefix = args[0].eval(env.clone());
+                            if let LiteralType::String(prefix) = prefix {
+                                return LiteralType::Boolean(s.starts_with(&prefix));
+                            }
+                        }
+                    }
+                    "ends_with" => {
+                        if !args.is_empty() {
+                            let suffix = args[0].eval(env.clone());
+                            if let LiteralType::String(suffix) = suffix {
+                                return LiteralType::Boolean(s.ends_with(&suffix));
+                            }
+                        }
+                    }
+                    "to_uppercase" => return LiteralType::String(s.to_uppercase()),
+                    "to_lowercase" => return LiteralType::String(s.to_lowercase()),
+                    "trim" => return LiteralType::String(s.trim().to_string()),
+                    "trim_start" => return LiteralType::String(s.trim_start().to_string()),
+                    "trim_end" => return LiteralType::String(s.trim_end().to_string()),
+                    "replace" => {
+                        if args.len() > 1 {
+                            let from = args[0].eval(env.clone());
+                            let to = args[1].eval(env.clone());
+                            if let (LiteralType::String(from), LiteralType::String(to)) = (from, to)
+                            {
+                                return LiteralType::String(s.replace(&from, &to));
+                            }
+                        }
+                    }
+                    "find" => {
+                        if !args.is_empty() {
+                            let substr = args[0].eval(env.clone());
+                            if let LiteralType::String(substr) = substr {
+                                if let Some(index) = s.find(&substr) {
+                                    return LiteralType::Number(index as f32);
+                                }
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+        LiteralType::Any
+    }
+
+    fn eval_literal_method(
+        &self,
+        literal: LiteralType,
+        args: &Vec<Expression>,
+        env: Rc<RefCell<Env>>,
+    ) -> LiteralType {
+        if let Expression::Call { name, .. } = &args[0] {
+            if let Expression::Var { name, .. } = *name.clone() {
+                let mut args = args.clone();
+                args.remove(0);
+                return self.eval_literal_method_b(literal, name, args, env);
+            } else {
+                LiteralType::Null
+            }
+        } else {
+            LiteralType::Null
         }
     }
 
@@ -569,6 +576,15 @@ impl fmt::Display for Expression {
                 write!(f, "{} {} {}", left, operator.lexeme, right)
             }
             Expression::Unary { left, operator, .. } => write!(f, "{}{}", operator.lexeme, left),
+            Expression::Method {
+                left, name, args, ..
+            } => {
+                let mut args_str = String::new();
+                for arg in args {
+                    args_str.push_str(&format!("{}, ", arg));
+                }
+                write!(f, "{}.{}({})", left, name.lexeme, args_str)
+            }
         }
     }
 }
