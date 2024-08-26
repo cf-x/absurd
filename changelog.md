@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.2
+
+- added `update` command to update to the latest version
+- updated cli
+- fixed `attempt to subtract with overflow` error
+
 ## 0.11.1
 
 - fixed methods for literals

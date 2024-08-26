@@ -420,7 +420,11 @@ impl Error {
         pos: (usize, usize),
     ) -> (String, String, String) {
         let mut chars = line.chars();
-        let before: String = chars.by_ref().take(pos.0 - 1).collect();
+        let before: String = if pos.0 > 0 {
+            chars.by_ref().take(pos.0 - 1).collect()
+        } else {
+            String::new()
+        };
         let to_underscore: String = chars.by_ref().take(pos.1 - pos.0).collect();
         let after: String = chars.collect();
         (before, to_underscore, after)
