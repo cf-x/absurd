@@ -3,16 +3,19 @@ pub mod expr;
 use env::{Env, FuncKind, VarKind};
 use expr::Expression;
 pub mod load_std;
-use crate::ast::{
-    FuncBody, FuncImpl, FuncValueType, LiteralType,
-    Statement::{self, *},
-    Token,
-};
 use crate::resolver::type_check;
 use crate::std::core::io::StdCoreIo;
 use crate::utils::bundler::interpreter_mod;
 use crate::utils::errors::{Error, ErrorCode::*};
 use crate::utils::manifest::Project;
+use crate::{
+    ast::{
+        FuncBody, FuncImpl, FuncValueType, LiteralType,
+        Statement::{self, *},
+        Token,
+    },
+    utils::errors::raw,
+};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::env::current_dir;
@@ -310,15 +313,55 @@ impl Interpreter {
                         .borrow_mut()
                         .insert("break".to_string(), LiteralType::Null);
                 }
-                Match { .. } => {
-                    // @todo handle match statements
+                Match {
+                    cond,
+                    cases,
+                    def_case,
+                } => {
+                    if !self.is_mod {
+                        let mut exec = false;
+                        let val = cond.eval(Rc::clone(&self.env));
+                        for (expr, body) in cases {
+                            let v = expr.eval(Rc::clone(&self.env));
+                            if v.type_name() == val.type_name() {
+                                match body.clone() {
+                                    FuncBody::Statements(s) => {
+                                        if v.clone() == val.clone() {
+                                            self.interpret(s.iter().map(|x| x).collect());
+                                            exec = true;
+                                            break;
+                                        }
+                                    }
+                                    FuncBody::Expression(e) => {
+                                        if v.clone() == val.clone() {
+                                            self.interpret(vec![&Statement::Expression {
+                                                expr: *e,
+                                            }]);
+                                            exec = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            } else {
+                                raw("invad type in match statement")
+                            }
+                        }
+                        if !exec {
+                            match def_case.clone() {
+                                FuncBody::Statements(s) => {
+                                    self.interpret(s.iter().map(|x| x).collect());
+                                }
+                                FuncBody::Expression(e) => {
+                                    self.interpret(vec![&Statement::Expression { expr: *e }]);
+                                }
+                            }
+                        }
+                    }
                 }
                 Mod { src } => {
                     if !self.project.side_effects {
                         self.error.throw(E0x415, 0, (0, 0), vec![]);
                     }
-
-                    // @todo handle errors
                     let mut path = current_dir().expect("failed to get current directory");
                     path.push(src.trim_matches('"'));
                     let mut file = File::open(path).expect("failed to open a file");

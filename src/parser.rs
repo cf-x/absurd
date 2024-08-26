@@ -1,11 +1,14 @@
-use crate::ast::{
-    CallType, FuncBody, LiteralKind, LiteralType, Statement, Token,
-    TokenType::{self, *},
-};
 use crate::interpreter::expr::Expression;
 use crate::utils::errors::{
     Error,
     ErrorCode::{self, *},
+};
+use crate::{
+    ast::{
+        CallType, FuncBody, LiteralKind, LiteralType, Statement, Token,
+        TokenType::{self, *},
+    },
+    interpreter::expr::AssignKind,
 };
 use std::process::exit;
 
@@ -284,24 +287,21 @@ impl Parser {
             }
         }
 
-        self.consume(Underscore);
-        self.consume(ArrowBig);
-
-        let stmt = if self.if_token_consume(LeftBrace) {
-            let body = self.block_stmts();
-            Statement::Match {
-                cond,
-                cases,
-                def_case: FuncBody::Statements(body),
+        let mut def_case = FuncBody::Statements(vec![]);
+        if self.if_token_consume(Underscore) {
+            self.consume(ArrowBig);
+            if self.if_token_consume(LeftBrace) {
+                let body = self.block_stmts();
+                def_case = FuncBody::Statements(body)
+            } else {
+                let body = self.expr();
+                def_case = FuncBody::Expression(Box::new(body))
             }
-        } else {
-            let body = self.expr();
-            self.consume(Comma);
-            Statement::Match {
-                cond,
-                cases,
-                def_case: FuncBody::Expression(Box::new(body)),
-            }
+        }
+        let stmt = Statement::Match {
+            cond,
+            cases,
+            def_case,
         };
         self.consume(RightBrace);
         stmt
@@ -390,18 +390,27 @@ impl Parser {
     fn expr(&mut self) -> Expression {
         let expr = self.binary();
         if self.if_token_consume(Assign) {
-            return self.assign(expr);
+            return self.assign(expr, AssignKind::Normal);
+        } else if self.if_token_consume(PlusEq) {
+            return self.assign(expr, AssignKind::Plus);
+        } else if self.if_token_consume(MinEq) {
+            return self.assign(expr, AssignKind::Minus);
+        } else if self.if_token_consume(MultEq) {
+            return self.assign(expr, AssignKind::Mult);
+        } else if self.if_token_consume(DivEq) {
+            return self.assign(expr, AssignKind::Div);
         }
         expr
     }
 
-    fn assign(&mut self, expr: Expression) -> Expression {
+    fn assign(&mut self, expr: Expression, kind: AssignKind) -> Expression {
         let value = self.expr();
         if let Expression::Var { id: _, name } = expr {
             Expression::Assign {
                 id: self.id(),
                 name,
                 value: Box::new(value),
+                kind,
             }
         } else {
             self.throw_error(E0x201, vec!["Invalid assignment target".to_string()]);
@@ -424,10 +433,6 @@ impl Parser {
             GreaterOrEq,
             Less,
             LessOrEq,
-            PlusEq,
-            MinEq,
-            MultEq,
-            DivEq,
             Square,
             And,
         ]) {

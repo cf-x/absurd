@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.12.0
+
+- added `match` statement
+- added `+=`, `-=`, `*=` and `/=` assignments
+
+
 ## 0.11.2
 
 - added `update` command to update to the latest version

@@ -10,11 +10,21 @@ use std::process::exit;
 use std::{cell::RefCell, fmt, rc::Rc};
 
 #[derive(Debug, PartialEq, Clone)]
+pub enum AssignKind {
+    Normal,
+    Plus,
+    Minus,
+    Mult,
+    Div,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
     Assign {
         id: usize,
         name: Token,
         value: Box<Expression>,
+        kind: AssignKind,
     },
     Array {
         id: usize,
@@ -101,8 +111,10 @@ impl Expression {
 
     pub fn eval(&self, env: Rc<RefCell<Env>>) -> LiteralType {
         match self {
-            Expression::Assign { name, value, .. } => {
-                let val = (*value).eval(Rc::clone(&env));
+            Expression::Assign {
+                name, value, kind, ..
+            } => {
+                let mut val = (*value).eval(Rc::clone(&env));
                 let t = env.borrow().get(name.lexeme.clone(), self.id());
                 let mut is_mut = false;
                 match t {
@@ -115,6 +127,42 @@ impl Expression {
                             if s.is_pub {
                                 self.err().throw(E0x411, name.line, name.pos, vec![]);
                             }
+                            match v.value {
+                                LiteralType::Number(x) => match kind {
+                                    AssignKind::Plus => match val {
+                                        LiteralType::Number(n) => {
+                                            val = LiteralType::Number(n + x);
+                                        }
+                                        _ => {}
+                                    },
+                                    AssignKind::Minus => match val {
+                                        LiteralType::Number(n) => {
+                                            val = LiteralType::Number(n - x);
+                                        }
+                                        _ => {}
+                                    },
+                                    AssignKind::Mult => match val {
+                                        LiteralType::Number(n) => {
+                                            val = LiteralType::Number(n * x);
+                                        }
+                                        _ => {}
+                                    },
+                                    AssignKind::Div => match val {
+                                        LiteralType::Number(n) => {
+                                            val = LiteralType::Number(n / x);
+                                        }
+                                        _ => {}
+                                    },
+                                    _ => {}
+                                },
+                                _ => {
+                                    if kind.clone() != AssignKind::Normal {
+                                        self.err().throw(E0x414, name.line, name.pos, vec![]);
+                                        exit(1);
+                                    }
+                                }
+                            }
+
                             if v.value.type_name() != val.type_name() {
                                 self.err().throw(
                                     E0x412,
@@ -164,11 +212,7 @@ impl Expression {
                 let literal = left.eval(env.clone());
                 self.eval_literal_method_b(literal, name.clone(), args.clone(), env)
             }
-            Expression::Call {
-                name,
-                args,
-                ..
-            } => {
+            Expression::Call { name, args, .. } => {
                 let call: LiteralType = name.eval(Rc::clone(&env));
                 match call {
                     LiteralType::Func(func) => match func {
