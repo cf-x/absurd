@@ -1,4 +1,5 @@
 use crate::interpreter::expr::Expression;
+use crate::interpreter::types::TypeKind;
 use crate::utils::errors::{
     Error,
     ErrorCode::{self, *},
@@ -118,8 +119,7 @@ impl Parser {
         }
 
         self.consume(Colon);
-        let value_type = self.consume_type_ident();
-
+        let value_type = self.consume_type();
         if value_type.token == NullIdent {
             return null_var;
         }
@@ -165,7 +165,7 @@ impl Parser {
             if self.is_token(Ident) {
                 let param_name = self.consume(Ident);
                 self.consume(Colon);
-                let param_type = self.consume_type_ident();
+                let param_type = self.consume_type();
                 params.push((param_name, param_type))
             } else if self.if_token_consume(Comma) {
             } else if !self.is_token(RightParen) {
@@ -173,7 +173,7 @@ impl Parser {
             }
         }
         self.consume(Arrow);
-        let value_type = self.consume_type_ident();
+        let value_type = self.consume_type();
 
         if self.if_token_consume(Assign) {
             let body = self.expr();
@@ -708,7 +708,7 @@ impl Parser {
                 if self.is_token(Ident) {
                     let param_name = self.consume(Ident);
                     self.consume(Colon);
-                    let param_type = self.consume_type_ident();
+                    let param_type = self.consume_type();
                     params.push((param_name, param_type))
                 } else if self.if_token_consume(Comma) {
                 } else if !self.is_token(Pipe) {
@@ -791,50 +791,203 @@ impl Parser {
         self.throw_error(E0x204, vec!["uppercase Ident".to_string()]);
     }
 
-    /// advances if token is type identifier
-    fn consume_type_ident(&mut self) -> Token {
-        if self.if_token_consume(Less) {
-            let typ = self.consume_type_ident();
-            self.consume(Greater);
-            Token {
-                token: ArrayIdent,
-                lexeme: typ.lexeme,
+    fn consume_type(&mut self) -> Token {
+        match self.peek().token {
+            Less => self.parse_array_type(),
+            Pipe => self.parse_func_type(),
+            StringLit | NumberLit | CharLit | NullLit | TrueLit | ArrayLit | FalseLit => {
+                self.parse_literal_type()
+            }
+            Ident => self.parse_ident_type(),
+            AnyIdent | BoolIdent | CharIdent | NullIdent | VoidIdent | ArrayIdent | NumberIdent
+            | StringIdent => self.parse_builtin_type(),
+            c => Token {
+                token: c,
+                lexeme: self.peek().lexeme,
                 pos: self.peek().pos,
                 value: None,
                 line: self.peek().line,
+            },
+        }
+    }
+
+    fn parse_builtin_type(&mut self) -> Token {
+        let token = self.consume_some(vec![
+            AnyIdent,
+            BoolIdent,
+            CharIdent,
+            NullIdent,
+            VoidIdent,
+            ArrayIdent,
+            NumberIdent,
+            StringIdent,
+        ]);
+        let value = Some(LiteralKind::Type(Box::new(TypeKind::Var {
+            name: token.clone(),
+        })));
+        Token {
+            token: token.token.clone(),
+            lexeme: token.lexeme,
+            value,
+            line: token.line,
+            pos: token.pos,
+        }
+    }
+
+    fn parse_ident_type(&mut self) -> Token {
+        let token = self.consume(Ident);
+        let value = Some(LiteralKind::Type(Box::new(TypeKind::Var {
+            name: token.clone(),
+        })));
+        Token {
+            token: Ident,
+            lexeme: token.lexeme,
+            value,
+            line: token.line,
+            pos: token.pos,
+        }
+    }
+
+    fn parse_literal_type(&mut self) -> Token {
+        let token = self.peek();
+        let value = Some(LiteralKind::Type(Box::new(TypeKind::Value {
+            kind: self.peek().value.unwrap_or(LiteralKind::Null),
+        })));
+        match token.token {
+            StringLit => {
+                self.advance();
+                return Token {
+                    token: StringLit,
+                    lexeme: self.peek().lexeme,
+                    value,
+                    line: token.line,
+                    pos: token.pos,
+                };
             }
-        } else if self.if_token_consume(Pipe) {
-            let mut args = vec![];
-            if self.if_token_consume(Underscore) {
-                self.consume(Pipe);
-            } else {
-                while !self.if_token_consume(Pipe) {
-                    let arg = self.consume_type_ident();
-                    args.push(arg);
-                    if !self.if_token_consume(Comma) && !self.is_token(Pipe) {
-                        self.throw_error(E0x201, vec![self.peek().lexeme]);
-                    }
+            NumberLit => {
+                self.advance();
+                return Token {
+                    token: NumberLit,
+                    lexeme: self.peek().lexeme,
+                    value,
+                    line: token.line,
+                    pos: token.pos,
+                };
+            }
+            CharLit => {
+                self.advance();
+                return Token {
+                    token: CharLit,
+                    lexeme: self.peek().lexeme,
+                    value,
+                    line: token.line,
+                    pos: token.pos,
+                };
+            }
+            TrueLit => {
+                self.advance();
+                return Token {
+                    token: TrueLit,
+                    lexeme: self.peek().lexeme,
+                    value,
+                    line: token.line,
+                    pos: token.pos,
+                };
+            }
+            FalseLit => {
+                self.advance();
+                return Token {
+                    token: FalseLit,
+                    lexeme: self.peek().lexeme,
+                    value,
+                    line: token.line,
+                    pos: token.pos,
+                };
+            }
+            NullLit => {
+                self.advance();
+                return Token {
+                    token: NullLit,
+                    lexeme: self.peek().lexeme,
+                    value,
+                    line: token.line,
+                    pos: token.pos,
+                };
+            }
+            ArrayLit => {
+                self.advance();
+                return Token {
+                    token: ArrayLit,
+                    lexeme: self.peek().lexeme,
+                    value,
+                    line: token.line,
+                    pos: token.pos,
+                };
+            }
+            _ => token,
+        }
+    }
+
+    fn parse_func_type(&mut self) -> Token {
+        self.consume(Pipe);
+        let mut params: Vec<TypeKind> = vec![];
+        while !self.if_token_consume(Pipe) {
+            let param = self.consume_type();
+            params.push(TypeKind::Var { name: param });
+            if !self.if_token_consume(Comma) && !self.is_token(Pipe) {
+                self.throw_error(E0x201, vec![self.peek().lexeme]);
+            }
+        }
+        let return_type = self.consume_type();
+
+        Token {
+            token: FuncIdent,
+            lexeme: "func_type".to_string(),
+            value: Some(LiteralKind::Type(Box::new(TypeKind::Func {
+                params,
+                ret: Box::new(TypeKind::Var { name: return_type }),
+            }))),
+            line: self.peek().line,
+            pos: self.peek().pos,
+        }
+    }
+
+    fn parse_array_type(&mut self) -> Token {
+        self.consume(Less);
+        if self.if_token_consume(LeftParen) {
+            let mut statics: Vec<TypeKind> = vec![];
+            while !self.if_token_consume(RightParen) {
+                let static_size = self.consume_type();
+                statics.push(TypeKind::Var { name: static_size });
+                if !self.if_token_consume(Comma) && !self.is_token(RightParen) {
+                    self.throw_error(E0x201, vec![self.peek().lexeme]);
                 }
             }
-            let typ = self.consume_type_ident();
-            Token {
+            let typ = self.consume_type();
+            self.consume(Greater);
+            return Token {
                 token: ArrayIdent,
                 lexeme: typ.lexeme,
                 pos: self.peek().pos,
-                value: None,
+                value: Some(LiteralKind::Type(Box::new(TypeKind::Array {
+                    kind: None,
+                    statics: Some(statics),
+                }))),
                 line: self.peek().line,
-            }
-        } else {
-            self.consume_some(vec![
-                AnyIdent,
-                BoolIdent,
-                CharIdent,
-                NullIdent,
-                VoidIdent,
-                ArrayIdent,
-                NumberIdent,
-                StringIdent,
-            ])
+            };
+        }
+
+        let typ = self.consume_type();
+        self.consume(Greater);
+        Token {
+            token: ArrayIdent,
+            lexeme: typ.clone().lexeme,
+            pos: self.peek().pos,
+            value: Some(LiteralKind::Type(Box::new(TypeKind::Array {
+                kind: Some(Box::new(TypeKind::Var { name: typ.clone() })),
+                statics: None,
+            }))),
+            line: self.peek().line,
         }
     }
 

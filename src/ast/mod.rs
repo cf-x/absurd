@@ -5,7 +5,7 @@ use std::{
     rc::Rc,
 };
 pub mod token;
-use crate::{interpreter::env::Env, interpreter::expr::Expression};
+use crate::interpreter::{env::Env, expr::Expression, types::TypeKind};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
@@ -170,6 +170,8 @@ pub enum TokenType {
     VoidIdent,
     /// array
     ArrayIdent,
+    // callback type
+    FuncIdent,
     /// any
     AnyIdent,
 }
@@ -252,6 +254,7 @@ pub enum LiteralKind {
     String { value: String },
     Char { value: char },
     Bool { value: bool },
+    Type(Box<TypeKind>),
     Null,
 }
 

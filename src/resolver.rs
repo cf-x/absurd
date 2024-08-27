@@ -1,6 +1,7 @@
-use crate::ast::{FuncBody, LiteralType, Statement, Token, TokenType};
+use crate::ast::{FuncBody, LiteralKind, LiteralType, Statement, Token, TokenType};
 use crate::interpreter::env::Env;
 use crate::interpreter::expr::Expression;
+use crate::interpreter::types::TypeKind;
 use crate::utils::errors::{Error, ErrorCode::*};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -426,24 +427,130 @@ pub fn type_check(value_type: &Token, val: &LiteralType) -> bool {
         TokenType::VoidIdent => matches!(val, LiteralType::Void),
         TokenType::ArrayIdent => {
             if let LiteralType::Array(array) = val {
-                array.iter().all(|item| {
-                    type_check(
-                        &Token {
-                            token: string_to_token_type(&value_type.lexeme),
-                            lexeme: value_type.lexeme.clone(),
-                            value: None,
-                            line: value_type.line,
-                            pos: value_type.pos,
-                        },
-                        &item.to_literal(),
-                    )
-                })
+                match value_type.clone().value {
+                    Some(value) => match value {
+                        LiteralKind::Type(t) => {
+                            let t = *t;
+                            match t {
+                                TypeKind::Array { statics, .. } => {
+                                    if let Some(statics) = statics {
+                                        if statics.len() != array.len() {
+                                            return false;
+                                        }
+
+                                        return statics.iter().zip(array.iter()).all(
+                                            |(stat, item)| {
+                                                let stat_token = match stat.clone() {
+                                                    TypeKind::Var { name } => name,
+                                                    _ => value_type.clone(),
+                                                };
+                                                type_check(
+                                                    &Token {
+                                                        token: stat_token.token,
+                                                        lexeme: stat_token.lexeme.clone(),
+                                                        value: None,
+                                                        line: stat_token.line,
+                                                        pos: stat_token.pos,
+                                                    },
+                                                    &item.to_literal(),
+                                                )
+                                            },
+                                        );
+                                    }
+
+                                    return array.iter().all(|item| {
+                                        type_check(
+                                            &Token {
+                                                token: string_to_token_type(&value_type.lexeme),
+                                                lexeme: value_type.lexeme.clone(),
+                                                value: None,
+                                                line: value_type.line,
+                                                pos: value_type.pos,
+                                            },
+                                            &item.to_literal(),
+                                        )
+                                    });
+                                }
+                                _ => {}
+                            }
+                        }
+                        _ => {}
+                    },
+                    None => {}
+                }
+
+                false
             } else {
                 false
             }
         }
         TokenType::AnyIdent => true,
+        TokenType::NumberLit
+        | TokenType::StringLit
+        | TokenType::TrueLit
+        | TokenType::FalseLit
+        | TokenType::CharLit
+        | TokenType::NullLit
+        | TokenType::ArrayLit => {
+            match val.clone() {
+                LiteralType::Number(num) => {
+                    return matches!(value_type.token, TokenType::NumberLit)
+                        && matches!(literalkind_to_literaltype(value_type.clone().value.unwrap()), LiteralType::Number(n) if n == num);
+                }
+                LiteralType::String(s) => {
+                    return matches!(value_type.token, TokenType::NumberLit)
+                        && matches!(literalkind_to_literaltype(value_type.clone().value.unwrap()), LiteralType::String(n) if n == s);
+                }
+                LiteralType::Boolean(b) => {
+                    return matches!(value_type.token, TokenType::NumberLit)
+                        && matches!(literalkind_to_literaltype(value_type.clone().value.unwrap()), LiteralType::Boolean(n) if n == b);
+                }
+                LiteralType::Char(c) => {
+                    return matches!(value_type.token, TokenType::NumberLit)
+                        && matches!(literalkind_to_literaltype(value_type.clone().value.unwrap()), LiteralType::Char(n) if n == c);
+                }
+                LiteralType::Array(v) => {
+                    return matches!(value_type.token, TokenType::NumberLit)
+                        && matches!(literalkind_to_literaltype(value_type.clone().value.unwrap()), LiteralType::Array(n) if n == v);
+                }
+                LiteralType::Null => {
+                    return matches!(value_type.token, TokenType::NumberLit)
+                        && matches!(
+                            literalkind_to_literaltype(value_type.clone().value.unwrap()),
+                            LiteralType::Null
+                        );
+                }
+                _ => {}
+            }
+            false
+        }
         _ => false,
+    }
+}
+
+fn literalkind_to_literaltype(kind: LiteralKind) -> LiteralType {
+    match kind {
+        LiteralKind::Bool { value } => LiteralType::Boolean(value),
+        LiteralKind::Null => LiteralType::Null,
+        LiteralKind::Char { value } => LiteralType::Char(value),
+        LiteralKind::Number { value, .. } => LiteralType::Number(value),
+        LiteralKind::String { value } => LiteralType::String(value),
+        LiteralKind::Type(t) => typekind_to_literaltype(*t),
+    }
+}
+
+fn typekind_to_literaltype(kind: TypeKind) -> LiteralType {
+    match kind {
+        TypeKind::Var { name } => literalkind_to_literaltype(name.value.unwrap()),
+        TypeKind::Func { ret, .. } => typekind_to_literaltype(*ret),
+        TypeKind::Array { kind, statics } => {
+            if kind.is_some() {
+                typekind_to_literaltype(*kind.unwrap())
+            } else {
+                typekind_to_literaltype(statics.unwrap().get(0).unwrap().clone())
+            }
+        }
+        TypeKind::Value { kind } => literalkind_to_literaltype(kind),
     }
 }
 

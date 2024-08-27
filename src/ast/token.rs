@@ -41,6 +41,7 @@ impl TokenType {
             Self::FalseLit => "false literal",
             Self::NullLit => "null literal",
             Self::ArrayLit => "array literal",
+            Self::FuncIdent => "function type",
             Self::Less => "<",
             Self::LessOrEq => "<=",
             Self::Greater => ">",

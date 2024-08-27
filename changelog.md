@@ -1,10 +1,17 @@
 # Changelog
 
+## 0.13.0
+
+### core changes
+
+- updated type system
+  - new literal types
+  - better array types
+
 ## 0.12.0
 
 - added `match` statement
 - added `+=`, `-=`, `*=` and `/=` assignments
-
 
 ## 0.11.2
 
