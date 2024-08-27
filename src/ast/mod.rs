@@ -156,6 +156,8 @@ pub enum TokenType {
     Mut,
     /// function
     Func,
+    /// type
+    TypeStmt,
     /// number
     NumberIdent,
     /// string
@@ -303,6 +305,11 @@ pub enum CallType {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
+    Type {
+        name: Token,
+        is_pub: bool,
+        value: Token,
+    },
     Expression {
         expr: Expression,
     },

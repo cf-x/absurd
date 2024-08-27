@@ -44,6 +44,7 @@ impl Resolver {
 
     fn resolve_int(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
         match stmt {
+            Statement::Type { .. } => self.resolve_type_stmt(stmt, env),
             Statement::If { .. } => self.resolve_if_stmt(stmt, env),
             Statement::Block { .. } => self.resolve_block(stmt, env),
             Statement::Break {} => self.resolve_break_stmt(),
@@ -57,6 +58,13 @@ impl Resolver {
             Statement::Use { .. } => self.resolve_use_stmt(stmt),
             Statement::Var { .. } => self.resolve_var_stmt(stmt, env),
             Statement::While { .. } => self.resolve_while_stmt(stmt, env),
+        }
+    }
+
+    fn resolve_type_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
+        if let Statement::Type { name, value, .. } = stmt {
+            env.borrow_mut()
+                .define_type(name.clone().lexeme, value.clone());
         }
     }
 
@@ -90,7 +98,7 @@ impl Resolver {
                         Expression::Call { .. } => LiteralType::Any,
                         _ => value.eval(Rc::clone(&env)),
                     };
-                    if type_check(value_type, &val) {
+                    if type_check(value_type, &val, env) {
                         self.resolve_expr(value, env);
                     } else {
                         self.err.throw(
@@ -152,7 +160,7 @@ impl Resolver {
                 for stmt in body {
                     if let Statement::Return { expr } = stmt {
                         let val = (*expr).eval(Rc::clone(&env));
-                        if type_check(value_type, &val) {
+                        if type_check(value_type, &val, env) {
                             self.resolve_expr(expr, env);
                         } else if params.is_empty() {
                             self.err.throw(
@@ -332,7 +340,7 @@ impl Resolver {
             for stmt in body {
                 if let Statement::Return { expr } = stmt {
                     let val = (*expr).eval(Rc::clone(&env));
-                    if type_check(value_type, &val) {
+                    if type_check(value_type, &val, env) {
                         self.resolve_expr(expr, env);
                     } else {
                         self.err.throw(
@@ -417,8 +425,12 @@ impl Resolver {
     }
 }
 
-pub fn type_check(value_type: &Token, val: &LiteralType) -> bool {
+pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>) -> bool {
     match value_type.token {
+        TokenType::Ident => {
+            let d = env.borrow_mut().get_type(&value_type.lexeme.as_str());
+            type_check(&d, val, env)
+        }
         TokenType::Type => {
             let t = value_type.clone().value.unwrap_or(LiteralKind::Null);
 
@@ -426,19 +438,18 @@ pub fn type_check(value_type: &Token, val: &LiteralType) -> bool {
                 LiteralKind::Type(t) => {
                     let t = *t;
                     if let TypeKind::Or { left, right } = t.clone() {
-                        let left_t = typekind_to_literaltype(*left.clone());
-                        let right_t = typekind_to_literaltype(*right.clone());
-
+                        let left_t = typekind_to_literaltype(*left.clone(), env);
+                        let right_t = typekind_to_literaltype(*right.clone(), env);
                         if left_t == *val || right_t == *val {
                             return true;
                         } else {
                             let left_n = match *left {
-                                TypeKind::Var { name } => type_check(&name, val),
+                                TypeKind::Var { name } => type_check(&name, val, env),
                                 _ => left_t == *val,
                             };
 
                             let right_n = match *right {
-                                TypeKind::Var { name } => type_check(&name, val),
+                                TypeKind::Var { name } => type_check(&name, val, env),
                                 _ => right_t == *val,
                             };
                             return left_n || right_n;
@@ -483,6 +494,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType) -> bool {
                                                         pos: stat_token.pos,
                                                     },
                                                     &item.to_literal(),
+                                                    env,
                                                 )
                                             },
                                         );
@@ -498,6 +510,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType) -> bool {
                                                 pos: value_type.pos,
                                             },
                                             &item.to_literal(),
+                                            env,
                                         )
                                     });
                                 }
@@ -525,29 +538,30 @@ pub fn type_check(value_type: &Token, val: &LiteralType) -> bool {
             match val.clone() {
                 LiteralType::Number(num) => {
                     return matches!(value_type.token, TokenType::NumberLit)
-                        && matches!(literalkind_to_literaltype(value_type.clone().value.unwrap_or(LiteralKind::Null)), LiteralType::Number(n) if n == num);
+                        && matches!(literalkind_to_literaltype(value_type.clone().value.unwrap_or(LiteralKind::Null), env), LiteralType::Number(n) if n == num);
                 }
                 LiteralType::String(s) => {
                     return matches!(value_type.token, TokenType::NumberLit)
-                        && matches!(literalkind_to_literaltype(value_type.clone().value.unwrap_or(LiteralKind::Null)), LiteralType::String(n) if n == s);
+                        && matches!(literalkind_to_literaltype(value_type.clone().value.unwrap_or(LiteralKind::Null), env), LiteralType::String(n) if n == s);
                 }
                 LiteralType::Boolean(b) => {
                     return matches!(value_type.token, TokenType::NumberLit)
-                        && matches!(literalkind_to_literaltype(value_type.clone().value.unwrap_or(LiteralKind::Null)), LiteralType::Boolean(n) if n == b);
+                        && matches!(literalkind_to_literaltype(value_type.clone().value.unwrap_or(LiteralKind::Null), env), LiteralType::Boolean(n) if n == b);
                 }
                 LiteralType::Char(c) => {
                     return matches!(value_type.token, TokenType::NumberLit)
-                        && matches!(literalkind_to_literaltype(value_type.clone().value.unwrap_or(LiteralKind::Null)), LiteralType::Char(n) if n == c);
+                        && matches!(literalkind_to_literaltype(value_type.clone().value.unwrap_or(LiteralKind::Null), env), LiteralType::Char(n) if n == c);
                 }
                 LiteralType::Array(v) => {
                     return matches!(value_type.token, TokenType::NumberLit)
-                        && matches!(literalkind_to_literaltype(value_type.clone().value.unwrap_or(LiteralKind::Null)), LiteralType::Array(n) if n == v);
+                        && matches!(literalkind_to_literaltype(value_type.clone().value.unwrap_or(LiteralKind::Null), env), LiteralType::Array(n) if n == v);
                 }
                 LiteralType::Null => {
                     return matches!(value_type.token, TokenType::NumberLit)
                         && matches!(
                             literalkind_to_literaltype(
-                                value_type.clone().value.unwrap_or(LiteralKind::Null)
+                                value_type.clone().value.unwrap_or(LiteralKind::Null),
+                                env
                             ),
                             LiteralType::Null
                         );
@@ -560,28 +574,35 @@ pub fn type_check(value_type: &Token, val: &LiteralType) -> bool {
     }
 }
 
-pub fn literalkind_to_literaltype(kind: LiteralKind) -> LiteralType {
+pub fn literalkind_to_literaltype(kind: LiteralKind, env: &Rc<RefCell<Env>>) -> LiteralType {
     match kind {
         LiteralKind::Bool { value } => LiteralType::Boolean(value),
         LiteralKind::Null => LiteralType::Null,
         LiteralKind::Char { value } => LiteralType::Char(value),
         LiteralKind::Number { value, .. } => LiteralType::Number(value),
         LiteralKind::String { value } => LiteralType::String(value),
-        LiteralKind::Type(t) => typekind_to_literaltype(*t),
+        LiteralKind::Type(t) => typekind_to_literaltype(*t, env),
     }
 }
 
-pub fn typekind_to_literaltype(kind: TypeKind) -> LiteralType {
-    match kind {
+pub fn typekind_to_literaltype(kind: TypeKind, env: &Rc<RefCell<Env>>) -> LiteralType {
+    match kind.clone() {
         TypeKind::Var { name } => {
-            literalkind_to_literaltype(name.value.unwrap_or(LiteralKind::Null))
+            let n = match name.clone().value {
+                Some(v) => v,
+                None => LiteralKind::Null,
+            };
+            literalkind_to_literaltype(n, env)
         }
-        TypeKind::Func { ret, .. } => typekind_to_literaltype(*ret),
+        TypeKind::Func { ret, .. } => typekind_to_literaltype(*ret, env),
         TypeKind::Array { kind, statics } => {
             if kind.is_some() {
-                typekind_to_literaltype(*kind.unwrap_or(Box::new(TypeKind::Value {
-                    kind: LiteralKind::Null,
-                })))
+                typekind_to_literaltype(
+                    *kind.unwrap_or(Box::new(TypeKind::Value {
+                        kind: LiteralKind::Null,
+                    })),
+                    env,
+                )
             } else {
                 typekind_to_literaltype(
                     statics
@@ -591,11 +612,12 @@ pub fn typekind_to_literaltype(kind: TypeKind) -> LiteralType {
                             kind: LiteralKind::Null,
                         })
                         .clone(),
+                    env,
                 )
             }
         }
-        TypeKind::Value { kind } => literalkind_to_literaltype(kind),
-        TypeKind::Or { left, .. } => typekind_to_literaltype(*left),
+        TypeKind::Value { kind } => literalkind_to_literaltype(kind, env),
+        TypeKind::Or { left, .. } => typekind_to_literaltype(*left, env),
     }
 }
 

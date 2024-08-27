@@ -54,7 +54,25 @@ impl Parser {
             Use => self.use_stmt(),
             Enum => self.enum_stmt(),
             LeftBrace => self.block_stmt(),
+            TypeStmt => self.type_stmt(),
             _ => self.expr_stmt(),
+        }
+    }
+
+    fn type_stmt(&mut self) -> Statement {
+        let mut is_pub = false;
+        if self.if_token_consume(Pub) {
+            is_pub = true;
+        }
+        let name = self.consume(Ident);
+        self.consume(Assign);
+        let value = self.consume_type();
+
+        self.consume(Semi);
+        Statement::Type {
+            name,
+            value,
+            is_pub,
         }
     }
 

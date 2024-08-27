@@ -7,7 +7,9 @@ use crate::{
 };
 use std::{borrow::Borrow, cell::RefCell, collections::HashMap, process::exit, rc::Rc};
 
+
 type EnvValueType = Rc<RefCell<HashMap<String, ValueType>>>;
+type EnvTypeValueType = Rc<RefCell<HashMap<String, Token>>>;
 type ModEnvValueType = Rc<RefCell<HashMap<String, Vec<(String, ValueType)>>>>;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -42,6 +44,7 @@ pub struct ValueType {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Env {
     pub values: EnvValueType,
+    pub type_values: EnvTypeValueType,
     pub pub_vals: EnvValueType,
     pub mod_vals: ModEnvValueType,
     pub mods: Vec<Env>,
@@ -57,6 +60,7 @@ impl Env {
     pub fn new(locals: HashMap<usize, usize>) -> Self {
         Self {
             values: get_empty_rc(),
+            type_values: get_empty_tc(),
             pub_vals: get_empty_rc(),
             mod_vals: get_empty_md(),
             mods: Vec::new(),
@@ -68,6 +72,7 @@ impl Env {
     pub fn enclose(&self) -> Env {
         Self {
             values: get_empty_rc(),
+            type_values: get_empty_tc(),
             pub_vals: get_empty_rc(),
             mod_vals: get_empty_md(),
             mods: self.mods.clone(),
@@ -80,6 +85,14 @@ impl Env {
         for (k, v) in locals.iter() {
             self.locals.borrow_mut().insert(*k, *v);
         }
+    }
+
+    pub fn define_type(&self, k: String, v: Token) {
+        self.type_values.borrow_mut().insert(k, v);
+    }
+
+    pub fn get_type(&self, k: &str) -> Token {
+        self.type_values.borrow_mut().get(k).unwrap().clone()
     }
 
     pub fn define_var(&self, k: String, v: LiteralType, f: VarKind) {
@@ -220,6 +233,10 @@ impl Env {
 }
 
 fn get_empty_rc() -> EnvValueType {
+    Rc::new(RefCell::new(HashMap::new()))
+}
+
+fn get_empty_tc() -> EnvTypeValueType {
     Rc::new(RefCell::new(HashMap::new()))
 }
 

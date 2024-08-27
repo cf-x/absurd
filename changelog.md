@@ -4,11 +4,11 @@
 
 ### core changes
 
-- updated type system
-  - new literal types
-  - new nullable types (`T?`)
-  - better array types
-  - type or (`T | T`) epxression
+- added `type` expression for defining custom types
+- added literal types inside the type system
+- added nullable types (`T?`)
+- updated array types
+- added `or` epxression for types (`T | T`)
 
 ## 0.12.0
 

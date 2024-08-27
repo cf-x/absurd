@@ -111,7 +111,6 @@ impl Expression {
             _ => LiteralType::Null,
         }
     }
-
     pub fn eval(&self, env: Rc<RefCell<Env>>) -> LiteralType {
         match self {
             Expression::Assign {
@@ -165,75 +164,40 @@ impl Expression {
                                     }
                                 }
                             }
-
+    
                             if v.value.type_name() != val.type_name() {
                                 if let ValueKind::Var(s) = v.kind {
                                     if let Some(LiteralKind::Type(c)) = s.value_type.value.clone() {
                                         if let TypeKind::Or { left, right } = *c {
-                                            match (*left.clone(), *right.clone()) {
-                                                (
-                                                    TypeKind::Var { name },
-                                                    TypeKind::Var { name: n },
-                                                ) => {
-                                                    if name.lexeme != val.type_name()
-                                                        && n.lexeme != val.type_name()
-                                                    {
-                                                        self.err().throw(
-                                                            E0x412,
-                                                            name.line,
-                                                            name.pos,
-                                                            vec![name.clone().lexeme],
-                                                        );
-                                                    }
-                                                }
-                                                _ => {
-                                                    if let Expression::Value { value, .. } =
-                                                        *value.clone()
-                                                    {
-                                                        if let TypeKind::Value { kind: _ } =
-                                                            *left.clone()
-                                                        {
-                                                            if value
-                                                                != typekind_to_literaltype(
-                                                                    *left.clone(),
-                                                                )
-                                                            {
-                                                                self.err().throw(
-                                                                    E0x412,
-                                                                    name.line,
-                                                                    name.pos,
-                                                                    vec![name.clone().lexeme],
-                                                                );
-                                                            }
-                                                        }
-                                                        if let TypeKind::Value { kind: _ } =
-                                                            *right.clone()
-                                                        {
-                                                            if value
-                                                                != typekind_to_literaltype(
-                                                                    *right.clone(),
-                                                                )
-                                                            {
-                                                                self.err().throw(
-                                                                    E0x412,
-                                                                    name.line,
-                                                                    name.pos,
-                                                                    vec![name.clone().lexeme],
-                                                                );
-                                                            }
-                                                        }
-                                                    }
-                                                }
+                                            let left_type = typekind_to_literaltype(*left.clone(), &env);
+                                            let right_type = typekind_to_literaltype(*right.clone(), &env);
+                                            if val != left_type && val != right_type {
+                                                self.err().throw(
+                                                    E0x412,
+                                                    name.line,
+                                                    name.pos,
+                                                    vec![name.clone().lexeme],
+                                                );
+                                            }
+                                        } else {
+                                            let expected_type = typekind_to_literaltype(*c, &env);
+                                            if val != expected_type {
+                                                self.err().throw(
+                                                    E0x412,
+                                                    name.line,
+                                                    name.pos,
+                                                    vec![name.clone().lexeme],
+                                                );
                                             }
                                         }
+                                    } else {
+                                        self.err().throw(
+                                            E0x412,
+                                            name.line,
+                                            name.pos,
+                                            vec![name.clone().lexeme],
+                                        );
                                     }
-                                } else {
-                                    self.err().throw(
-                                        E0x412,
-                                        name.line,
-                                        name.pos,
-                                        vec![name.clone().lexeme],
-                                    );
                                 }
                             }
                         }
@@ -255,7 +219,7 @@ impl Expression {
                 let assigned = env
                     .borrow_mut()
                     .assing(name.lexeme.clone(), ass_val, self.id());
-
+    
                 if assigned {
                     val
                 } else {
@@ -293,7 +257,7 @@ impl Expression {
                         for arg in args {
                             args_eval.push(arg.eval(Rc::clone(&env)))
                         }
-
+    
                         (*func.func).call(args_eval)
                     }
                     _ => self.eval_literal_method(call, args, env),

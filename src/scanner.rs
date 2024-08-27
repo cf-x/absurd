@@ -308,6 +308,7 @@ pub fn kwds() -> HashMap<&'static str, TokenType> {
         ("enum", Enum),
         ("async", Async),
         ("await", Await),
+        ("type", TypeStmt),
         ("pub", Pub),
         ("mut", Mut),
         ("func", Func),

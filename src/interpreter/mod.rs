@@ -78,6 +78,7 @@ impl Interpreter {
     pub fn interpret(&mut self, stmts: Vec<&Statement>) -> Rc<RefCell<Env>> {
         for stmt in stmts {
             match stmt {
+                Type { .. } => {}
                 Statement::Expression { expr } => {
                     expr.eval(Rc::clone(&self.env));
                 }
@@ -487,7 +488,7 @@ pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Rc<RefCell<Env>>) -
 
     for (i, val) in arg_values.iter().enumerate() {
         if i < func.params.len() {
-            if !type_check(&func.value_type, &val) {
+            if !type_check(&func.value_type, &val, &env) {
                 error.throw(
                     E0x301,
                     0,
@@ -527,7 +528,7 @@ pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Rc<RefCell<Env>>) -
 
                 if val.is_some() {
                     let v = val.unwrap().clone();
-                    if !type_check(&func.value_type, &v) {
+                    if !type_check(&func.value_type, &v, &env) {
                         error.throw(
                             E0x301,
                             0,
