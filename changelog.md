@@ -6,8 +6,9 @@
 
 - updated type system
   - new literal types
+  - new nullable types (`T?`)
   - better array types
-  - type or (`|`) epxression
+  - type or (`T | T`) epxression
 
 ## 0.12.0
 

@@ -1,4 +1,7 @@
 use super::env::{Env, ValueKind, ValueType, VarKind};
+use super::types::TypeKind;
+use crate::ast::LiteralKind;
+use crate::resolver::typekind_to_literaltype;
 use crate::utils::errors::{Error, ErrorCode::*};
 use crate::utils::manifest::Project;
 use crate::{
@@ -118,7 +121,7 @@ impl Expression {
                 let t = env.borrow().get(name.lexeme.clone(), self.id());
                 let mut is_mut = false;
                 match t {
-                    Some(v) => match v.kind {
+                    Some(v) => match v.clone().kind {
                         ValueKind::Var(s) => {
                             if !s.is_mut {
                                 self.err().throw(E0x410, name.line, name.pos, vec![]);
@@ -164,12 +167,74 @@ impl Expression {
                             }
 
                             if v.value.type_name() != val.type_name() {
-                                self.err().throw(
-                                    E0x412,
-                                    name.line,
-                                    name.pos,
-                                    vec![name.clone().lexeme],
-                                );
+                                if let ValueKind::Var(s) = v.kind {
+                                    if let Some(LiteralKind::Type(c)) = s.value_type.value.clone() {
+                                        if let TypeKind::Or { left, right } = *c {
+                                            match (*left.clone(), *right.clone()) {
+                                                (
+                                                    TypeKind::Var { name },
+                                                    TypeKind::Var { name: n },
+                                                ) => {
+                                                    if name.lexeme != val.type_name()
+                                                        && n.lexeme != val.type_name()
+                                                    {
+                                                        self.err().throw(
+                                                            E0x412,
+                                                            name.line,
+                                                            name.pos,
+                                                            vec![name.clone().lexeme],
+                                                        );
+                                                    }
+                                                }
+                                                _ => {
+                                                    if let Expression::Value { value, .. } =
+                                                        *value.clone()
+                                                    {
+                                                        if let TypeKind::Value { kind: _ } =
+                                                            *left.clone()
+                                                        {
+                                                            if value
+                                                                != typekind_to_literaltype(
+                                                                    *left.clone(),
+                                                                )
+                                                            {
+                                                                self.err().throw(
+                                                                    E0x412,
+                                                                    name.line,
+                                                                    name.pos,
+                                                                    vec![name.clone().lexeme],
+                                                                );
+                                                            }
+                                                        }
+                                                        if let TypeKind::Value { kind: _ } =
+                                                            *right.clone()
+                                                        {
+                                                            if value
+                                                                != typekind_to_literaltype(
+                                                                    *right.clone(),
+                                                                )
+                                                            {
+                                                                self.err().throw(
+                                                                    E0x412,
+                                                                    name.line,
+                                                                    name.pos,
+                                                                    vec![name.clone().lexeme],
+                                                                );
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    self.err().throw(
+                                        E0x412,
+                                        name.line,
+                                        name.pos,
+                                        vec![name.clone().lexeme],
+                                    );
+                                }
                             }
                         }
                         _ => {
@@ -183,6 +248,7 @@ impl Expression {
                         is_mut,
                         is_pub: false,
                         is_func: false,
+                        value_type: name.clone(),
                     }),
                     value: val.clone(),
                 };

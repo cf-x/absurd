@@ -123,6 +123,22 @@ impl Parser {
         if value_type.token == NullIdent {
             return null_var;
         }
+
+        if self.if_token_consume(Semi) {
+            return Statement::Var {
+                names: names.clone(),
+                value_type,
+                value: Some(Expression::Value {
+                    id: self.id(),
+                    value: LiteralType::Null,
+                }),
+                is_mut,
+                is_pub,
+                pub_names: pub_names.clone(),
+                is_func: false,
+            };
+        }
+
         self.consume(Assign);
         let is_func = self.is_token(Pipe);
         let value = self.expr();
@@ -794,10 +810,29 @@ impl Parser {
     fn consume_type(&mut self) -> Token {
         let mut left = self.primary_type();
         if self.if_token_consume(Pipe) {
-            let right = self.primary_type();
+            let right = self.consume_type();
             let value = Some(LiteralKind::Type(Box::new(TypeKind::Or {
                 left: Box::new(left.token_to_typekind()),
                 right: Box::new(right.clone().token_to_typekind()),
+            })));
+            left = Token {
+                token: Type,
+                lexeme: "type".to_string(),
+                pos: left.pos,
+                value,
+                line: left.line,
+            };
+        } else if self.if_token_consume(Queston) {
+            let null = Token {
+                token: NullLit,
+                lexeme: "null".to_string(),
+                pos: left.pos,
+                value: Some(LiteralKind::Null),
+                line: left.line,
+            };
+            let value = Some(LiteralKind::Type(Box::new(TypeKind::Or {
+                left: Box::new(left.token_to_typekind()),
+                right: Box::new(null.clone().token_to_typekind()),
             })));
             left = Token {
                 token: Type,

@@ -425,24 +425,23 @@ pub fn type_check(value_type: &Token, val: &LiteralType) -> bool {
             match t.clone() {
                 LiteralKind::Type(t) => {
                     let t = *t;
-                    if let TypeKind::Or { left, right } = t {
+                    if let TypeKind::Or { left, right } = t.clone() {
                         let left_t = typekind_to_literaltype(*left.clone());
                         let right_t = typekind_to_literaltype(*right.clone());
-
-                        let left_n = match *left {
-                            TypeKind::Var { name } => name,
-                            _ => return false,
-                        };
-
-                        let right_n = match *right {
-                            TypeKind::Var { name } => name,
-                            _ => return false,
-                        };
 
                         if left_t == *val || right_t == *val {
                             return true;
                         } else {
-                            return type_check(&left_n, val) || type_check(&right_n, val);
+                            let left_n = match *left {
+                                TypeKind::Var { name } => type_check(&name, val),
+                                _ => left_t == *val,
+                            };
+
+                            let right_n = match *right {
+                                TypeKind::Var { name } => type_check(&name, val),
+                                _ => right_t == *val,
+                            };
+                            return left_n || right_n;
                         }
                     }
                 }
@@ -561,7 +560,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType) -> bool {
     }
 }
 
-fn literalkind_to_literaltype(kind: LiteralKind) -> LiteralType {
+pub fn literalkind_to_literaltype(kind: LiteralKind) -> LiteralType {
     match kind {
         LiteralKind::Bool { value } => LiteralType::Boolean(value),
         LiteralKind::Null => LiteralType::Null,
@@ -572,7 +571,7 @@ fn literalkind_to_literaltype(kind: LiteralKind) -> LiteralType {
     }
 }
 
-fn typekind_to_literaltype(kind: TypeKind) -> LiteralType {
+pub fn typekind_to_literaltype(kind: TypeKind) -> LiteralType {
     match kind {
         TypeKind::Var { name } => {
             literalkind_to_literaltype(name.value.unwrap_or(LiteralKind::Null))

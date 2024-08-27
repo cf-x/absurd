@@ -97,7 +97,7 @@ impl Interpreter {
                     pub_names,
                     is_func,
                     is_mut,
-                    ..
+                    value_type,
                 } => match value {
                     Some(v) => {
                         if is_mut.clone() && !self.project.side_effects {
@@ -140,6 +140,7 @@ impl Interpreter {
                                             is_pub: is_pub.clone(),
                                             is_mut: *is_mut,
                                             is_func: false,
+                                            value_type: value_type.clone(),
                                         },
                                     );
                                 }
@@ -152,6 +153,7 @@ impl Interpreter {
                                                 is_pub: true,
                                                 is_mut: *is_mut,
                                                 is_func: false,
+                                                value_type: value_type.clone(),
                                             },
                                         );
                                     }
@@ -168,6 +170,7 @@ impl Interpreter {
                                         is_pub: true,
                                         is_mut: *is_mut,
                                         is_func: false,
+                                        value_type: value_type.clone(),
                                     },
                                 );
                             }
@@ -187,6 +190,7 @@ impl Interpreter {
                                     is_pub: false,
                                     is_mut: *is_mut,
                                     is_func: false,
+                                    value_type: value_type.clone(),
                                 },
                             );
                         }

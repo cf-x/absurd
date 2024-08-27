@@ -1,7 +1,9 @@
 use crate::{
-    ast::LiteralType,
-    utils::errors::{Error, ErrorCode::*},
-    utils::manifest::Project,
+    ast::{LiteralType, Token},
+    utils::{
+        errors::{Error, ErrorCode::*},
+        manifest::Project,
+    },
 };
 use std::{borrow::Borrow, cell::RefCell, collections::HashMap, process::exit, rc::Rc};
 
@@ -20,6 +22,7 @@ pub struct VarKind {
     pub is_mut: bool,
     pub is_pub: bool,
     pub is_func: bool,
+    pub value_type: Token,
 }
 
 #[derive(Clone, Debug, PartialEq)]
