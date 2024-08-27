@@ -170,6 +170,8 @@ pub enum TokenType {
     VoidIdent,
     /// array
     ArrayIdent,
+    // any type
+    Type,
     // callback type
     FuncIdent,
     /// any
@@ -276,6 +278,15 @@ pub struct Token {
     pub value: Option<LiteralKind>,
     pub line: usize,
     pub pos: (usize, usize),
+}
+
+impl Token {
+    pub fn token_to_typekind(&mut self) -> TypeKind {
+        match self.clone().value {
+            Some(LiteralKind::Type(t)) => *t,
+            _ => TypeKind::Var { name: self.clone() },
+        }
+    }
 }
 
 #[allow(dead_code)]

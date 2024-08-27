@@ -7,6 +7,7 @@
 - updated type system
   - new literal types
   - better array types
+  - type or (`|`) epxression
 
 ## 0.12.0
 

@@ -792,6 +792,25 @@ impl Parser {
     }
 
     fn consume_type(&mut self) -> Token {
+        let mut left = self.primary_type();
+        if self.if_token_consume(Pipe) {
+            let right = self.primary_type();
+            let value = Some(LiteralKind::Type(Box::new(TypeKind::Or {
+                left: Box::new(left.token_to_typekind()),
+                right: Box::new(right.clone().token_to_typekind()),
+            })));
+            left = Token {
+                token: Type,
+                lexeme: "type".to_string(),
+                pos: left.pos,
+                value,
+                line: left.line,
+            };
+        }
+        left
+    }
+
+    fn primary_type(&mut self) -> Token {
         match self.peek().token {
             Less => self.parse_array_type(),
             Pipe => self.parse_func_type(),

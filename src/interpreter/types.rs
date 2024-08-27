@@ -12,6 +12,10 @@ pub enum TypeKind {
         // identifier for calling types
         name: Token,
     },
+    Or {
+        left: Box<TypeKind>,
+        right: Box<TypeKind>,
+    },
     Value {
         // "string" 5.21 false
         kind: LiteralKind,
@@ -22,4 +26,3 @@ pub enum TypeKind {
         ret: Box<TypeKind>,
     },
 }
-
