@@ -99,6 +99,7 @@ impl Interpreter {
                     is_func,
                     is_mut,
                     value_type,
+                    is_arr_dest,
                 } => match value {
                     Some(v) => {
                         if is_mut.clone() && !self.project.side_effects {
@@ -133,17 +134,42 @@ impl Interpreter {
                                 );
                             } else {
                                 let val = v.eval(self.env.clone());
-                                for name in names {
-                                    self.env.borrow_mut().define_var(
-                                        name.lexeme.clone(),
-                                        val.clone(),
-                                        VarKind {
-                                            is_pub: is_pub.clone(),
-                                            is_mut: *is_mut,
-                                            is_func: false,
-                                            value_type: value_type.clone(),
-                                        },
-                                    );
+                                let mut index = 0;
+                                for name in names.clone() {
+                                    match val.clone() {
+                                        LiteralType::Array(c) => {
+                                            if is_arr_dest.clone() {
+                                                let i = c
+                                                    .get(index)
+                                                    .expect("@error failed to destructure an array")
+                                                    .eval(self.env.clone());
+                                                self.env.borrow_mut().define_var(
+                                                    name.lexeme.clone(),
+                                                    i,
+                                                    VarKind {
+                                                        is_pub: is_pub.clone(),
+                                                        is_mut: *is_mut,
+                                                        is_func: false,
+                                                        value_type: value_type.clone(),
+                                                    },
+                                                );
+                                            }
+                                        }
+                                        _ => {}
+                                    }
+                                    if !is_arr_dest.clone() {
+                                        self.env.borrow_mut().define_var(
+                                            name.lexeme.clone(),
+                                            val.clone(),
+                                            VarKind {
+                                                is_pub: is_pub.clone(),
+                                                is_mut: *is_mut,
+                                                is_func: false,
+                                                value_type: value_type.clone(),
+                                            },
+                                        );
+                                    }
+                                    index += 1;
                                 }
                                 if is_pub.clone() {
                                     for name in pub_names {
@@ -452,10 +478,7 @@ impl Interpreter {
                 .collect();
             let body: Vec<Statement> = match body {
                 FuncBody::Statements(stmts) => stmts.iter().map(|x| x.clone()).collect(),
-                _ => {
-                    self.error.throw(E0x403, name.line, name.pos, vec![]);
-                    exit(1);
-                }
+                FuncBody::Expression(e) => vec![Statement::Expression { expr: *e.clone() }],
             };
 
             FuncImpl {
@@ -467,6 +490,43 @@ impl Interpreter {
                 is_pub: *is_pub,
                 env: Rc::clone(&self.env),
             }
+        } else if let Var { value, is_func, .. } = stmt {
+            if !is_func.clone() {
+                self.error.throw(E0x404, 0, (0, 0), vec![]);
+                exit(1);
+            }
+            let func = value.clone().unwrap();
+            if let Expression::Func {
+                id: _,
+                name,
+                value_type,
+                body,
+                params,
+                is_async,
+                is_pub,
+            } = func
+            {
+                let params: Vec<(Token, Token)> = params
+                    .iter()
+                    .map(|(name, value_type)| (name.clone(), value_type.clone()))
+                    .collect();
+                let body: Vec<Statement> = match body {
+                    FuncBody::Statements(stmts) => stmts.iter().map(|x| x.clone()).collect(),
+                    FuncBody::Expression(e) => vec![Statement::Expression { expr: *e.clone() }],
+                };
+
+                return FuncImpl {
+                    name: name.lexeme.clone(),
+                    value_type: value_type.clone(),
+                    body: FuncBody::Statements(body),
+                    params,
+                    is_async,
+                    is_pub,
+                    env: Rc::clone(&self.env),
+                };
+            }
+            self.error.throw(E0x404, 0, (0, 0), vec![]);
+            exit(1);
         } else {
             self.error.throw(E0x404, 0, (0, 0), vec![]);
             exit(1);
@@ -480,8 +540,22 @@ pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Rc<RefCell<Env>>) -
         error.throw(E0x405, 0, (0, 0), vec![]);
     }
     let mut arg_values = vec![];
+    let mut i = 0;
     for arg in args {
-        arg_values.push(arg.eval(Rc::clone(&env)));
+        let arg_lit = arg.eval(Rc::clone(&env));
+        if !type_check(&func.params.iter().nth(i).unwrap().1, &arg_lit, &env) {
+            error.throw(
+                E0x301,
+                0,
+                (0, 0),
+                vec![
+                    func.params.iter().nth(i).unwrap().1.lexeme.clone(),
+                    arg_lit.to_string(),
+                ],
+            );
+        }
+        arg_values.push(arg_lit);
+        i += 1;
     }
     let func_env = func.env.borrow_mut().enclose();
     let func_env = Rc::new(RefCell::new(func_env));
@@ -515,19 +589,22 @@ pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Rc<RefCell<Env>>) -
         }
     }
     // @todo pass is_mod
-    let mut int = Interpreter::new_with_env(func_env, false, "", None);
-
+    let mut int = Interpreter::new_with_env(func_env.clone(), false, "", None);
     match func.body {
         FuncBody::Statements(body) => {
-            for stmt in body {
+            for stmt in body.clone() {
                 int.interpret(vec![&stmt]);
-                let val = {
+                let mut val = {
                     let specs = int.specs.borrow();
                     specs.get("return").cloned()
                 };
+                if let Statement::Expression { expr } = body.first().unwrap() {
+                    // println!("{:?}", expr.eval(env.clone()));
+                    val = Some(expr.eval(env.clone()));
+                }
 
                 if val.is_some() {
-                    let v = val.unwrap().clone();
+                    let v = val.clone().unwrap().clone();
                     if !type_check(&func.value_type, &v, &env) {
                         error.throw(
                             E0x301,
@@ -540,11 +617,19 @@ pub fn run_func(func: FuncImpl, args: &Vec<Expression>, env: Rc<RefCell<Env>>) -
                 }
             }
         }
-        _ => {
-            error.throw(E0x403, 0, (0, 0), vec![]);
+        FuncBody::Expression(expr) => {
+            let val = expr.eval(Rc::clone(&func_env));
+            if !type_check(&func.value_type, &val, &env) {
+                error.throw(
+                    E0x301,
+                    0,
+                    (0, 0),
+                    vec![func.value_type.clone().lexeme, val.to_string()],
+                );
+            }
+            return val;
         }
     }
-
     if func.value_type.lexeme != "void" {
         error.throw(E0x406, 0, (0, 0), vec![]);
     }

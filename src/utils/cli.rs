@@ -5,12 +5,13 @@ use crate::{utils::bundler::interpreter_raw, VERSION};
 use std::{
     env,
     fs::File,
-    io::Read,
+    io::{self, Read},
     process::{self, Command, Stdio},
 };
 
 struct Args {
-    file: String,
+    file: Option<String>,
+    code_input: Option<String>,
 }
 
 fn print_help() {
@@ -51,6 +52,11 @@ fn print_help() {
         "update".blue(),
         "update to latest version"
     );
+    println!(
+        "  {}               {}",
+        "ci".blue(),
+        "enter code directly in the CLI"
+    );
     println!("");
     println!("{} \n", "happy coding ッ".green())
 }
@@ -84,21 +90,36 @@ fn parse_args(project: &mut Project) -> Args {
             "--side-effects" | "-s" => {
                 project.side_effects = false;
             }
+            "ci" => {
+                println!("Enter your code (end with Ctrl+D):");
+                let mut code_input = String::new();
+                io::stdin().read_to_string(&mut code_input).expect("Failed to read input");
+                println!("");
+                return Args {
+                    file: None,
+                    code_input: Some(code_input),
+                };
+            }
             _ => {}
         }
     }
 
     Args {
-        file: args[1].clone(),
+        file: Some(args[1].clone()),
+        code_input: None,
     }
 }
 
 pub fn cli(project: &mut Project) {
     let args = parse_args(project);
-    run(args.file, project.clone())
+    if let Some(file) = args.file {
+        run_file(file, project.clone());
+    } else if let Some(code_input) = args.code_input {
+        run_code(code_input, project.clone());
+    }
 }
 
-fn run(f: String, project: Project) {
+fn run_file(f: String, project: Project) {
     let mut file = match File::open(f.clone()) {
         Ok(s) => s,
         Err(_) => {
@@ -116,6 +137,10 @@ fn run(f: String, project: Project) {
     }
 
     interpreter_raw(&contents, project);
+}
+
+fn run_code(code: String, project: Project) {
+    interpreter_raw(&code, project);
 }
 
 fn update() {

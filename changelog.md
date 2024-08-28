@@ -1,14 +1,18 @@
 # Changelog
 
-## 0.13.0
+## 0.13.1
 
-### core changes
+- added array destructuring
+- added callbacks
+- added new cli command `ci` writting code in command line
+
+## 0.13.0
 
 - added `type` expression for defining custom types
 - added literal types inside the type system
 - added nullable types (`T?`)
 - updated array types
-- added `or` epxression for types (`T | T`)
+- added `or` expression for types (`T | T`)
 
 ## 0.12.0
 

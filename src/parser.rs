@@ -82,6 +82,7 @@ impl Parser {
         let mut is_mut = false;
         let mut is_pub = false;
         let mut is_null = false;
+        let mut is_arr_dest = false;
 
         if self.if_token_consume(Mut) {
             is_mut = true;
@@ -89,8 +90,18 @@ impl Parser {
             is_pub = true;
             if self.if_token_consume(LeftParen) {
                 loop {
-                    let name = self.consume(Ident);
-                    pub_names.push(name);
+                    if self.if_token_consume(Underscore) {
+                        pub_names.push(Token {
+                            token: NullLit,
+                            lexeme: "null".to_string(),
+                            value: None,
+                            line: self.peek().line,
+                            pos: self.peek().pos,
+                        })
+                    } else {
+                        let name = self.consume(Ident);
+                        pub_names.push(name);
+                    }
                     if !self.if_token_consume(Comma) || self.is_token(RightParen) {
                         break;
                     }
@@ -99,19 +110,42 @@ impl Parser {
             }
         }
 
-        loop {
-            let name = self.consume(Ident);
-            names.push(name);
-
-            if self.is_token(Semi) {
-                is_null = true;
-                break;
+        if self.if_token_consume(LeftBracket) {
+            is_arr_dest = true;
+            while !self.if_token_consume(RightBracket) {
+                if self.if_token_consume(Underscore) {
+                    names.push(Token {
+                        token: NullLit,
+                        lexeme: "null".to_string(),
+                        value: None,
+                        line: self.peek().line,
+                        pos: self.peek().pos,
+                    });
+                } else {
+                    let name = self.consume(Ident);
+                    names.push(name);
+                }
+                if !self.is_token(Comma) || self.is_token(Colon) {
+                    break;
+                }
+                self.advance();
             }
+            self.consume(RightBracket);
+        } else {
+            loop {
+                let name = self.consume(Ident);
+                names.push(name);
 
-            if !self.is_token(Comma) || self.is_token(Colon) {
-                break;
+                if self.is_token(Semi) {
+                    is_null = true;
+                    break;
+                }
+
+                if !self.is_token(Comma) || self.is_token(Colon) {
+                    break;
+                }
+                self.advance();
             }
-            self.advance();
         }
 
         if pub_names.is_empty() {
@@ -129,6 +163,7 @@ impl Parser {
             is_pub,
             pub_names: pub_names.clone(),
             is_func: false,
+            is_arr_dest,
         };
 
         if is_null {
@@ -154,13 +189,15 @@ impl Parser {
                 is_pub,
                 pub_names: pub_names.clone(),
                 is_func: false,
+                is_arr_dest,
             };
         }
 
         self.consume(Assign);
         let is_func = self.is_token(Pipe);
         let value = self.expr();
-        self.consume(Semi);
+   
+            self.consume(Semi);
 
         Statement::Var {
             names,
@@ -170,6 +207,7 @@ impl Parser {
             is_pub,
             pub_names,
             is_func,
+            is_arr_dest,
         }
     }
 
@@ -733,16 +771,14 @@ impl Parser {
         if self.prev(9 + add).token == Pub {
             is_pub = true;
         }
-        let name = self.prev(8 + add);
-        self.consume(Pipe);
+        let name = self.prev(10 + add);
         if self.if_token_consume(Underscore) {
             self.consume(Pipe);
         } else {
             while !self.if_token_consume(Pipe) {
                 if self.is_token(Ident) {
                     let param_name = self.consume(Ident);
-                    self.consume(Colon);
-                    let param_type = self.consume_type();
+                    let param_type = self.prev(8);
                     params.push((param_name, param_type))
                 } else if self.if_token_consume(Comma) {
                 } else if !self.is_token(Pipe) {
@@ -752,7 +788,6 @@ impl Parser {
         }
         if self.if_token_consume(Colon) {
             let body = self.expr();
-            self.consume(Semi);
             return Expression::Func {
                 id: self.id(),
                 name,
@@ -1006,15 +1041,16 @@ impl Parser {
         while !self.if_token_consume(Pipe) {
             let param = self.consume_type();
             params.push(TypeKind::Var { name: param });
-            if !self.if_token_consume(Comma) && !self.is_token(Pipe) {
-                self.throw_error(E0x201, vec![self.peek().lexeme]);
+            if !self.if_token_consume(Comma) {
+                break;
             }
         }
+        self.retreat();
         let return_type = self.consume_type();
 
         Token {
-            token: FuncIdent,
-            lexeme: "func_type".to_string(),
+            token: AnyIdent,
+            lexeme: "any".to_string(),
             value: Some(LiteralKind::Type(Box::new(TypeKind::Func {
                 params,
                 ret: Box::new(TypeKind::Var { name: return_type }),

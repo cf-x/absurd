@@ -1,6 +1,6 @@
 use super::env::{Env, ValueKind, ValueType, VarKind};
 use super::types::TypeKind;
-use crate::ast::LiteralKind;
+use crate::ast::{LiteralKind, Statement};
 use crate::resolver::typekind_to_literaltype;
 use crate::utils::errors::{Error, ErrorCode::*};
 use crate::utils::manifest::Project;
@@ -164,13 +164,15 @@ impl Expression {
                                     }
                                 }
                             }
-    
+
                             if v.value.type_name() != val.type_name() {
                                 if let ValueKind::Var(s) = v.kind {
                                     if let Some(LiteralKind::Type(c)) = s.value_type.value.clone() {
                                         if let TypeKind::Or { left, right } = *c {
-                                            let left_type = typekind_to_literaltype(*left.clone(), &env);
-                                            let right_type = typekind_to_literaltype(*right.clone(), &env);
+                                            let left_type =
+                                                typekind_to_literaltype(*left.clone(), &env);
+                                            let right_type =
+                                                typekind_to_literaltype(*right.clone(), &env);
                                             if val != left_type && val != right_type {
                                                 self.err().throw(
                                                     E0x412,
@@ -219,7 +221,7 @@ impl Expression {
                 let assigned = env
                     .borrow_mut()
                     .assing(name.lexeme.clone(), ass_val, self.id());
-    
+
                 if assigned {
                     val
                 } else {
@@ -257,7 +259,7 @@ impl Expression {
                         for arg in args {
                             args_eval.push(arg.eval(Rc::clone(&env)))
                         }
-    
+
                         (*func.func).call(args_eval)
                     }
                     _ => self.eval_literal_method(call, args, env),
@@ -279,10 +281,7 @@ impl Expression {
                     value_type: value_type.clone(),
                     body: FuncBody::Statements(match body {
                         FuncBody::Statements(stmts) => stmts.iter().map(|x| x.clone()).collect(),
-                        _ => {
-                            self.err().throw(E0x403, 0, (0, 0), vec![]);
-                            exit(0);
-                        }
+                        FuncBody::Expression(e) => vec![Statement::Expression { expr: *e.clone() }],
                     }),
                     params: params
                         .iter()

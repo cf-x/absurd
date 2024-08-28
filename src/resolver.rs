@@ -1,8 +1,13 @@
-use crate::ast::{FuncBody, LiteralKind, LiteralType, Statement, Token, TokenType};
+use crate::ast::literals::token_to_literal;
+use crate::ast::{
+    CallType, FuncBody, FuncImpl, FuncValType, FuncValueType, LiteralKind, LiteralType, Statement,
+    Token, TokenType,
+};
 use crate::interpreter::env::Env;
 use crate::interpreter::expr::Expression;
 use crate::interpreter::types::TypeKind;
 use crate::utils::errors::{Error, ErrorCode::*};
+use std::any::Any;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -88,16 +93,15 @@ impl Resolver {
             names,
             value,
             value_type,
+            is_func,
             ..
         } = stmt
         {
             for name in names {
                 self.declare(name);
                 if let Some(value) = value {
-                    let val = match value {
-                        Expression::Call { .. } => LiteralType::Any,
-                        _ => value.eval(Rc::clone(&env)),
-                    };
+                    let val = value.eval(Rc::clone(&env));
+                   
                     if type_check(value_type, &val, env) {
                         self.resolve_expr(value, env);
                     } else {
@@ -109,6 +113,7 @@ impl Resolver {
                         );
                     }
                 }
+
                 self.define(name);
             }
         }
@@ -333,27 +338,25 @@ impl Resolver {
             self.declare(parname);
             self.define(parname);
         }
-
-        if let FuncBody::Statements(body) = body {
-            self.resolve_many(body, env);
-
-            for stmt in body {
-                if let Statement::Return { expr } = stmt {
-                    let val = (*expr).eval(Rc::clone(&env));
-                    if type_check(value_type, &val, env) {
-                        self.resolve_expr(expr, env);
-                    } else {
-                        self.err.throw(
-                            E0x301,
-                            0,
-                            (0, 0),
-                            vec![value_type.clone().lexeme, val.to_string()],
-                        );
+        match body {
+            FuncBody::Statements(body) => {
+                self.resolve_many(body, env);
+                for stmt in body {
+                    if let Statement::Return { expr } = stmt {
+                        let val = (*expr).eval(Rc::clone(&env));
+                        if type_check(value_type, &val, env) {
+                            self.resolve_expr(expr, env);
+                        }
                     }
                 }
             }
-        } else {
-            self.err.throw(E0x305, 0, (0, 0), vec![]);
+            FuncBody::Expression(expr) => {
+                self.resolve_expr(expr, env);
+                let val = (*expr).eval(Rc::clone(&env));
+                if type_check(value_type, &val, env) {
+                    self.resolve_expr(expr, env);
+                }
+            }
         }
 
         self.scope_end();
@@ -427,6 +430,33 @@ impl Resolver {
 
 pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>) -> bool {
     match value_type.token {
+        TokenType::FuncIdent => {
+            if let Some(LiteralKind::Type(x)) = value_type.clone().value {
+                if let TypeKind::Func { params: pas, ret: _ } = *x {
+                    if let LiteralType::Func(FuncValueType::Func(FuncImpl {
+                        params,
+                        value_type: _,
+                        ..
+                    })) = val.clone()
+                    {
+                        if params.len() == pas.len() {
+                            let _ts = params
+                                .clone()
+                                .iter()
+                                .map(|x| token_to_literal(x.clone().1, env.clone()))
+                                .collect::<Vec<LiteralType>>();
+                            let _ps = pas
+                                .iter()
+                                .map(|x| typekind_to_literaltype(x.clone(), env))
+                                .collect::<Vec<LiteralType>>();
+                            
+                            return true;
+                        }
+                    }
+                }
+            }
+            false
+        }
         TokenType::Ident => {
             let d = env.borrow_mut().get_type(&value_type.lexeme.as_str());
             type_check(&d, val, env)

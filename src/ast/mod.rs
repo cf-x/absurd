@@ -324,6 +324,7 @@ pub enum Statement {
         is_pub: bool,
         pub_names: Vec<Token>,
         is_func: bool,
+        is_arr_dest: bool,
     },
     Func {
         name: Token,
