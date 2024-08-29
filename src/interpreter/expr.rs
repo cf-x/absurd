@@ -1,7 +1,7 @@
 use super::env::{Env, ValueKind, ValueType, VarKind};
 use super::types::TypeKind;
 use crate::ast::{LiteralKind, Statement};
-use crate::interpreter::types::typekind_to_literaltype;
+use crate::interpreter::types::{type_check, typekind_to_literaltype};
 use crate::utils::errors::{Error, ErrorCode::*};
 use crate::utils::manifest::Project;
 use crate::{
@@ -169,10 +169,20 @@ impl Expression {
                                 if let ValueKind::Var(s) = v.kind {
                                     if let Some(LiteralKind::Type(c)) = s.value_type.value.clone() {
                                         if let TypeKind::Or { left, right } = *c {
-                                            let left_type = typekind_to_literaltype(*left.clone());
-                                            let right_type =
-                                                typekind_to_literaltype(*right.clone());
-                                            if val != left_type && val != right_type {
+                                            let left_true = if let TypeKind::Var { name } = *left {
+                                                type_check(&name, &val, &env)
+                                            } else {
+                                                false
+                                            };
+
+                                            let right_true = if let TypeKind::Var { name } = *right
+                                            {
+                                                type_check(&name, &val, &env)
+                                            } else {
+                                                false
+                                            };
+
+                                            if !left_true && !right_true {
                                                 self.err().throw(
                                                     E0x412,
                                                     name.line,
@@ -256,6 +266,22 @@ impl Expression {
                     LiteralType::DeclrFunc(func) => {
                         let evals = args.iter().map(|arg| arg.eval(Rc::clone(&env))).collect();
                         (*func.func).call(evals)
+                    }
+                    LiteralType::Array(arr) => {
+                        let mut res = vec![];
+                        for i in arr {
+                            res.push(i);
+                        }
+                        match args.get(0).unwrap() {
+                            Expression::Value { value, .. } => {
+                                if let LiteralType::Number(n) = value {
+                                    res.get(*n as usize).unwrap().eval(env)
+                                } else {
+                                    LiteralType::Null
+                                }
+                            }
+                            _ => LiteralType::Null,
+                        }
                     }
                     _ => self.eval_literal_method(call, args, env),
                 }

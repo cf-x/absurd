@@ -44,7 +44,21 @@ impl Parser {
     fn binary(&mut self) -> Expression {
         let mut expr = self.unary();
         while self.are_tokens(&[
-            Plus, Minus, Mult, Divide, Percent, AndAnd, Or, Eq, NotEq, Greater, GreaterOrEq, Less, LessOrEq, Square, And,
+            Plus,
+            Minus,
+            Mult,
+            Divide,
+            Percent,
+            AndAnd,
+            Or,
+            Eq,
+            NotEq,
+            Greater,
+            GreaterOrEq,
+            Less,
+            LessOrEq,
+            Square,
+            And,
         ]) {
             self.advance();
             let operator = self.prev(1).clone();
@@ -121,7 +135,7 @@ impl Parser {
         let name = self.prev(2).clone();
         let e = self.expr();
         let args = vec![e];
-
+        self.consume(RightBracket);
         Expression::Call {
             id: self.id(),
             name: Box::new(Expression::Var {

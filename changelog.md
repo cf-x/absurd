@@ -2,8 +2,9 @@
 
 ## 0.13.2
 
-- improved general performance
-  - 30% faster scanner
+- improved general performance (20% faster)
+- fixed assignment type error
+- fixed array item calling
 
 ## 0.13.1
 
