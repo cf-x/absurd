@@ -118,9 +118,8 @@ impl Expression {
                 name, value, kind, ..
             } => {
                 let mut val = (*value).eval(Rc::clone(&env));
-                let t = env.borrow().get(name.lexeme.clone(), self.id());
                 let mut is_mut = false;
-                match t {
+                match env.borrow().get(name.lexeme.clone(), self.id()) {
                     Some(v) => match v.clone().kind {
                         ValueKind::Var(s) => {
                             if !s.is_mut {
@@ -170,8 +169,7 @@ impl Expression {
                                 if let ValueKind::Var(s) = v.kind {
                                     if let Some(LiteralKind::Type(c)) = s.value_type.value.clone() {
                                         if let TypeKind::Or { left, right } = *c {
-                                            let left_type =
-                                                typekind_to_literaltype(*left.clone());
+                                            let left_type = typekind_to_literaltype(*left.clone());
                                             let right_type =
                                                 typekind_to_literaltype(*right.clone());
                                             if val != left_type && val != right_type {

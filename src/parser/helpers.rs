@@ -80,7 +80,7 @@ impl Parser {
     }
 
     pub fn consume_some(&mut self, ts: &[TokenType]) -> Token {
-        for t in ts.clone() {
+        for t in ts {
             if self.if_token_advance(t.clone()) {
                 return self.prev(1);
             }

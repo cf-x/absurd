@@ -32,14 +32,8 @@ impl Resolver {
         stmts: &[Statement],
         env: &Rc<RefCell<Env>>,
     ) -> HashMap<usize, usize> {
-        self.resolve_stmts(stmts, env);
+        stmts.iter().for_each(|stmt| self.resolve_int(stmt, env));
         self.locals.clone()
-    }
-
-    fn resolve_stmts(&mut self, stmts: &[Statement], env: &Rc<RefCell<Env>>) {
-        for stmt in stmts {
-            self.resolve_int(stmt, env);
-        }
     }
 
     fn resolve_int(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
@@ -70,8 +64,7 @@ impl Resolver {
 
     fn resolve_use_stmt(&mut self, stmt: &Statement) {
         if let Statement::Use { names, .. } = stmt {
-            for name in names {
-                let (old, new) = name;
+            for (old, new) in names {
                 if let Some(new_name) = new {
                     self.declare(new_name);
                     self.define(new_name);
@@ -278,33 +271,23 @@ impl Resolver {
     fn resolve_expr(&mut self, expr: &Expression, env: &Rc<RefCell<Env>>) {
         match expr {
             Expression::Method { args, .. } => {
-                for arg in args {
-                    self.resolve_expr(arg, env);
-                }
+                args.iter().for_each(|arg| self.resolve_expr(arg, env))
             }
-            Expression::Assign { value, .. } => {
-                self.resolve_expr(value, env);
-            }
+            Expression::Assign { value, .. } => self.resolve_expr(value, env),
             Expression::Array { items, .. } => {
-                for item in items {
-                    self.resolve_expr(item, env);
-                }
+                items.iter().for_each(|item| self.resolve_expr(item, env));
             }
             Expression::Var { .. } => self.resolve_var_expr(expr),
             Expression::Call { name, args, .. } => {
                 self.resolve_expr(name.as_ref(), env);
-                for arg in args {
-                    self.resolve_expr(arg, env);
-                }
+                args.iter().for_each(|arg| self.resolve_expr(arg, env));
             }
             Expression::Func {
                 value_type,
                 body,
                 params,
-                is_async,
-                is_pub,
                 ..
-            } => self.resolve_func_expr(value_type, body, params, *is_async, *is_pub, env),
+            } => self.resolve_func_expr(value_type, body, params, env),
             Expression::Await { expr, .. } => self.resolve_expr(expr, env),
             Expression::Unary { left, .. } => self.resolve_expr(left, env),
             Expression::Value { .. } => {}
@@ -321,8 +304,6 @@ impl Resolver {
         value_type: &Token,
         body: &FuncBody,
         params: &[(Token, Token)],
-        _is_async: bool,
-        _is_pub: bool,
         env: &Rc<RefCell<Env>>,
     ) {
         let encl_func = self.is_crnt_fnc;
@@ -335,19 +316,17 @@ impl Resolver {
         match body {
             FuncBody::Statements(body) => {
                 self.resolve_many(body, env);
-                for stmt in body {
+                body.iter().for_each(|stmt| {
                     if let Statement::Return { expr } = stmt {
-                        let val = (*expr).eval(Rc::clone(&env));
-                        if type_check(value_type, &val, env) {
+                        if type_check(value_type, &(*expr).eval(Rc::clone(&env)), env) {
                             self.resolve_expr(expr, env);
                         }
                     }
-                }
+                });
             }
             FuncBody::Expression(expr) => {
                 self.resolve_expr(expr, env);
-                let val = (*expr).eval(Rc::clone(&env));
-                if type_check(value_type, &val, env) {
+                if type_check(value_type, &(*expr).eval(Rc::clone(&env)), env) {
                     self.resolve_expr(expr, env);
                 }
             }
@@ -406,9 +385,7 @@ impl Resolver {
     }
 
     fn resolve_many(&mut self, stmts: &[Statement], env: &Rc<RefCell<Env>>) {
-        for stmt in stmts {
-            self.resolve_int(stmt, env);
-        }
+        stmts.iter().for_each(|stmt| self.resolve_int(stmt, env));
     }
 
     fn scope_start(&mut self) {

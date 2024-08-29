@@ -7,6 +7,7 @@ use std::{
 pub mod token;
 use crate::interpreter::{env::Env, expr::Expression, types::TypeKind};
 
+#[allow(dead_code)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     /// !
@@ -251,6 +252,7 @@ impl FuncValType for Wrapper {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum LiteralKind {
     Number { base: Base, value: f32 },

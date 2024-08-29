@@ -1,12 +1,5 @@
-use crate::ast::{FuncValueType, LiteralKind, LiteralType, Token, TokenType};
-use crate::interpreter::env::Env;
-use crate::interpreter::types::typekind_to_literaltype;
-use crate::utils::errors::{Error, ErrorCode::*};
-use crate::utils::manifest::Project;
-use std::cell::RefCell;
+use crate::ast::{FuncValueType, LiteralType};
 use std::fmt;
-use std::process::exit;
-use std::rc::Rc;
 
 impl LiteralType {
     pub fn type_name(&self) -> String {
@@ -71,81 +64,3 @@ impl fmt::Display for LiteralType {
     }
 }
 
-pub fn token_to_literal(token: Token) -> LiteralType {
-    fn err() -> Error {
-        Error::new("", Project::new())
-    }
-    match token.token {
-        TokenType::NumberLit => {
-            let val = match token.value {
-                Some(LiteralKind::Number { base: _, value }) => value,
-                _ => {
-                    err().throw(E0x408, token.line, token.pos, vec!["number".to_string()]);
-                    exit(0);
-                }
-            };
-            LiteralType::Number(val)
-        }
-        TokenType::StringLit => {
-            let val = match token.value {
-                Some(LiteralKind::String { value }) => value,
-                _ => {
-                    err().throw(E0x408, token.line, token.pos, vec!["string".to_string()]);
-                    exit(0);
-                }
-            };
-            LiteralType::String(val)
-        }
-        TokenType::CharLit => {
-            let val = match token.value {
-                Some(LiteralKind::Char { value }) => value,
-                _ => {
-                    err().throw(E0x408, token.line, token.pos, vec!["char".to_string()]);
-                    exit(0);
-                }
-            };
-            LiteralType::Char(val)
-        }
-        TokenType::TrueLit | TokenType::FalseLit => {
-            let val = match token.value {
-                Some(LiteralKind::Bool { value }) => value,
-                _ => {
-                    err().throw(E0x408, token.line, token.pos, vec!["boolean".to_string()]);
-                    exit(0);
-                }
-            };
-            LiteralType::Boolean(val)
-        }
-        TokenType::NullLit => LiteralType::Null,
-        // @todo array literal
-        TokenType::ArrayLit => LiteralType::Array(vec![]),
-        TokenType::Ident
-        | TokenType::NumberIdent
-        | TokenType::StringIdent
-        | TokenType::AnyIdent
-        | TokenType::BoolIdent
-        | TokenType::CharIdent
-        | TokenType::FuncIdent
-        | TokenType::NullIdent
-        | TokenType::ArrayIdent => {
-            let val = match token.value {
-                Some(LiteralKind::Type(t)) => t,
-                _ => {
-                    err().throw(
-                        E0x408,
-                        token.line,
-                        token.pos,
-                        vec!["identifier".to_string()],
-                    );
-                    exit(0);
-                }
-            };
-            let kind = typekind_to_literaltype(*val);
-            kind
-        }
-        _ => {
-            err().throw(E0x407, token.line, token.pos, vec![]);
-            exit(0);
-        }
-    }
-}
