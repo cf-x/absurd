@@ -1,7 +1,7 @@
 use super::env::{Env, ValueKind, ValueType, VarKind};
 use super::types::TypeKind;
 use crate::ast::{LiteralKind, Statement};
-use crate::resolver::typekind_to_literaltype;
+use crate::interpreter::types::typekind_to_literaltype;
 use crate::utils::errors::{Error, ErrorCode::*};
 use crate::utils::manifest::Project;
 use crate::{
@@ -9,6 +9,7 @@ use crate::{
     interpreter::run_func,
 };
 use core::cmp::Eq;
+use std::borrow::Cow;
 use std::process::exit;
 use std::{cell::RefCell, fmt, rc::Rc};
 
@@ -170,9 +171,9 @@ impl Expression {
                                     if let Some(LiteralKind::Type(c)) = s.value_type.value.clone() {
                                         if let TypeKind::Or { left, right } = *c {
                                             let left_type =
-                                                typekind_to_literaltype(*left.clone(), &env);
+                                                typekind_to_literaltype(*left.clone());
                                             let right_type =
-                                                typekind_to_literaltype(*right.clone(), &env);
+                                                typekind_to_literaltype(*right.clone());
                                             if val != left_type && val != right_type {
                                                 self.err().throw(
                                                     E0x412,
@@ -182,7 +183,7 @@ impl Expression {
                                                 );
                                             }
                                         } else {
-                                            let expected_type = typekind_to_literaltype(*c, &env);
+                                            let expected_type = typekind_to_literaltype(*c);
                                             if val != expected_type {
                                                 self.err().throw(
                                                     E0x412,
@@ -242,7 +243,7 @@ impl Expression {
                 left, name, args, ..
             } => {
                 let literal = left.eval(env.clone());
-                self.eval_literal_method_b(literal, name.clone(), args.clone(), env)
+                self.eval_literal_method_b(literal, name.clone(), args, env)
             }
             Expression::Call { name, args, .. } => {
                 let call: LiteralType = name.eval(Rc::clone(&env));
@@ -255,12 +256,8 @@ impl Expression {
                         }
                     },
                     LiteralType::DeclrFunc(func) => {
-                        let mut args_eval = vec![];
-                        for arg in args {
-                            args_eval.push(arg.eval(Rc::clone(&env)))
-                        }
-
-                        (*func.func).call(args_eval)
+                        let evals = args.iter().map(|arg| arg.eval(Rc::clone(&env))).collect();
+                        (*func.func).call(evals)
                     }
                     _ => self.eval_literal_method(call, args, env),
                 }
@@ -310,7 +307,7 @@ impl Expression {
         &self,
         literal: LiteralType,
         name: Token,
-        args: Vec<Expression>,
+        args: &[Expression],
         env: Rc<RefCell<Env>>,
     ) -> LiteralType {
         match literal {
@@ -493,14 +490,14 @@ impl Expression {
     fn eval_literal_method(
         &self,
         literal: LiteralType,
-        args: &Vec<Expression>,
+        args: &[Expression],
         env: Rc<RefCell<Env>>,
     ) -> LiteralType {
         if let Expression::Call { name, .. } = &args[0] {
-            if let Expression::Var { name, .. } = *name.clone() {
-                let mut args = args.clone();
-                args.remove(0);
-                return self.eval_literal_method_b(literal, name, args, env);
+            if let Cow::Borrowed(Expression::Var { name, .. }) =
+                Cow::Borrowed::<Expression>(name).clone()
+            {
+                return self.eval_literal_method_b(literal, name.clone(), &args[1..], env);
             } else {
                 LiteralType::Null
             }
@@ -536,15 +533,15 @@ impl Expression {
     ) -> LiteralType {
         let left = left.eval(Rc::clone(&env));
         let right = right.eval(Rc::clone(&env));
-        match (left.clone(), operator.clone().token, right.clone()) {
+        match (left.clone(), operator.token.clone(), right.clone()) {
             (_, Or, _) => {
-                if left.is_truthy() == true {
+                if left.is_truthy() {
                     return left;
                 }
                 return right;
             }
             (_, AndAnd, _) => {
-                if left.is_truthy() == false {
+                if !left.is_truthy() {
                     return left.is_truthy_literal();
                 }
                 return right;

@@ -12,6 +12,7 @@ pub struct Project {
     pub disable_std: bool,
     pub load_std: bool,
     pub disable_analyzer: bool,
+    pub log: bool,
     // # modules
     #[allow(dead_code)]
     pub modules: Vec<(String, String)>,
@@ -26,6 +27,7 @@ impl Project {
             disable_std: false,
             load_std: true,
             disable_analyzer: true,
+            log: false,
             // # modules
             modules: Vec::new(),
         }

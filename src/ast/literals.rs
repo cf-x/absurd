@@ -1,6 +1,6 @@
 use crate::ast::{FuncValueType, LiteralKind, LiteralType, Token, TokenType};
 use crate::interpreter::env::Env;
-use crate::resolver::typekind_to_literaltype;
+use crate::interpreter::types::typekind_to_literaltype;
 use crate::utils::errors::{Error, ErrorCode::*};
 use crate::utils::manifest::Project;
 use std::cell::RefCell;
@@ -71,7 +71,7 @@ impl fmt::Display for LiteralType {
     }
 }
 
-pub fn token_to_literal(token: Token, env: Rc<RefCell<Env>>) -> LiteralType {
+pub fn token_to_literal(token: Token) -> LiteralType {
     fn err() -> Error {
         Error::new("", Project::new())
     }
@@ -140,7 +140,8 @@ pub fn token_to_literal(token: Token, env: Rc<RefCell<Env>>) -> LiteralType {
                     exit(0);
                 }
             };
-            typekind_to_literaltype(*val, &env)
+            let kind = typekind_to_literaltype(*val);
+            kind
         }
         _ => {
             err().throw(E0x407, token.line, token.pos, vec![]);

@@ -90,10 +90,15 @@ fn parse_args(project: &mut Project) -> Args {
             "--side-effects" | "-s" => {
                 project.side_effects = false;
             }
+            "--log" | "-l" => {
+                project.log = true;
+            }
             "ci" => {
                 println!("Enter your code (end with Ctrl+D):");
                 let mut code_input = String::new();
-                io::stdin().read_to_string(&mut code_input).expect("Failed to read input");
+                io::stdin()
+                    .read_to_string(&mut code_input)
+                    .expect("Failed to read input");
                 println!("");
                 return Args {
                     file: None,
@@ -136,11 +141,11 @@ fn run_file(f: String, project: Project) {
         }
     }
 
-    interpreter_raw(&contents, project);
+    interpreter_raw(&contents, project.clone(), project.log);
 }
 
 fn run_code(code: String, project: Project) {
-    interpreter_raw(&code, project);
+    interpreter_raw(&code, project.clone(), project.log);
 }
 
 fn update() {

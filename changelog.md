@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.13.2
+
+- improved general performance
+  - 30% faster scanner
+
 ## 0.13.1
 
 - added array destructuring

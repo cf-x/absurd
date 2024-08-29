@@ -4,3 +4,4 @@ target
 Cargo.lock
 test.ap
 test2.ap
+stats.md

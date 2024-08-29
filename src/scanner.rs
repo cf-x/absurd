@@ -1,15 +1,11 @@
 use unicode_xid::UnicodeXID;
-
-use crate::ast::{
-    Base, LiteralKind, Token,
-    TokenType::{self, *},
-};
+use crate::ast::{Base, LiteralKind, Token, TokenType::{self, *}};
 use crate::utils::errors::{Error, ErrorCode::*};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
-pub struct Scanner {
-    source: Vec<char>,
+pub struct Scanner<'a> {
+    source: &'a str,
     tokens: Vec<Token>,
     kwds: HashMap<&'static str, TokenType>,
     line: usize,
@@ -19,10 +15,10 @@ pub struct Scanner {
     err: Error,
 }
 
-impl Scanner {
-    pub fn new(source: String, err: Error) -> Self {
+impl<'a> Scanner<'a> {
+    pub fn new(source: &'a str, err: Error) -> Self {
         Self {
-            source: source.chars().collect(),
+            source,
             err,
             tokens: vec![],
             kwds: kwds(),
@@ -33,7 +29,7 @@ impl Scanner {
         }
     }
 
-    pub fn scan(&mut self) -> Vec<Token> {
+    pub fn scan(&mut self) -> &Vec<Token> {
         while !self.is_eof() {
             self.start = self.crnt;
             self.advance_token();
@@ -45,7 +41,7 @@ impl Scanner {
             line: self.line,
             pos: (0, 0),
         });
-        self.tokens.clone()
+        &self.tokens
     }
 
     fn is_eof(&self) -> bool {
@@ -68,33 +64,17 @@ impl Scanner {
             ',' => self.push_token(Comma, None),
             '?' => self.push_token(Queston, None),
             ':' => self.handle_double_char_token(':', Colon, DblColon),
-            '!' => self.handle_multiple_char_token(
-                Not,
-                HashMap::from([('=', NotEq), ('!', NotNot), ('=', MinEq)]),
-            ),
+            '!' => self.handle_multiple_char_token(Not, &[('=', NotEq), ('!', NotNot)]),
             '&' => self.handle_double_char_token('&', And, AndAnd),
-            '+' => self.handle_multiple_char_token(
-                Plus,
-                HashMap::from([('+', Increment), ('=', PlusEq), ('=', MinEq)]),
-            ),
-            '-' => self.handle_multiple_char_token(
-                Minus,
-                HashMap::from([('>', Arrow), ('-', Decr), ('=', MinEq)]),
-            ),
-            '*' => {
-                self.handle_multiple_char_token(Mult, HashMap::from([('=', MultEq), ('*', Square)]))
-            }
-            '=' => {
-                self.handle_multiple_char_token(Assign, HashMap::from([('=', Eq), ('>', ArrowBig)]))
-            }
+            '+' => self.handle_multiple_char_token(Plus, &[('+', Increment), ('=', PlusEq)]),
+            '-' => self.handle_multiple_char_token(Minus, &[('>', Arrow), ('-', Decr), ('=', MinEq)]),
+            '*' => self.handle_multiple_char_token(Mult, &[('=', MultEq), ('*', Square)]),
+            '=' => self.handle_multiple_char_token(Assign, &[('=', Eq), ('>', ArrowBig)]),
             '|' => self.handle_double_char_token('|', Pipe, Or),
             '.' => self.handle_double_char_token('.', Dot, DotDot),
             '<' => self.handle_double_char_token('=', Less, LessOrEq),
             '>' => self.handle_double_char_token('=', Greater, GreaterOrEq),
-            '\\' => self.handle_multiple_char_token(
-                Escape,
-                HashMap::from([('{', StartParse), ('}', EndParse)]),
-            ),
+            '\\' => self.handle_multiple_char_token(Escape, &[('{', StartParse), ('}', EndParse)]),
             '/' => self.handle_division_or_comment(),
             '\r' => {}
             '\t' => self.pos += 4,
@@ -111,12 +91,8 @@ impl Scanner {
         };
     }
 
-    fn handle_multiple_char_token(
-        &mut self,
-        single: TokenType,
-        variants: HashMap<char, TokenType>,
-    ) {
-        let token_type = if let Some(token) = variants.get(&self.peek()) {
+    fn handle_multiple_char_token(&mut self, single: TokenType, variants: &[(char, TokenType)]) {
+        let token_type = if let Some(&(_, ref token)) = variants.iter().find(|&&(ch, _)| ch == self.peek()) {
             self.advance();
             token.clone()
         } else {
@@ -171,16 +147,13 @@ impl Scanner {
 
     fn char_literal(&mut self) {
         let value = if self.peek() != '\'' && !self.is_eof() {
-            let c = self.advance();
-            c
+            self.advance()
         } else {
-            self.err
-                .throw(E0x102, self.line, (self.pos - 1, self.pos), vec![]);
+            self.err.throw(E0x102, self.line, (self.pos - 1, self.pos), vec![]);
             return;
         };
         if self.peek() != '\'' {
-            self.err
-                .throw(E0x102, self.line, (self.pos - 1, self.pos), vec![]);
+            self.err.throw(E0x102, self.line, (self.pos - 1, self.pos), vec![]);
             return;
         }
         self.advance();
@@ -196,12 +169,11 @@ impl Scanner {
             self.advance();
         }
         if self.is_eof() {
-            self.err
-                .throw(E0x103, self.line, (self.pos - 1, self.pos), vec![]);
+            self.err.throw(E0x103, self.line, (self.pos - 1, self.pos), vec![]);
             return;
         }
         self.advance();
-        let value: String = self.source[self.start + 1..self.crnt - 1].iter().collect();
+        let value: String = self.source[self.start + 1..self.crnt - 1].to_string();
         self.push_token(StringLit, Some(LiteralKind::String { value }));
     }
 
@@ -209,8 +181,8 @@ impl Scanner {
         while UnicodeXID::is_xid_continue(self.peek()) || self.peek() == '_' {
             self.advance();
         }
-        let sub: String = self.source[self.start..self.crnt].iter().collect();
-        let token = self.kwds.get(&sub as &str).cloned().unwrap_or(Ident);
+        let sub = &self.source[self.start..self.crnt];
+        let token = self.kwds.get(sub).cloned().unwrap_or(Ident);
         self.push_token(token, None);
     }
 
@@ -221,13 +193,7 @@ impl Scanner {
                 'o' => self.parse_number_literal(8, Base::Octal),
                 'x' => self.parse_number_literal(16, Base::Hexadecimal),
                 '0'..='9' | '_' | '.' => self.parse_number_literal(10, Base::Decimal),
-                _ => self.push_token(
-                    NumberLit,
-                    Some(LiteralKind::Number {
-                        base: Base::Decimal,
-                        value: 0.0,
-                    }),
-                ),
+                _ => self.push_token(NumberLit, Some(LiteralKind::Number { base: Base::Decimal, value: 0.0 })),
             }
         } else {
             self.parse_number_literal(10, Base::Decimal);
@@ -247,14 +213,12 @@ impl Scanner {
                 self.advance();
             }
         }
-        let sub: String = self.source[self.start..self.crnt].iter().collect();
+        let sub = &self.source[self.start..self.crnt];
         let value = if radix == 10 {
             sub.parse::<f32>().unwrap_or(0.0)
         } else {
             if sub.len() > 2 {
-                i32::from_str_radix(&sub[2..], radix)
-                    .map(|v| v as f32)
-                    .unwrap_or(0.0)
+                i32::from_str_radix(&sub[2..], radix).map(|v| v as f32).unwrap_or(0.0)
             } else {
                 0.0
             }
@@ -263,18 +227,18 @@ impl Scanner {
     }
 
     fn advance(&mut self) -> char {
-        let c = self.source.get(self.crnt).copied().unwrap_or('\0');
-        self.crnt += 1;
+        let c = self.source[self.crnt..].chars().next().unwrap_or('\0');
+        self.crnt += c.len_utf8();
         c
     }
 
     fn push_token(&mut self, token: TokenType, value: Option<LiteralKind>) {
-        let lexeme: String = self.source[self.start..self.crnt].iter().collect();
+        let lexeme = &self.source[self.start..self.crnt];
         let pos = (self.pos, self.pos + lexeme.chars().count());
         self.pos += lexeme.chars().count();
         self.tokens.push(Token {
             token,
-            lexeme,
+            lexeme: lexeme.to_string(),
             line: self.line,
             value,
             pos,
@@ -282,11 +246,11 @@ impl Scanner {
     }
 
     fn peek(&self) -> char {
-        self.source.get(self.crnt).copied().unwrap_or('\0')
+        self.source[self.crnt..].chars().next().unwrap_or('\0')
     }
 
     fn peek_next(&self) -> char {
-        self.source.get(self.crnt + 1).copied().unwrap_or('\0')
+        self.source[self.crnt..].chars().nth(1).unwrap_or('\0')
     }
 }
 

@@ -227,7 +227,7 @@ impl Debug for dyn FuncValType {
     }
 }
 
-impl PartialEq for DeclrFuncType {
+impl<'a> PartialEq for DeclrFuncType {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name && self.arity == other.arity && self.func.rc_eq(&other.func)
     }
@@ -251,7 +251,6 @@ impl FuncValType for Wrapper {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum LiteralKind {
     Number { base: Base, value: f32 },
