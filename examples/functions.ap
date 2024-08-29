@@ -1,0 +1,43 @@
+/*
+    i - identifier
+    T - type
+    E - expression
+    E_T - expression of type T
+*/
+
+
+// function, named i
+func i() {}
+
+// public function, named i
+func pub i() {}
+
+// public function, named i1, published as i2
+func pub(i2) i1() {}
+
+// async function, named i
+func async i(){}
+
+// public async function, named i
+func pub async i() {}
+
+// function, named i, with return type T
+func i() -> T {return E_T}
+
+// function, named i, with return type T
+func i() -> T = E_T;
+
+// function, named i, with two parameters and return type T
+func i1(i2: T, i3: T) {}
+
+// function, named i, with one emprty and one normal parameter, and return type T
+func i1(_: T, i2: T) {}
+
+// function call, without arguments
+i();
+
+// function call, with one argument
+i(E);
+
+// function call, with two arguments
+i(E, E);

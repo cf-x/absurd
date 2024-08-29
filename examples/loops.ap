@@ -1,0 +1,16 @@
+/*
+    N - number
+    E - expression
+*/
+
+// while loop
+while E {}
+
+// infinite loop
+loop {}
+
+// N times loop
+loop N {}
+
+// loop with break
+loop {break;}

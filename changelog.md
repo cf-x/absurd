@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.14.0
+
+- added `--log, -l` flag to enable logging
+
 ## 0.13.2
 
 - improved general performance (20% faster)

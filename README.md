@@ -1,3 +1,13 @@
+<div align=center>
+
+```
+  _______  _____  _______  ______ _______ _     _  ______ _______
+  |_____| |_____] |______ |_____/    |    |     | |_____/ |______
+  |     | |       |______ |    \_    |    |_____| |    \_ |______
+```
+
+</div>
+
 # Aperture Programming Language
 
 Aperture is an interpreted programming language that is designed to be simple but powerful. Interpreter is currently under the heavy development and is not ready for use.

@@ -1,7 +1,11 @@
-use unicode_xid::UnicodeXID;
-use crate::ast::{Base, LiteralKind, Token, TokenType::{self, *}};
+use crate::ast::{
+    Base, LiteralKind, Token,
+    TokenType::{self, *},
+};
 use crate::utils::errors::{Error, ErrorCode::*};
+use colored::Colorize;
 use std::collections::HashMap;
+use unicode_xid::UnicodeXID;
 
 #[derive(Debug, Clone)]
 pub struct Scanner<'a> {
@@ -13,10 +17,11 @@ pub struct Scanner<'a> {
     start: usize,
     crnt: usize,
     err: Error,
+    log: bool,
 }
 
 impl<'a> Scanner<'a> {
-    pub fn new(source: &'a str, err: Error) -> Self {
+    pub fn new(source: &'a str, err: Error, log: bool) -> Self {
         Self {
             source,
             err,
@@ -26,10 +31,14 @@ impl<'a> Scanner<'a> {
             pos: 1,
             start: 0,
             crnt: 0,
+            log,
         }
     }
 
     pub fn scan(&mut self) -> &Vec<Token> {
+        if self.log {
+            println!("  {}", "collecting tokens...".yellow())
+        }
         while !self.is_eof() {
             self.start = self.crnt;
             self.advance_token();
@@ -41,6 +50,12 @@ impl<'a> Scanner<'a> {
             line: self.line,
             pos: (0, 0),
         });
+        if self.log {
+            println!(
+                "  {}",
+                format!("completed collecting {} tokens", self.tokens.len()).green()
+            )
+        }
         &self.tokens
     }
 
@@ -67,7 +82,9 @@ impl<'a> Scanner<'a> {
             '!' => self.handle_multiple_char_token(Not, &[('=', NotEq), ('!', NotNot)]),
             '&' => self.handle_double_char_token('&', And, AndAnd),
             '+' => self.handle_multiple_char_token(Plus, &[('+', Increment), ('=', PlusEq)]),
-            '-' => self.handle_multiple_char_token(Minus, &[('>', Arrow), ('-', Decr), ('=', MinEq)]),
+            '-' => {
+                self.handle_multiple_char_token(Minus, &[('>', Arrow), ('-', Decr), ('=', MinEq)])
+            }
             '*' => self.handle_multiple_char_token(Mult, &[('=', MultEq), ('*', Square)]),
             '=' => self.handle_multiple_char_token(Assign, &[('=', Eq), ('>', ArrowBig)]),
             '|' => self.handle_double_char_token('|', Pipe, Or),
@@ -92,12 +109,13 @@ impl<'a> Scanner<'a> {
     }
 
     fn handle_multiple_char_token(&mut self, single: TokenType, variants: &[(char, TokenType)]) {
-        let token_type = if let Some(&(_, ref token)) = variants.iter().find(|&&(ch, _)| ch == self.peek()) {
-            self.advance();
-            token.clone()
-        } else {
-            single
-        };
+        let token_type =
+            if let Some(&(_, ref token)) = variants.iter().find(|&&(ch, _)| ch == self.peek()) {
+                self.advance();
+                token.clone()
+            } else {
+                single
+            };
         self.push_token(token_type, None);
     }
 
@@ -149,11 +167,13 @@ impl<'a> Scanner<'a> {
         let value = if self.peek() != '\'' && !self.is_eof() {
             self.advance()
         } else {
-            self.err.throw(E0x102, self.line, (self.pos - 1, self.pos), vec![]);
+            self.err
+                .throw(E0x102, self.line, (self.pos - 1, self.pos), vec![]);
             return;
         };
         if self.peek() != '\'' {
-            self.err.throw(E0x102, self.line, (self.pos - 1, self.pos), vec![]);
+            self.err
+                .throw(E0x102, self.line, (self.pos - 1, self.pos), vec![]);
             return;
         }
         self.advance();
@@ -169,7 +189,8 @@ impl<'a> Scanner<'a> {
             self.advance();
         }
         if self.is_eof() {
-            self.err.throw(E0x103, self.line, (self.pos - 1, self.pos), vec![]);
+            self.err
+                .throw(E0x103, self.line, (self.pos - 1, self.pos), vec![]);
             return;
         }
         self.advance();
@@ -193,7 +214,13 @@ impl<'a> Scanner<'a> {
                 'o' => self.parse_number_literal(8, Base::Octal),
                 'x' => self.parse_number_literal(16, Base::Hexadecimal),
                 '0'..='9' | '_' | '.' => self.parse_number_literal(10, Base::Decimal),
-                _ => self.push_token(NumberLit, Some(LiteralKind::Number { base: Base::Decimal, value: 0.0 })),
+                _ => self.push_token(
+                    NumberLit,
+                    Some(LiteralKind::Number {
+                        base: Base::Decimal,
+                        value: 0.0,
+                    }),
+                ),
             }
         } else {
             self.parse_number_literal(10, Base::Decimal);
@@ -218,7 +245,9 @@ impl<'a> Scanner<'a> {
             sub.parse::<f32>().unwrap_or(0.0)
         } else {
             if sub.len() > 2 {
-                i32::from_str_radix(&sub[2..], radix).map(|v| v as f32).unwrap_or(0.0)
+                i32::from_str_radix(&sub[2..], radix)
+                    .map(|v| v as f32)
+                    .unwrap_or(0.0)
             } else {
                 0.0
             }

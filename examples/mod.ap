@@ -1,0 +1,20 @@
+/*
+    i - identifier
+    "s" - string
+*/
+
+
+// modulate "s"
+mod "s";
+
+// import i from "s"
+use i from "s";
+
+// import i1, as i2 from "s"
+use i1 as i2 from "s";
+
+// import i1 and i2 from "s"
+use i1, i2 from "s";
+
+// import everything from "s"
+use * from "s";
