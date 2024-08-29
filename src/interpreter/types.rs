@@ -34,6 +34,9 @@ pub enum TypeKind {
 }
 pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>) -> bool {
     match value_type.token {
+        TokenType::FuncIdent => {
+            true
+        }
         TokenType::Ident => {
             let d = env.borrow().get_type(&value_type.lexeme);
             type_check(&d, val, env)
@@ -61,7 +64,11 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
             }
             false
         }
-        TokenType::NumberIdent => matches!(val, LiteralType::Number(_)),
+        TokenType::NumberIdent => {
+            if val.type_name() == "function" {
+                return true;
+            }
+            matches!(val, LiteralType::Number(_))},
         TokenType::StringIdent => matches!(val, LiteralType::String(_)),
         TokenType::BoolIdent => matches!(val, LiteralType::Boolean(_)),
         TokenType::CharIdent => matches!(val, LiteralType::Char(_)),

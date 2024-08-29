@@ -3,8 +3,10 @@
 ## 0.13.2
 
 - improved general performance (20% faster)
+- changed or type expression from `|` to `||`
 - fixed assignment type error
 - fixed array item calling
+- fixed inline callbacks
 
 ## 0.13.1
 

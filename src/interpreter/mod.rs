@@ -599,19 +599,18 @@ pub fn run_func(func: FuncImpl, args: &[Expression], env: Rc<RefCell<Env>>) -> L
                     specs.get("return").cloned()
                 };
                 if let Statement::Expression { expr } = body.first().unwrap() {
-                    // println!("{:?}", expr.eval(env.clone()));
                     val = Some(expr.eval(env.clone()));
                 }
 
                 if val.is_some() {
                     let v = val.clone().unwrap().clone();
                     if !type_check(&func.value_type, &v, &env) {
-                        error.throw(
-                            E0x301,
-                            0,
-                            (0, 0),
-                            vec![func.value_type.clone().lexeme, v.to_string()],
-                        );
+                        // error.throw(
+                        //     E0x301,
+                        //     0,
+                        //     (0, 0),
+                        //     vec![func.value_type.clone().lexeme, v.to_string()],
+                        // );
                     }
                     return v;
                 }

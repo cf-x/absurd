@@ -8,7 +8,7 @@ use crate::{
 impl Parser {
     pub fn consume_type(&mut self) -> Token {
         let mut left = self.primary_type();
-        if self.if_token_consume(Pipe) {
+        if self.if_token_consume(Or) {
             let mut right = self.consume_type();
             let value = Some(LiteralKind::Type(Box::new(TypeKind::Or {
                 left: Box::new(left.token_to_typekind()),
@@ -121,14 +121,15 @@ impl Parser {
         let mut params: Vec<TypeKind> = vec![];
         while !self.if_token_consume(Pipe) {
             let param = self.consume_type();
-            params.push(TypeKind::Var { name: param });
+            params.push(TypeKind::Var {
+                name: param.clone(),
+            });
             if !self.if_token_consume(Comma) {
                 break;
             }
         }
-        self.retreat();
+        self.advance();
         let return_type = self.consume_type();
-
         Token {
             token: AnyIdent,
             lexeme: "any".to_string(),

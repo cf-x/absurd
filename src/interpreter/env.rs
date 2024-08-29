@@ -1,12 +1,11 @@
 use crate::{
-    ast::{LiteralType, Token},
+    ast::{LiteralType, Token, TokenType},
     utils::{
         errors::{Error, ErrorCode::*},
         manifest::Project,
     },
 };
 use std::{borrow::Borrow, cell::RefCell, collections::HashMap, process::exit, rc::Rc};
-
 
 type EnvValueType = Rc<RefCell<HashMap<String, ValueType>>>;
 type EnvTypeValueType = Rc<RefCell<HashMap<String, Token>>>;
@@ -92,7 +91,17 @@ impl Env {
     }
 
     pub fn get_type(&self, k: &str) -> Token {
-        self.type_values.borrow_mut().get(k).unwrap().clone()
+        self.type_values
+            .borrow_mut()
+            .get(k)
+            .unwrap_or(&Token {
+                token: TokenType::NullLit,
+                lexeme: "null".to_string(),
+                value: None,
+                line: 0,
+                pos: (0, 0),
+            })
+            .clone()
     }
 
     pub fn define_var(&self, k: String, v: LiteralType, f: VarKind) {

@@ -1,5 +1,5 @@
 use super::Parser;
-use crate::ast::{CallType, FuncBody, Statement, TokenType::*};
+use crate::ast::{CallType, FuncBody, Statement, Token, TokenType::*};
 use crate::interpreter::expr::{AssignKind, Expression};
 use crate::utils::errors::ErrorCode::*;
 
@@ -293,7 +293,8 @@ impl Parser {
 
     fn func_expr(&mut self) -> Expression {
         self.advance();
-        let value_type = self.prev(3).clone();
+        let mut is_inline = false;
+        let mut value_type = self.prev(3).clone();
         let mut params = vec![];
         let is_async = false;
         let mut is_pub = false;
@@ -306,20 +307,36 @@ impl Parser {
         if self.prev(9 + add).token == Pub {
             is_pub = true;
         }
-        let name = self.prev(10 + add).clone();
+        let mut name = self.prev(10 + add).clone();
         if self.if_token_consume(Underscore) {
             self.consume(Pipe);
         } else {
             while !self.if_token_consume(Pipe) {
                 if self.is_token(Ident) {
-                    let param_name = self.consume(Ident).clone();
-                    let param_type = self.prev(8).clone();
-                    params.push((param_name, param_type))
+                    let param_name = self.consume(Ident);
+                    if self.if_token_consume(Colon) {
+                        let param_type = self.consume_type();
+                        params.push((param_name, param_type));
+                        is_inline = true;
+                    } else {
+                        let param_type = self.prev(8).clone();
+                        params.push((param_name, param_type))
+                    }
                 } else if self.if_token_consume(Comma) {
-                } else if !self.is_token(Pipe) {
+                } else {
                     self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
                 }
             }
+        }
+        if is_inline {
+            value_type = self.consume_type();
+            name = Token {
+                token: Ident,
+                lexeme: "func".to_string(),
+                value: None,
+                line: 0,
+                pos: (0, 0),
+            };
         }
         if self.if_token_consume(Colon) {
             let body = self.expr();
