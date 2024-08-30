@@ -159,6 +159,8 @@ pub enum TokenType {
     Func,
     /// type
     TypeStmt,
+    /// alias
+    Alias,
     /// number
     NumberIdent,
     /// string
@@ -219,7 +221,7 @@ pub struct DeclrFuncType {
 }
 
 pub trait FuncValType {
-    fn call(&self, args: Vec<LiteralType>) -> LiteralType;
+    fn call(&self, args: Vec<Option<LiteralType>>) -> LiteralType;
 }
 
 impl Debug for dyn FuncValType {
@@ -244,10 +246,10 @@ impl RcFuncValType for Rc<dyn FuncValType> {
     }
 }
 
-pub struct Wrapper(pub Box<dyn Fn(&[LiteralType]) -> LiteralType>);
+pub struct Wrapper(pub Box<dyn Fn(&[Option<LiteralType>]) -> LiteralType>);
 
 impl FuncValType for Wrapper {
-    fn call(&self, args: Vec<LiteralType>) -> LiteralType {
+    fn call(&self, args: Vec<Option<LiteralType>>) -> LiteralType {
         (self.0)(&args)
     }
 }

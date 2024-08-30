@@ -59,8 +59,11 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| {
-                    if let LiteralType::Number(n) = args[0] {
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    if let LiteralType::Number(n) = args[0].clone().unwrap_or(LiteralType::Void) {
                         LiteralType::Number(n * n)
                     } else {
                         raw("sqr() expects a number");
@@ -81,17 +84,24 @@ impl StdLiteralNumber {
             2,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => match args[1] {
-                        LiteralType::Number(m) => LiteralType::Number(n + m),
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 2 {
+                        raw("expected 2 argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => {
+                            match args[1].clone().unwrap_or(LiteralType::Void) {
+                                LiteralType::Number(m) => LiteralType::Number(n + m),
+                                _ => {
+                                    raw("add() expects numbers");
+                                    process::exit(1)
+                                }
+                            }
+                        }
                         _ => {
                             raw("add() expects numbers");
                             process::exit(1)
                         }
-                    },
-                    _ => {
-                        raw("add() expects numbers");
-                        process::exit(1)
                     }
                 }),
             }),
@@ -108,17 +118,24 @@ impl StdLiteralNumber {
             2,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => match args[1] {
-                        LiteralType::Number(m) => LiteralType::Number(n - m),
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 2 {
+                        raw("expected 2 argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => {
+                            match args[1].clone().unwrap_or(LiteralType::Void) {
+                                LiteralType::Number(m) => LiteralType::Number(n - m),
+                                _ => {
+                                    raw("sub() expects numbers");
+                                    process::exit(1)
+                                }
+                            }
+                        }
                         _ => {
                             raw("sub() expects numbers");
                             process::exit(1)
                         }
-                    },
-                    _ => {
-                        raw("sub() expects numbers");
-                        process::exit(1)
                     }
                 }),
             }),
@@ -135,17 +152,24 @@ impl StdLiteralNumber {
             2,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => match args[1] {
-                        LiteralType::Number(m) => LiteralType::Number(n * m),
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 2 {
+                        raw("expected 2 argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => {
+                            match args[1].clone().unwrap_or(LiteralType::Void) {
+                                LiteralType::Number(m) => LiteralType::Number(n * m),
+                                _ => {
+                                    raw("mult() expects numbers");
+                                    process::exit(1)
+                                }
+                            }
+                        }
                         _ => {
                             raw("mult() expects numbers");
                             process::exit(1)
                         }
-                    },
-                    _ => {
-                        raw("mult() expects numbers");
-                        process::exit(1)
                     }
                 }),
             }),
@@ -162,17 +186,24 @@ impl StdLiteralNumber {
             2,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => match args[1] {
-                        LiteralType::Number(m) => LiteralType::Number(n / m),
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 2 {
+                        raw("expected 2 argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => {
+                            match args[1].clone().unwrap_or(LiteralType::Void) {
+                                LiteralType::Number(m) => LiteralType::Number(n / m),
+                                _ => {
+                                    raw("div() expects numbers");
+                                    process::exit(1)
+                                }
+                            }
+                        }
                         _ => {
                             raw("div() expects numbers");
                             process::exit(1)
                         }
-                    },
-                    _ => {
-                        raw("div() expects numbers");
-                        process::exit(1)
                     }
                 }),
             }),
@@ -189,17 +220,24 @@ impl StdLiteralNumber {
             2,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => match args[1] {
-                        LiteralType::Number(m) => LiteralType::Number(n % m),
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 2 {
+                        raw("expected 2 argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => {
+                            match args[1].clone().unwrap_or(LiteralType::Void) {
+                                LiteralType::Number(m) => LiteralType::Number(n % m),
+                                _ => {
+                                    raw("rem() expects numbers");
+                                    process::exit(1)
+                                }
+                            }
+                        }
                         _ => {
                             raw("rem() expects numbers");
                             process::exit(1)
                         }
-                    },
-                    _ => {
-                        raw("rem() expects numbers");
-                        process::exit(1)
                     }
                 }),
             }),
@@ -216,11 +254,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.sqrt()),
-                    _ => {
-                        raw("sqrt() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.sqrt()),
+                        _ => {
+                            raw("sqrt() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -237,11 +280,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.cbrt()),
-                    _ => {
-                        raw("cbrt() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.cbrt()),
+                        _ => {
+                            raw("cbrt() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -258,17 +306,24 @@ impl StdLiteralNumber {
             2,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => match args[1] {
-                        LiteralType::Number(m) => LiteralType::Number(n.powf(m)),
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 2 {
+                        raw("expected 2 argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => {
+                            match args[1].clone().unwrap_or(LiteralType::Void) {
+                                LiteralType::Number(m) => LiteralType::Number(n.powf(m)),
+                                _ => {
+                                    raw("pow() expects numbers");
+                                    process::exit(1)
+                                }
+                            }
+                        }
                         _ => {
                             raw("pow() expects numbers");
                             process::exit(1)
                         }
-                    },
-                    _ => {
-                        raw("pow() expects numbers");
-                        process::exit(1)
                     }
                 }),
             }),
@@ -285,17 +340,24 @@ impl StdLiteralNumber {
             2,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => match args[1] {
-                        LiteralType::Number(m) => LiteralType::Number(n.log(m)),
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 2 {
+                        raw("expected 2 argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => {
+                            match args[1].clone().unwrap_or(LiteralType::Void) {
+                                LiteralType::Number(m) => LiteralType::Number(n.log(m)),
+                                _ => {
+                                    raw("log() expects numbers");
+                                    process::exit(1)
+                                }
+                            }
+                        }
                         _ => {
                             raw("log() expects numbers");
                             process::exit(1)
                         }
-                    },
-                    _ => {
-                        raw("log() expects numbers");
-                        process::exit(1)
                     }
                 }),
             }),
@@ -312,11 +374,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.sin()),
-                    _ => {
-                        raw("sin() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.sin()),
+                        _ => {
+                            raw("sin() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -333,11 +400,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.asin()),
-                    _ => {
-                        raw("asin() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.asin()),
+                        _ => {
+                            raw("asin() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -354,11 +426,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.cos()),
-                    _ => {
-                        raw("cos() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.cos()),
+                        _ => {
+                            raw("cos() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -375,11 +452,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.acos()),
-                    _ => {
-                        raw("acos() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.acos()),
+                        _ => {
+                            raw("acos() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -396,11 +478,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.tan()),
-                    _ => {
-                        raw("tan() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.tan()),
+                        _ => {
+                            raw("tan() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -417,11 +504,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.atan()),
-                    _ => {
-                        raw("atan() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.atan()),
+                        _ => {
+                            raw("atan() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -438,11 +530,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.abs()),
-                    _ => {
-                        raw("abs() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.abs()),
+                        _ => {
+                            raw("abs() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -459,11 +556,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.floor()),
-                    _ => {
-                        raw("floor() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.floor()),
+                        _ => {
+                            raw("floor() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -480,11 +582,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.ceil()),
-                    _ => {
-                        raw("ceil() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.ceil()),
+                        _ => {
+                            raw("ceil() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -501,11 +608,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.round()),
-                    _ => {
-                        raw("round() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.round()),
+                        _ => {
+                            raw("round() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -522,11 +634,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.signum()),
-                    _ => {
-                        raw("signum() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.signum()),
+                        _ => {
+                            raw("signum() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -543,17 +660,24 @@ impl StdLiteralNumber {
             2,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => match args[1] {
-                        LiteralType::Number(m) => LiteralType::Number(n.hypot(m)),
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 2 {
+                        raw("expected 2 argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => {
+                            match args[1].clone().unwrap_or(LiteralType::Void) {
+                                LiteralType::Number(m) => LiteralType::Number(n.hypot(m)),
+                                _ => {
+                                    raw("hypot() expects numbers");
+                                    process::exit(1)
+                                }
+                            }
+                        }
                         _ => {
                             raw("hypot() expects numbers");
                             process::exit(1)
                         }
-                    },
-                    _ => {
-                        raw("hypot() expects numbers");
-                        process::exit(1)
                     }
                 }),
             }),
@@ -570,11 +694,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.exp()),
-                    _ => {
-                        raw("exp() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.exp()),
+                        _ => {
+                            raw("exp() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -591,11 +720,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.exp2()),
-                    _ => {
-                        raw("exp2() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.exp2()),
+                        _ => {
+                            raw("exp2() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -612,11 +746,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.exp_m1()),
-                    _ => {
-                        raw("exp_m1() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.exp_m1()),
+                        _ => {
+                            raw("exp_m1() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -633,11 +772,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.ln()),
-                    _ => {
-                        raw("ln() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.ln()),
+                        _ => {
+                            raw("ln() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -653,17 +797,24 @@ impl StdLiteralNumber {
             2,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => match args[1] {
-                        LiteralType::Number(m) => LiteralType::Number(n.max(m)),
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 2 {
+                        raw("expected 2 argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => {
+                            match args[1].clone().unwrap_or(LiteralType::Void) {
+                                LiteralType::Number(m) => LiteralType::Number(n.max(m)),
+                                _ => {
+                                    raw("max() expects numbers");
+                                    process::exit(1)
+                                }
+                            }
+                        }
                         _ => {
                             raw("max() expects numbers");
                             process::exit(1)
                         }
-                    },
-                    _ => {
-                        raw("max() expects numbers");
-                        process::exit(1)
                     }
                 }),
             }),
@@ -680,17 +831,24 @@ impl StdLiteralNumber {
             2,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => match args[1] {
-                        LiteralType::Number(m) => LiteralType::Number(n.min(m)),
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 2 {
+                        raw("expected 2 argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => {
+                            match args[1].clone().unwrap_or(LiteralType::Void) {
+                                LiteralType::Number(m) => LiteralType::Number(n.min(m)),
+                                _ => {
+                                    raw("min() expects numbers");
+                                    process::exit(1)
+                                }
+                            }
+                        }
                         _ => {
                             raw("min() expects numbers");
                             process::exit(1)
                         }
-                    },
-                    _ => {
-                        raw("min() expects numbers");
-                        process::exit(1)
                     }
                 }),
             }),
@@ -707,17 +865,24 @@ impl StdLiteralNumber {
             2,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => match args[1] {
-                        LiteralType::Number(m) => LiteralType::Number((n + m) / 2.0),
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 2 {
+                        raw("expected 2 argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => {
+                            match args[1].clone().unwrap_or(LiteralType::Void) {
+                                LiteralType::Number(m) => LiteralType::Number((n + m) / 2.0),
+                                _ => {
+                                    raw("avg() expects numbers");
+                                    process::exit(1)
+                                }
+                            }
+                        }
                         _ => {
                             raw("avg() expects numbers");
                             process::exit(1)
                         }
-                    },
-                    _ => {
-                        raw("avg() expects numbers");
-                        process::exit(1)
                     }
                 }),
             }),
@@ -734,11 +899,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.to_degrees()),
-                    _ => {
-                        raw("to_degrees() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.to_degrees()),
+                        _ => {
+                            raw("to_degrees() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),
@@ -755,11 +925,16 @@ impl StdLiteralNumber {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match args[0] {
-                    LiteralType::Number(n) => LiteralType::Number(n.to_radians()),
-                    _ => {
-                        raw("to_radians() expects a number");
-                        process::exit(1)
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::Number(n) => LiteralType::Number(n.to_radians()),
+                        _ => {
+                            raw("to_radians() expects a number");
+                            process::exit(1)
+                        }
                     }
                 }),
             }),

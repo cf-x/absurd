@@ -87,12 +87,9 @@ fn parse_args(project: &mut Project) -> Args {
                 update();
                 process::exit(0);
             }
-            "--side-effects" | "-s" => {
-                project.side_effects = false;
-            }
-            "--log" | "-l" => {
-                project.log = true;
-            }
+            "--side-effects" | "-s" => project.side_effects = false,
+            "--log" | "-l" => project.log = true,
+            "--test" | "-t" => project.test = true,
             "ci" => {
                 println!("Enter your code (end with Ctrl+D):");
                 let mut code_input = String::new();

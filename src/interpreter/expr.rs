@@ -264,7 +264,10 @@ impl Expression {
                         }
                     },
                     LiteralType::DeclrFunc(func) => {
-                        let evals = args.iter().map(|arg| arg.eval(Rc::clone(&env))).collect();
+                        let evals = args
+                            .iter()
+                            .map(|arg| Some(arg.eval(Rc::clone(&env))))
+                            .collect();
                         (*func.func).call(evals)
                     }
                     LiteralType::Array(arr) => {

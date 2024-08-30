@@ -3,6 +3,10 @@
 ## 0.14.0
 
 - added `--log, -l` flag to enable logging
+- added `--test, -t` flag to enable test mode
+- added new std module `core::test`
+- fixed std function arguments
+- fixed std module loading bugs
 
 ## 0.13.2
 

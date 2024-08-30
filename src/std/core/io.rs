@@ -2,6 +2,7 @@ use crate::{
     ast::{LiteralType, Token, Wrapper},
     interpreter::env::Env,
     std::func,
+    utils::errors::raw,
 };
 use colored::Colorize;
 use std::{cell::RefCell, process::exit, rc::Rc};
@@ -38,8 +39,11 @@ impl StdCoreIo {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| {
-                    println!("{}", args[0].to_string());
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    println!("{}", args[0].clone().unwrap().to_string());
                     LiteralType::Void
                 }),
             }),
@@ -57,8 +61,11 @@ impl StdCoreIo {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| {
-                    println!("{}", args[0].to_string().red());
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    println!("{}", args[0].clone().unwrap().to_string().red());
                     LiteralType::Void
                 }),
             }),
@@ -75,8 +82,11 @@ impl StdCoreIo {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| {
-                    println!("{}", args[0].to_string().yellow());
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    println!("{}", args[0].clone().unwrap().to_string().yellow());
                     LiteralType::Void
                 }),
             }),
@@ -93,8 +103,11 @@ impl StdCoreIo {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| {
-                    println!("{}", args[0].to_string().red());
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    println!("{}", args[0].clone().unwrap().to_string().red());
                     exit(0);
                 }),
             }),
@@ -111,9 +124,12 @@ impl StdCoreIo {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| {
+                0: Box::new(|args: &[Option<LiteralType>]| {
                     if args.len() > 0 {
-                        if let LiteralType::Number(val) = &args[0] {
+                        if args[0].is_none() {
+                            raw("expected an argument");
+                        }
+                        if let LiteralType::Number(val) = &args[0].clone().unwrap() {
                             exit(*val as i32);
                         }
                     }
@@ -133,7 +149,7 @@ impl StdCoreIo {
             0,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|_args: &[LiteralType]| {
+                0: Box::new(|_args: &[Option<LiteralType>]| {
                     let mut input = String::new();
                     std::io::stdin().read_line(&mut input).unwrap();
                     LiteralType::String(input)
@@ -152,7 +168,7 @@ impl StdCoreIo {
             0,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|_args: &[LiteralType]| {
+                0: Box::new(|_args: &[Option<LiteralType>]| {
                     let mut input = String::new();
                     std::io::stdin().read_line(&mut input).unwrap();
                     let input = input.trim().parse::<f32>().unwrap();
@@ -172,7 +188,7 @@ impl StdCoreIo {
             0,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|_args: &[LiteralType]| {
+                0: Box::new(|_args: &[Option<LiteralType>]| {
                     let mut input = String::new();
                     std::io::stdin().read_line(&mut input).unwrap();
                     let input = input.trim().parse::<bool>().unwrap();
@@ -192,7 +208,7 @@ impl StdCoreIo {
             0,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|_args: &[LiteralType]| {
+                0: Box::new(|_args: &[Option<LiteralType>]| {
                     let mut input = String::new();
                     std::io::stdin().read_line(&mut input).unwrap();
                     let input = input.trim().chars().next().unwrap();

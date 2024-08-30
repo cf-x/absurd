@@ -30,9 +30,6 @@ fi
 
 mv "$tmp_file" "$path"
 
-git add .
-git commit -m "update: v$version"
-git push -u origin main
-echo "version updated to $version"
 
+./scripts/commit.sh $version
 ./scripts/build.sh

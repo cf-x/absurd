@@ -4,6 +4,7 @@ use crate::{
     ast::{LiteralType, Token, Wrapper},
     interpreter::env::Env,
     std::func,
+    utils::errors::raw,
 };
 
 pub struct StdLiteralString {
@@ -48,7 +49,12 @@ impl StdLiteralString {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| LiteralType::String(args[0].to_string())),
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    LiteralType::String(args[0].clone().unwrap_or(LiteralType::Void).to_string())
+                }),
             }),
         );
     }
@@ -63,7 +69,7 @@ impl StdLiteralString {
     //         1,
     //         &mut self.env,
     //         Rc::new(Wrapper {
-    //             0: Box::new(|args: &[LiteralType]| match &args[0] {
+    //             0: Box::new(|args: &[Option<LiteralType>]| match &args[0].clone().unwrap_or(LiteralType::Void) {
     //                 LiteralType::String(s) => {
     //                     LiteralType::Array(s.chars().map(LiteralType::Char).collect())
     //                 }
@@ -83,9 +89,14 @@ impl StdLiteralString {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match &args[0] {
-                    LiteralType::String(s) => LiteralType::Number(s.chars().count() as f32),
-                    _ => LiteralType::Null,
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match &args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::String(s) => LiteralType::Number(s.chars().count() as f32),
+                        _ => LiteralType::Null,
+                    }
                 }),
             }),
         );
@@ -101,11 +112,19 @@ impl StdLiteralString {
             2,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match (&args[0], &args[1]) {
-                    (LiteralType::String(a), LiteralType::String(b)) => {
-                        LiteralType::Boolean(a.contains(b))
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 2 {
+                        raw("expected 2 argument");
                     }
-                    _ => LiteralType::Null,
+                    match (
+                        &args[0].clone().unwrap_or(LiteralType::Void),
+                        &args[1].clone().unwrap_or(LiteralType::Void),
+                    ) {
+                        (LiteralType::String(a), LiteralType::String(b)) => {
+                            LiteralType::Boolean(a.contains(b))
+                        }
+                        _ => LiteralType::Null,
+                    }
                 }),
             }),
         );
@@ -121,15 +140,23 @@ impl StdLiteralString {
             2,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match (&args[0], &args[1]) {
-                    (LiteralType::String(a), LiteralType::String(b)) => {
-                        if let Some(index) = a.find(b) {
-                            LiteralType::Number(index as f32)
-                        } else {
-                            LiteralType::Null
-                        }
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 2 {
+                        raw("expected 2 argument");
                     }
-                    _ => LiteralType::Null,
+                    match (
+                        &args[0].clone().unwrap_or(LiteralType::Void),
+                        &args[1].clone().unwrap_or(LiteralType::Void),
+                    ) {
+                        (LiteralType::String(a), LiteralType::String(b)) => {
+                            if let Some(index) = a.find(b) {
+                                LiteralType::Number(index as f32)
+                            } else {
+                                LiteralType::Null
+                            }
+                        }
+                        _ => LiteralType::Null,
+                    }
                 }),
             }),
         );
@@ -145,11 +172,19 @@ impl StdLiteralString {
             2,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match (&args[0], &args[1]) {
-                    (LiteralType::String(a), LiteralType::String(b)) => {
-                        LiteralType::Boolean(a.ends_with(b))
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 2 {
+                        raw("expected 2 argument");
                     }
-                    _ => LiteralType::Null,
+                    match (
+                        &args[0].clone().unwrap_or(LiteralType::Void),
+                        &args[1].clone().unwrap_or(LiteralType::Void),
+                    ) {
+                        (LiteralType::String(a), LiteralType::String(b)) => {
+                            LiteralType::Boolean(a.ends_with(b))
+                        }
+                        _ => LiteralType::Null,
+                    }
                 }),
             }),
         );
@@ -165,11 +200,19 @@ impl StdLiteralString {
             2,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match (&args[0], &args[1]) {
-                    (LiteralType::String(a), LiteralType::String(b)) => {
-                        LiteralType::Boolean(a.starts_with(b))
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 2 {
+                        raw("expected 2 argument");
                     }
-                    _ => LiteralType::Null,
+                    match (
+                        &args[0].clone().unwrap_or(LiteralType::Void),
+                        &args[1].clone().unwrap_or(LiteralType::Void),
+                    ) {
+                        (LiteralType::String(a), LiteralType::String(b)) => {
+                            LiteralType::Boolean(a.starts_with(b))
+                        }
+                        _ => LiteralType::Null,
+                    }
                 }),
             }),
         );
@@ -185,9 +228,14 @@ impl StdLiteralString {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match &args[0] {
-                    LiteralType::String(a) => LiteralType::Boolean(a.is_empty()),
-                    _ => LiteralType::Null,
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match &args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::String(a) => LiteralType::Boolean(a.is_empty()),
+                        _ => LiteralType::Null,
+                    }
                 }),
             }),
         );
@@ -203,9 +251,14 @@ impl StdLiteralString {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match &args[0] {
-                    LiteralType::String(a) => LiteralType::Number(a.len() as f32),
-                    _ => LiteralType::Null,
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match &args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::String(a) => LiteralType::Number(a.len() as f32),
+                        _ => LiteralType::Null,
+                    }
                 }),
             }),
         );
@@ -221,7 +274,7 @@ impl StdLiteralString {
     //         1,
     //         &mut self.env,
     //         Rc::new(Wrapper {
-    //             0: Box::new(|args: &[LiteralType]| match &args[0] {
+    //             0: Box::new(|args: &[Option<LiteralType>]| match &args[0].clone().unwrap_or(LiteralType::Void) {
     //                 LiteralType::String(a) => LiteralType::Array(
     //                     a.lines()
     //                         .map(|line| LiteralType::String(line.to_string()))
@@ -243,9 +296,14 @@ impl StdLiteralString {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match &args[0] {
-                    LiteralType::String(a) => LiteralType::String(a.to_lowercase()),
-                    _ => LiteralType::Null,
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match &args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::String(a) => LiteralType::String(a.to_lowercase()),
+                        _ => LiteralType::Null,
+                    }
                 }),
             }),
         );
@@ -261,9 +319,14 @@ impl StdLiteralString {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match &args[0] {
-                    LiteralType::String(a) => LiteralType::String(a.to_uppercase()),
-                    _ => LiteralType::Null,
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match &args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::String(a) => LiteralType::String(a.to_uppercase()),
+                        _ => LiteralType::Null,
+                    }
                 }),
             }),
         );
@@ -279,7 +342,7 @@ impl StdLiteralString {
     //         1,
     //         &mut self.env,
     //         Rc::new(Wrapper {
-    //             0: Box::new(|args: &[LiteralType]| match &args[0] {
+    //             0: Box::new(|args: &[Option<LiteralType>]| match &args[0].clone().unwrap_or(LiteralType::Void) {
     //                 LiteralType::String(a) => {
     //                     if let Ok(parsed) = a.parse::<f64>() {
     //                         LiteralType::Number(parsed)
@@ -303,16 +366,20 @@ impl StdLiteralString {
             3,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(
-                    |args: &[LiteralType]| match (&args[0], &args[1], &args[2]) {
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    match (
+                        &args[0].clone().unwrap_or(LiteralType::Void),
+                        &args[1].clone().unwrap_or(LiteralType::Void),
+                        &args[2].clone().unwrap_or(LiteralType::Void),
+                    ) {
                         (
                             LiteralType::String(a),
                             LiteralType::String(b),
                             LiteralType::String(c),
                         ) => LiteralType::String(a.replace(b, c)),
                         _ => LiteralType::Null,
-                    },
-                ),
+                    }
+                }),
             }),
         );
     }
@@ -327,7 +394,7 @@ impl StdLiteralString {
     //         2,
     //         &mut self.env,
     //         Rc::new(Wrapper {
-    //             0: Box::new(|args: &[LiteralType]| match (&args[0], &args[1]) {
+    //             0: Box::new(|args: &[Option<LiteralType>]| match (&args[0].clone().unwrap_or(LiteralType::Void), &args[1].clone().unwrap_or(LiteralType::Void)) {
     //                 (LiteralType::String(a), LiteralType::String(b)) => LiteralType::Array(
     //                     a.split(b)
     //                         .map(|s| LiteralType::String(s.to_string()))
@@ -349,7 +416,7 @@ impl StdLiteralString {
     //         2,
     //         &mut self.env,
     //         Rc::new(Wrapper {
-    //             0: Box::new(|args: &[LiteralType]| match (&args[0], &args[1]) {
+    //             0: Box::new(|args: &[Option<LiteralType>]| match (&args[0].clone().unwrap_or(LiteralType::Void), &args[1].clone().unwrap_or(LiteralType::Void)) {
     //                 (LiteralType::String(a), LiteralType::String(b)) => {
     //                     if let Some((first, second)) = a.split_once(b) {
     //                         LiteralType::Array(vec![
@@ -376,7 +443,7 @@ impl StdLiteralString {
     //         1,
     //         &mut self.env,
     //         Rc::new(Wrapper {
-    //             0: Box::new(|args: &[LiteralType]| match &args[0] {
+    //             0: Box::new(|args: &[Option<LiteralType>]| match &args[0].clone().unwrap_or(LiteralType::Void) {
     //                 LiteralType::String(a) => {
     //                     let split_result: Vec<LiteralType> = a
     //                         .split_whitespace()
@@ -400,9 +467,14 @@ impl StdLiteralString {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match &args[0] {
-                    LiteralType::String(a) => LiteralType::String(a.trim().to_string()),
-                    _ => LiteralType::Null,
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match &args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::String(a) => LiteralType::String(a.trim().to_string()),
+                        _ => LiteralType::Null,
+                    }
                 }),
             }),
         );
@@ -418,9 +490,14 @@ impl StdLiteralString {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match &args[0] {
-                    LiteralType::String(a) => LiteralType::String(a.trim_start().to_string()),
-                    _ => LiteralType::Null,
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match &args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::String(a) => LiteralType::String(a.trim_start().to_string()),
+                        _ => LiteralType::Null,
+                    }
                 }),
             }),
         );
@@ -436,9 +513,14 @@ impl StdLiteralString {
             1,
             &mut self.env,
             Rc::new(Wrapper {
-                0: Box::new(|args: &[LiteralType]| match &args[0] {
-                    LiteralType::String(a) => LiteralType::String(a.trim_end().to_string()),
-                    _ => LiteralType::Null,
+                0: Box::new(|args: &[Option<LiteralType>]| {
+                    if args.len() != 1 {
+                        raw("expected an argument");
+                    }
+                    match &args[0].clone().unwrap_or(LiteralType::Void) {
+                        LiteralType::String(a) => LiteralType::String(a.trim_end().to_string()),
+                        _ => LiteralType::Null,
+                    }
                 }),
             }),
         );

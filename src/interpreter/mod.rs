@@ -3,7 +3,6 @@ pub mod expr;
 pub mod types;
 use env::{Env, FuncKind, VarKind};
 use expr::Expression;
-pub mod load_std;
 use crate::interpreter::types::type_check;
 use crate::std::core::io::StdCoreIo;
 use crate::utils::bundler::interpreter_mod;
