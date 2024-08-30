@@ -93,6 +93,7 @@ impl<'a> Scanner<'a> {
             '>' => self.handle_double_char_token('=', Greater, GreaterOrEq),
             '\\' => self.handle_multiple_char_token(Escape, &[('{', StartParse), ('}', EndParse)]),
             '/' => self.handle_division_or_comment(),
+            '#' => self.line_comment(),
             '\r' => {}
             '\t' => self.pos += 4,
             ' ' => self.pos += 1,
@@ -285,6 +286,7 @@ impl<'a> Scanner<'a> {
 
 pub fn kwds() -> HashMap<&'static str, TokenType> {
     HashMap::from([
+        ("sh", Sh),
         ("let", Let),
         ("if", If),
         ("else", Else),
@@ -307,12 +309,11 @@ pub fn kwds() -> HashMap<&'static str, TokenType> {
         ("func", Func),
         ("true", TrueLit),
         ("false", FalseLit),
-        ("null", NullLit),
         ("number", NumberIdent),
         ("string", StringIdent),
         ("char", CharIdent),
         ("bool", BoolIdent),
-        ("null", NullIdent),
+        ("null", Null),
         ("void", VoidIdent),
         ("array", ArrayIdent),
         ("any", AnyIdent),

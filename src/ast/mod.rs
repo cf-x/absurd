@@ -82,8 +82,6 @@ pub enum TokenType {
     TrueLit,
     /// false
     FalseLit,
-    /// null
-    NullLit,
     /// array
     #[allow(dead_code)]
     ArrayLit,
@@ -161,6 +159,8 @@ pub enum TokenType {
     TypeStmt,
     /// alias
     Alias,
+    /// sh
+    Sh,
     /// number
     NumberIdent,
     /// string
@@ -170,7 +170,7 @@ pub enum TokenType {
     /// bool
     BoolIdent,
     /// null
-    NullIdent,
+    Null,
     /// void
     VoidIdent,
     /// array
@@ -308,6 +308,9 @@ pub enum CallType {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
+    Sh {
+        cmd: String,
+    },
     Type {
         name: Token,
         is_pub: bool,

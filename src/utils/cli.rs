@@ -40,6 +40,8 @@ fn print_help() {
         "--side-effects, -s".blue(),
         "disable side-effects"
     );
+    println!("  {}            {}", "--log, -l".blue(), "enable logging mode");
+    println!("  {}           {}", "--test, -t".blue(), "enable testing mode");
     println!();
     println!("{}", "Arguments:".yellow());
     println!(
@@ -53,7 +55,7 @@ fn print_help() {
         "update to latest version"
     );
     println!(
-        "  {}               {}",
+        "  {}                   {}",
         "ci".blue(),
         "enter code directly in the CLI"
     );

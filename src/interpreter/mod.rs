@@ -1,8 +1,6 @@
 pub mod env;
 pub mod expr;
 pub mod types;
-use env::{Env, FuncKind, VarKind};
-use expr::Expression;
 use crate::interpreter::types::type_check;
 use crate::std::core::io::StdCoreIo;
 use crate::utils::bundler::interpreter_mod;
@@ -16,12 +14,14 @@ use crate::{
     },
     utils::errors::raw,
 };
+use env::{Env, FuncKind, VarKind};
+use expr::Expression;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::env::current_dir;
 use std::fs::File;
 use std::io::Read;
-use std::process::exit;
+use std::process::{exit, Command, Stdio};
 use std::rc::Rc;
 
 #[derive(Debug)]
@@ -78,6 +78,26 @@ impl Interpreter {
         for stmt in stmts {
             match stmt {
                 Type { .. } => {}
+                Sh { cmd } => {
+                    let cmd = cmd.trim_matches('"');
+                    let mut parts = cmd.split_whitespace();
+                    let command = parts.next().expect("no command provided");
+                    let args: Vec<&str> = parts.collect();
+                    let output = Command::new(command)
+                        .args(&args)
+                        .stdout(Stdio::piped())
+                        .stderr(Stdio::piped())
+                        .output()
+                        .expect("failed to execute command");
+
+                    if output.status.success() {
+                        let stdout = String::from_utf8_lossy(&output.stdout);
+                        println!("{}", stdout);
+                    } else {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        raw(format!("sh error: {}", stderr).as_str());
+                    }
+                }
                 Statement::Expression { expr } => {
                     expr.eval(Rc::clone(&self.env));
                 }

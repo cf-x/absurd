@@ -72,7 +72,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
         TokenType::StringIdent => matches!(val, LiteralType::String(_)),
         TokenType::BoolIdent => matches!(val, LiteralType::Boolean(_)),
         TokenType::CharIdent => matches!(val, LiteralType::Char(_)),
-        TokenType::NullIdent => matches!(val, LiteralType::Null),
+        TokenType::Null => matches!(val, LiteralType::Null),
         TokenType::VoidIdent => matches!(val, LiteralType::Void),
         TokenType::ArrayIdent => {
             if let LiteralType::Array(ref array) = *val {
@@ -128,7 +128,6 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
         | TokenType::TrueLit
         | TokenType::FalseLit
         | TokenType::CharLit
-        | TokenType::NullLit
         | TokenType::ArrayLit => {
             match *val {
                 LiteralType::Number(ref num) => {
@@ -152,7 +151,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
                         && matches!(literalkind_to_literaltype(value_type.value.clone().unwrap_or(LiteralKind::Null)), LiteralType::Array(ref n) if n == v);
                 }
                 LiteralType::Null => {
-                    return matches!(value_type.token, TokenType::NullLit)
+                    return matches!(value_type.token, TokenType::Null)
                         && matches!(literalkind_to_literaltype(value_type.value.clone().unwrap_or(LiteralKind::Null)), LiteralType::Null);
                 }
                 _ => {}
@@ -212,7 +211,7 @@ pub fn string_to_token_type(s: &str) -> TokenType {
         "string" => TokenType::StringIdent,
         "boolean" => TokenType::BoolIdent,
         "char" => TokenType::CharIdent,
-        "null" => TokenType::NullIdent,
+        "null" => TokenType::Null,
         "void" => TokenType::VoidIdent,
         _ => TokenType::AnyIdent,
     }

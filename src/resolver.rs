@@ -47,6 +47,7 @@ impl Resolver {
             Statement::Func { .. } => self.resolve_func_stmt(stmt, env),
             Statement::Loop { .. } => self.resolve_loop_stmt(stmt, env),
             Statement::Match { .. } => self.resolve_match_stmt(stmt, env),
+            Statement::Sh { .. } => {}
             Statement::Mod { .. } => {}
             Statement::Return { .. } => self.resolve_return_stmt(stmt, env),
             Statement::Use { .. } => self.resolve_use_stmt(stmt),

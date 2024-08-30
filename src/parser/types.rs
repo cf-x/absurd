@@ -23,7 +23,7 @@ impl Parser {
             };
         } else if self.if_token_consume(Queston) {
             let mut null = Token {
-                token: NullLit,
+                token: Null,
                 lexeme: "null".to_string(),
                 pos: left.pos,
                 value: Some(LiteralKind::Null),
@@ -48,11 +48,11 @@ impl Parser {
         match self.peek().token {
             Less => self.parse_array_type(),
             Pipe => self.parse_func_type(),
-            StringLit | NumberLit | CharLit | NullLit | TrueLit | ArrayLit | FalseLit => {
+            StringLit | NumberLit | CharLit | Null | TrueLit | ArrayLit | FalseLit => {
                 self.parse_literal_type()
             }
             Ident => self.parse_ident_type(),
-            AnyIdent | BoolIdent | CharIdent | NullIdent | VoidIdent | ArrayIdent | NumberIdent
+            AnyIdent | BoolIdent | CharIdent | VoidIdent | ArrayIdent | NumberIdent
             | StringIdent => self.parse_builtin_type(),
             c => Token {
                 token: c,
@@ -69,7 +69,7 @@ impl Parser {
             AnyIdent,
             BoolIdent,
             CharIdent,
-            NullIdent,
+            Null,
             VoidIdent,
             ArrayIdent,
             NumberIdent,

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.1
+
+- added shebang support
+- added `sh` statement for running shell commands
+- fixed `null` types
+
 ## 0.14.0
 
 - added `--log, -l` flag to enable logging

@@ -95,7 +95,7 @@ impl Env {
             .borrow_mut()
             .get(k)
             .unwrap_or(&Token {
-                token: TokenType::NullLit,
+                token: TokenType::Null,
                 lexeme: "null".to_string(),
                 value: None,
                 line: 0,

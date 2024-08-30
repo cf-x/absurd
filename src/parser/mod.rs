@@ -60,6 +60,7 @@ impl Parser {
             Enum => self.enum_stmt(),
             LeftBrace => self.block_stmt(),
             TypeStmt => self.type_stmt(),
+            Sh => self.sh_stmt(),
             _ => self.expr_stmt(),
         }
     }
@@ -94,7 +95,7 @@ impl Parser {
                 loop {
                     if self.if_token_consume(Underscore) {
                         pub_names.push(Token {
-                            token: NullLit,
+                            token: Null,
                             lexeme: "null".to_string(),
                             value: None,
                             line: self.peek().line,
@@ -117,7 +118,7 @@ impl Parser {
             while !self.if_token_consume(RightBracket) {
                 if self.if_token_consume(Underscore) {
                     names.push(Token {
-                        token: NullLit,
+                        token: Null,
                         lexeme: "null".to_string(),
                         value: None,
                         line: self.peek().line,
@@ -176,8 +177,9 @@ impl Parser {
 
         self.consume(Colon);
         let value_type = self.consume_type();
-        if value_type.token == NullIdent {
+        if value_type.token == Null && self.peek().token != Assign {
             self.log("variable statement");
+            self.consume(Semi);
             return null_var;
         }
 
@@ -394,6 +396,14 @@ impl Parser {
         self.consume(RightBrace);
         self.log("match statement");
         stmt
+    }
+
+    fn sh_stmt(&mut self) -> Statement {
+        self.start("sh statement");
+        let cmd = self.consume(StringLit).lexeme;
+        self.consume(Semi);
+        self.log("sh statement");
+        Statement::Sh { cmd }
     }
 
     fn mod_stmt(&mut self) -> Statement {

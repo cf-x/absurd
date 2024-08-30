@@ -3,6 +3,7 @@ use super::TokenType;
 impl TokenType {
     pub fn to_string(&self) -> String {
         let s = match self {
+            Self::Sh => "sh",
             Self::Alias => "alias",
             Self::Type | Self::TypeStmt => "type",
             Self::Not => "!",
@@ -41,7 +42,6 @@ impl TokenType {
             Self::NumberLit => "number literal",
             Self::TrueLit => "true literal",
             Self::FalseLit => "false literal",
-            Self::NullLit => "null literal",
             Self::ArrayLit => "array literal",
             Self::FuncIdent => "function type",
             Self::Less => "<",
@@ -83,7 +83,7 @@ impl TokenType {
             Self::StringIdent => "string",
             Self::CharIdent => "char",
             Self::BoolIdent => "bool",
-            Self::NullIdent => "null",
+            Self::Null => "null",
             Self::VoidIdent => "void",
             Self::ArrayIdent => "array",
             Self::AnyIdent => "any",

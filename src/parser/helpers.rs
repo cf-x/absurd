@@ -34,14 +34,14 @@ impl Parser {
             }
             TrueLit => LiteralType::Boolean(true),
             FalseLit => LiteralType::Boolean(false),
-            NullLit => LiteralType::Null,
+            Null => LiteralType::Null,
             _ => LiteralType::Any,
         }
     }
 
     #[inline]
     pub fn is_literal(&self) -> bool {
-        self.are_tokens(&[NumberLit, StringLit, CharLit, TrueLit, FalseLit, NullLit])
+        self.are_tokens(&[NumberLit, StringLit, CharLit, TrueLit, FalseLit, Null])
     }
 
     #[inline]
@@ -177,7 +177,7 @@ impl Parser {
 
     pub fn create_null_token(&self, line: usize) -> Token {
         Token {
-            token: NullIdent,
+            token: Null,
             pos: self.peek().pos,
             lexeme: "null".to_string(),
             value: None,
