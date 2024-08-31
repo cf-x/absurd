@@ -9,7 +9,7 @@ mod scanner;
 mod std;
 mod utils;
 
-pub const VERSION: &str = "0.15.0";
+pub const VERSION: &str = "0.15.1";
 
 fn main() {
     let mut project = Project::new();

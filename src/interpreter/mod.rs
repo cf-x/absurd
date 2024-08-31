@@ -77,7 +77,13 @@ impl Interpreter {
     pub fn interpret(&mut self, stmts: Vec<&Statement>) -> Rc<RefCell<Env>> {
         for stmt in stmts {
             match stmt {
-                Type { .. } => {}
+                Type { .. } => {
+                    if let Statement::Type { name, value, .. } = stmt {
+                        self.env
+                            .borrow_mut()
+                            .define_type(name.clone().lexeme, value.clone());
+                    }
+                }
                 Sh { cmd } => {
                     let cmd = cmd.trim_matches('"');
                     let mut parts = cmd.split_whitespace();
@@ -128,7 +134,17 @@ impl Interpreter {
                             self.error
                                 .throw(E0x415, names[0].line, names[0].pos, vec![]);
                         }
-
+                        // type interference
+                        let vl = value.clone().unwrap().eval(Rc::clone(&self.env));
+                        if !type_check(value_type, &vl, &self.env) {
+                            self.error.throw(
+                                E0x301,
+                                names[0].line,
+                                names[0].pos,
+                                vec![value_type.clone().lexeme, vl.to_string()],
+                            );
+                        }
+                        //
                         if !self.is_mod {
                             if is_func.clone() {
                                 if names.len() != 1 {
@@ -247,8 +263,26 @@ impl Interpreter {
                     is_pub,
                     params,
                     is_async,
-                    ..
+                    body,
+                    value_type,
                 } => {
+                    // type inference
+                    if let FuncBody::Statements(body) = body {
+                        for stmt in body {
+                            if let Statement::Return { expr } = stmt {
+                                let v = (*expr).eval(Rc::clone(&self.env));
+                                if !type_check(value_type, &v, &self.env) {
+                                    self.error.throw(
+                                        E0x301,
+                                        name.line,
+                                        name.pos,
+                                        vec![value_type.clone().lexeme, v.to_string()],
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    //
                     if is_pub.clone() && !self.project.side_effects {
                         self.error.throw(E0x415, name.line, name.pos, vec![]);
                     }

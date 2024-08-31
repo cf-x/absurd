@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.1
+
+- added string slicing (`"string"[0]`)
+- fixed type interface
+- fixed methods
+
 ## 0.15.0
 
 - added new data type: `object` (`{k: v}`)

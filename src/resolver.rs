@@ -1,7 +1,6 @@
 use crate::ast::{FuncBody, Statement, Token};
 use crate::interpreter::env::Env;
 use crate::interpreter::expr::Expression;
-use crate::interpreter::types::type_check;
 use crate::utils::errors::{Error, ErrorCode::*};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -38,7 +37,6 @@ impl Resolver {
 
     fn resolve_int(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
         match stmt {
-            Statement::Type { .. } => self.resolve_type_stmt(stmt, env),
             Statement::If { .. } => self.resolve_if_stmt(stmt, env),
             Statement::Block { .. } => self.resolve_block(stmt, env),
             Statement::Break {} => self.resolve_break_stmt(),
@@ -47,22 +45,13 @@ impl Resolver {
             Statement::Func { .. } => self.resolve_func_stmt(stmt, env),
             Statement::Loop { .. } => self.resolve_loop_stmt(stmt, env),
             Statement::Match { .. } => self.resolve_match_stmt(stmt, env),
-            Statement::Sh { .. } => {}
-            Statement::Mod { .. } => {}
             Statement::Return { .. } => self.resolve_return_stmt(stmt, env),
             Statement::Use { .. } => self.resolve_use_stmt(stmt),
             Statement::Var { .. } => self.resolve_var_stmt(stmt, env),
             Statement::While { .. } => self.resolve_while_stmt(stmt, env),
+            _ => {}
         }
     }
-
-    fn resolve_type_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
-        if let Statement::Type { name, value, .. } = stmt {
-            env.borrow_mut()
-                .define_type(name.clone().lexeme, value.clone());
-        }
-    }
-
     fn resolve_use_stmt(&mut self, stmt: &Statement) {
         if let Statement::Use { names, .. } = stmt {
             for (old, new) in names {
@@ -78,30 +67,12 @@ impl Resolver {
     }
 
     fn resolve_var_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
-        if let Statement::Var {
-            names,
-            value,
-            value_type,
-            ..
-        } = stmt
-        {
+        if let Statement::Var { names, value, .. } = stmt {
             for name in names {
                 self.declare(name);
                 if let Some(value) = value {
-                    let val = value.eval(Rc::clone(&env));
-
-                    if type_check(value_type, &val, env) {
-                        self.resolve_expr(value, env);
-                    } else {
-                        self.err.throw(
-                            E0x301,
-                            name.line,
-                            name.pos,
-                            vec![value_type.clone().lexeme, val.to_string()],
-                        );
-                    }
+                    self.resolve_expr(value, env);
                 }
-
                 self.define(name);
             }
         }
@@ -131,14 +102,7 @@ impl Resolver {
     }
 
     fn resolve_func_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
-        if let Statement::Func {
-            value_type,
-            body,
-            params,
-            name,
-            ..
-        } = stmt
-        {
+        if let Statement::Func { body, params, .. } = stmt {
             let encl_func = self.is_crnt_fnc;
             self.is_crnt_fnc = true;
             self.scope_start();
@@ -149,20 +113,9 @@ impl Resolver {
 
             if let FuncBody::Statements(body) = body {
                 self.resolve_many(body, env);
-
                 for stmt in body {
                     if let Statement::Return { expr } = stmt {
-                        let val = (*expr).eval(Rc::clone(&env));
-                        if type_check(value_type, &val, env) {
-                            self.resolve_expr(expr, env);
-                        } else if params.is_empty() {
-                            self.err.throw(
-                                E0x301,
-                                name.line,
-                                name.pos,
-                                vec![value_type.clone().lexeme, val.to_string()],
-                            );
-                        }
+                        self.resolve_expr(expr, env);
                     }
                 }
             } else {
@@ -288,12 +241,7 @@ impl Resolver {
                 self.resolve_expr(name.as_ref(), env);
                 args.iter().for_each(|arg| self.resolve_expr(arg, env));
             }
-            Expression::Func {
-                value_type,
-                body,
-                params,
-                ..
-            } => self.resolve_func_expr(value_type, body, params, env),
+            Expression::Func { body, params, .. } => self.resolve_func_expr(body, params, env),
             Expression::Await { expr, .. } => self.resolve_expr(expr, env),
             Expression::Unary { left, .. } => self.resolve_expr(left, env),
             Expression::Value { .. } => {}
@@ -307,7 +255,6 @@ impl Resolver {
 
     fn resolve_func_expr(
         &mut self,
-        value_type: &Token,
         body: &FuncBody,
         params: &[(Token, Token)],
         env: &Rc<RefCell<Env>>,
@@ -324,17 +271,13 @@ impl Resolver {
                 self.resolve_many(body, env);
                 body.iter().for_each(|stmt| {
                     if let Statement::Return { expr } = stmt {
-                        if type_check(value_type, &(*expr).eval(Rc::clone(&env)), env) {
-                            self.resolve_expr(expr, env);
-                        }
+                        self.resolve_expr(expr, env);
                     }
                 });
             }
             FuncBody::Expression(expr) => {
                 self.resolve_expr(expr, env);
-                if type_check(value_type, &(*expr).eval(Rc::clone(&env)), env) {
-                    self.resolve_expr(expr, env);
-                }
+                self.resolve_expr(expr, env);
             }
         }
 

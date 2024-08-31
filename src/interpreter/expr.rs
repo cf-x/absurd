@@ -261,6 +261,7 @@ impl Expression {
             }
             Expression::Call { name, args, .. } => {
                 let call: LiteralType = name.eval(Rc::clone(&env));
+
                 match call {
                     LiteralType::Func(func) => match func {
                         FuncValueType::Func(func) => run_func(func, args, env),
@@ -276,22 +277,28 @@ impl Expression {
                             .collect();
                         (*func.func).call(evals)
                     }
-                    LiteralType::Array(arr) => {
-                        let mut res = vec![];
-                        for i in arr {
-                            res.push(i);
+                    LiteralType::Array(res) => match args.get(0).unwrap() {
+                        Expression::Value { value, .. } => {
+                            if let LiteralType::Number(n) = value {
+                                res.get(*n as usize).unwrap().eval(env)
+                            } else {
+                                LiteralType::Null
+                            }
                         }
-                        match args.get(0).unwrap() {
-                            Expression::Value { value, .. } => {
-                                if let LiteralType::Number(n) = value {
-                                    res.get(*n as usize).unwrap().eval(env)
-                                } else {
-                                    LiteralType::Null
+                        _ => LiteralType::Null,
+                    },
+                    LiteralType::String(s) => match args.get(0).unwrap().eval(env) {
+                        LiteralType::Number(n) => {
+                            let mut res = LiteralType::Null;
+                            for (i, c) in s.chars().enumerate() {
+                                if i == n as usize {
+                                    res = LiteralType::Char(c);
                                 }
                             }
-                            _ => LiteralType::Null,
+                            res
                         }
-                    }
+                        _ => LiteralType::Null,
+                    },
                     LiteralType::Obj(obj) => match args.get(0).unwrap() {
                         Expression::Value { value, .. } => {
                             if let LiteralType::String(s) = value {
@@ -326,8 +333,35 @@ impl Expression {
                     name: name.lexeme.clone(),
                     value_type: value_type.clone(),
                     body: FuncBody::Statements(match body {
-                        FuncBody::Statements(stmts) => stmts.iter().map(|x| x.clone()).collect(),
-                        FuncBody::Expression(e) => vec![Statement::Expression { expr: *e.clone() }],
+                        FuncBody::Statements(stmts) => stmts
+                            .iter()
+                            .map(|stmt| {
+                                if let Statement::Return { expr } = stmt {
+                                    let v = &(*expr).eval(env.clone());
+                                    if !type_check(value_type, v, &env) {
+                                        self.err().throw(
+                                            E0x301,
+                                            name.line,
+                                            name.pos,
+                                            vec![value_type.clone().lexeme, v.to_string()],
+                                        );
+                                    }
+                                }
+                                stmt.clone()
+                            })
+                            .collect(),
+                        FuncBody::Expression(e) => {
+                            let v = &(*e).eval(env.clone());
+                            if !type_check(value_type, v, &env) {
+                                self.err().throw(
+                                    E0x301,
+                                    name.line,
+                                    name.pos,
+                                    vec![value_type.clone().lexeme, v.to_string()],
+                                );
+                            }
+                            vec![Statement::Expression { expr: *e.clone() }]
+                        }
                     }),
                     params: params
                         .iter()

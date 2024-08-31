@@ -209,9 +209,12 @@ impl Parser {
     fn method(&mut self) -> Expression {
         let mut expr = self.primary();
         if self.if_token_consume(Dot) {
+            self.advance();
             if self.peek().token == LeftParen {
+                self.retreat();
                 expr = self.method_body(expr);
             } else {
+                self.retreat();
                 expr = self.obj_call()
             }
         }
