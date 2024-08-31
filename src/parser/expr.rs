@@ -107,7 +107,7 @@ impl Parser {
                     if let Expression::Method { .. } = expr {
                         expr = self.method_body(expr);
                     } else {
-                        expr = self.struct_call();
+                        expr = self.obj_call();
                     }
                 }
                 DblColon => {
@@ -147,7 +147,7 @@ impl Parser {
         }
     }
 
-    fn struct_call(&mut self) -> Expression {
+    fn obj_call(&mut self) -> Expression {
         let name = self.prev(2).clone();
         let e = self.expr();
         let args = vec![e];
@@ -242,6 +242,10 @@ impl Parser {
                 self.advance();
                 self.arr_expr()
             }
+            LeftBrace => {
+                self.advance();
+                self.obj_expr()
+            }
             LeftParen => {
                 if self.prev(1).token == Ident {
                     self.advance();
@@ -263,6 +267,23 @@ impl Parser {
                     self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
                 }
             }
+        }
+    }
+
+    fn obj_expr(&mut self) -> Expression {
+        let mut fields = vec![];
+        while !self.if_token_consume(RightBrace) {
+            let key = self.consume(Ident).clone();
+            self.consume(Colon);
+            let value = self.expr();
+            fields.push((key.lexeme, value));
+            if !self.if_token_consume(Comma) && !self.is_token(RightBrace) {
+                self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
+            }
+        }
+        Expression::Object {
+            id: self.id(),
+            fields,
         }
     }
 

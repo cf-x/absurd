@@ -4,6 +4,7 @@ use std::fmt;
 impl LiteralType {
     pub fn type_name(&self) -> String {
         match self {
+            Self::Obj(_) => "object".to_string(),
             Self::Number(_) => "number".to_string(),
             Self::String(_) => "string".to_string(),
             Self::Char(_) => "char".to_string(),
@@ -25,6 +26,7 @@ impl LiteralType {
             Self::Boolean(val) => *val,
             Self::Null => false,
             Self::Array(val) => !val.is_empty(),
+            Self::Obj(obj) => !obj.is_empty(),
             _ => false,
         }
     }
@@ -36,6 +38,14 @@ impl LiteralType {
 impl fmt::Display for LiteralType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Self::Obj(val) => {
+                let n: Vec<String> = val
+                    .iter()
+                    .map(|(name, value)| format!("{}:{}", name, value.to_string()))
+                    .collect();
+                let c = n.join(", ");
+                write!(f, "{{ {} }}", c)
+            }
             Self::Number(val) => write!(f, "{}", val),
             Self::String(val) => write!(f, "{}", val),
             Self::Char(val) => write!(f, "{}", val),
@@ -63,4 +73,3 @@ impl fmt::Display for LiteralType {
         }
     }
 }
-

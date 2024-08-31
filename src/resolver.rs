@@ -271,6 +271,11 @@ impl Resolver {
 
     fn resolve_expr(&mut self, expr: &Expression, env: &Rc<RefCell<Env>>) {
         match expr {
+            Expression::Object { fields, .. } => {
+                fields.iter().for_each(|(_, val)| {
+                    self.resolve_expr(val, env);
+                });
+            }
             Expression::Method { args, .. } => {
                 args.iter().for_each(|arg| self.resolve_expr(arg, env))
             }

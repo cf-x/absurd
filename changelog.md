@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.15.0
+
+- added new data type: `object`
+
 ## 0.14.1
 
 - added shebang support

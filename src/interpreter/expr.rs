@@ -24,6 +24,10 @@ pub enum AssignKind {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
+    Object {
+        id: usize,
+        fields: Vec<(String, Expression)>,
+    },
     Assign {
         id: usize,
         name: Token,
@@ -92,6 +96,7 @@ impl Expression {
 
     pub fn id(&self) -> usize {
         match self {
+            Expression::Object { id, .. } => *id,
             Expression::Var { id, .. } => *id,
             Expression::Call { id, .. } => *id,
             Expression::Func { id, .. } => *id,
@@ -114,6 +119,7 @@ impl Expression {
     }
     pub fn eval(&self, env: Rc<RefCell<Env>>) -> LiteralType {
         match self {
+            Expression::Object { fields, .. } => LiteralType::Obj(fields.clone()),
             Expression::Assign {
                 name, value, kind, ..
             } => {
@@ -644,6 +650,13 @@ impl Expression {
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Expression::Object { fields, .. } => {
+                let mut fields_str = String::new();
+                for (name, value) in fields {
+                    fields_str.push_str(&format!("{}: {}, ", name, value));
+                }
+                write!(f, "{{{}}}", fields_str)
+            }
             Expression::Assign { name, value, .. } => write!(f, "{} = {}", name.lexeme, value),
             Expression::Var { name, .. } => write!(f, "{}", name.lexeme),
             Expression::Call { name, args, .. } => {

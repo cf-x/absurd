@@ -1,6 +1,7 @@
 pub mod literals;
 use std::{
     cell::RefCell,
+    
     fmt::{self, Debug},
     rc::Rc,
 };
@@ -209,6 +210,7 @@ pub enum LiteralType {
     Void,
     Any,
     Array(Vec<Expression>),
+    Obj(Vec<(String, Expression)>),
     Func(FuncValueType),
     DeclrFunc(DeclrFuncType),
 }
