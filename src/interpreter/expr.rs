@@ -292,6 +292,22 @@ impl Expression {
                             _ => LiteralType::Null,
                         }
                     }
+                    LiteralType::Obj(obj) => match args.get(0).unwrap() {
+                        Expression::Value { value, .. } => {
+                            if let LiteralType::String(s) = value {
+                                let mut res = LiteralType::Null;
+                                for (k, v) in obj {
+                                    if k == *s {
+                                        res = v.eval(env.clone());
+                                    }
+                                }
+                                res
+                            } else {
+                                LiteralType::Null
+                            }
+                        }
+                        _ => LiteralType::Null,
+                    },
                     _ => self.eval_literal_method(call, args, env),
                 }
             }

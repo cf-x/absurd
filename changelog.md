@@ -2,7 +2,9 @@
 
 ## 0.15.0
 
-- added new data type: `object`
+- added new data type: `object` (`{k: v}`)
+- added new type: `object` (`{k: t}`)
+- added new call type: `object` (`i.k`)
 
 ## 0.14.1
 

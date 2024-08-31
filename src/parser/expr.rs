@@ -1,5 +1,5 @@
 use super::Parser;
-use crate::ast::{CallType, FuncBody, Statement, Token, TokenType::*};
+use crate::ast::{CallType, FuncBody, LiteralType, Statement, Token, TokenType::*};
 use crate::interpreter::expr::{AssignKind, Expression};
 use crate::utils::errors::ErrorCode::*;
 
@@ -149,8 +149,11 @@ impl Parser {
 
     fn obj_call(&mut self) -> Expression {
         let name = self.prev(2).clone();
-        let e = self.expr();
-        let args = vec![e];
+        let e = self.consume(Ident);
+        let args = vec![Expression::Value {
+            id: self.id(),
+            value: LiteralType::String(e.lexeme),
+        }];
         Expression::Call {
             id: self.id(),
             name: Box::new(Expression::Var {
@@ -206,7 +209,11 @@ impl Parser {
     fn method(&mut self) -> Expression {
         let mut expr = self.primary();
         if self.if_token_consume(Dot) {
-            expr = self.method_body(expr);
+            if self.peek().token == LeftParen {
+                expr = self.method_body(expr);
+            } else {
+                expr = self.obj_call()
+            }
         }
         expr
     }

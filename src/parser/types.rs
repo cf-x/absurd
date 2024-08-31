@@ -46,6 +46,7 @@ impl Parser {
 
     fn primary_type(&mut self) -> Token {
         match self.peek().token {
+            LeftBrace => self.parse_obj_type(),
             Less => self.parse_array_type(),
             Pipe => self.parse_func_type(),
             StringLit | NumberLit | CharLit | Null | TrueLit | ArrayLit | FalseLit => {
@@ -61,6 +62,36 @@ impl Parser {
                 value: None,
                 line: self.peek().line,
             },
+        }
+    }
+
+    fn parse_obj_type(&mut self) -> Token {
+        let mut fields = vec![];
+        self.consume(LeftBrace);
+        while !self.if_token_consume(RightBrace) {
+            let ident = self.consume(Ident);
+            self.consume(Colon);
+
+            let value = self.consume_type();
+            fields.push((ident, TypeKind::Var { name: value }));
+            if !self.if_token_consume(Comma) {
+                self.consume(RightBrace);
+                break;
+            }
+        }
+        let value = Some(LiteralKind::Type(Box::new(TypeKind::Obj {
+            fields: fields.clone(),
+        })));
+        let s: String = fields
+            .iter()
+            .map(|(i, v)| format!("{}: {}, ", i.lexeme.clone(), v.clone()))
+            .collect();
+        Token {
+            token: Type,
+            lexeme: format!("{{ {}}}", s),
+            value,
+            line: self.peek().line,
+            pos: self.peek().pos,
         }
     }
 

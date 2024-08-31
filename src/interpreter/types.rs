@@ -1,10 +1,8 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
 
-use crate::ast::{
-    LiteralKind, LiteralType, Token, TokenType,
-};
+use crate::ast::{LiteralKind, LiteralType, Token, TokenType};
 
-use super::env::Env;
+use super::{env::Env, expr::Expression};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeKind {
@@ -13,6 +11,10 @@ pub enum TypeKind {
         kind: Option<Box<TypeKind>>,
         // <(type, type, ..)>
         statics: Option<Vec<TypeKind>>,
+    },
+    Obj {
+        // {name: type, name: type, ..}
+        fields: Vec<(Token, TypeKind)>,
     },
     Var {
         // identifier for calling types
@@ -32,18 +34,61 @@ pub enum TypeKind {
         ret: Box<TypeKind>,
     },
 }
+
+impl fmt::Display for TypeKind {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            TypeKind::Array { kind, statics } => {
+                if let Some(k) = kind {
+                    write!(f, "[{}]", k)
+                } else if let Some(s) = statics {
+                    write!(f, "[{:?}]", s)
+                } else {
+                    write!(f, "[]")
+                }
+            }
+            TypeKind::Obj { fields } => {
+                write!(f, "{{")?;
+                for (i, (name, t)) in fields.iter().enumerate() {
+                    write!(f, "{}: {}", name.lexeme, t)?;
+                    if i != fields.len() - 1 {
+                        write!(f, ", ")?;
+                    }
+                }
+                write!(f, "}}")
+            }
+            TypeKind::Var { name } => write!(f, "{}", name.lexeme),
+            TypeKind::Or { left, right } => write!(f, "{} | {}", left, right),
+            TypeKind::Value { kind } => write!(f, "{:?}", kind),
+            TypeKind::Func { params, ret } => {
+                write!(f, "|")?;
+                for (i, p) in params.iter().enumerate() {
+                    write!(f, "{}", p)?;
+                    if i != params.len() - 1 {
+                        write!(f, ", ")?;
+                    }
+                }
+                write!(f, "| {}", ret)
+            }
+        }
+    }
+}
+
 pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>) -> bool {
     match value_type.token {
-        TokenType::FuncIdent => {
-            true
-        }
+        TokenType::FuncIdent => true,
         TokenType::Ident => {
             let d = env.borrow().get_type(&value_type.lexeme);
             type_check(&d, val, env)
         }
         TokenType::Type => {
             if let Some(LiteralKind::Type(ref t)) = value_type.value {
-                if let TypeKind::Or { ref left, ref right } = **t {
+                let lt = *t.clone();
+                if let TypeKind::Or {
+                    ref left,
+                    ref right,
+                } = lt
+                {
                     let left_t = typekind_to_literaltype(*left.clone());
                     let right_t = typekind_to_literaltype(*right.clone());
                     if left_t == *val || right_t == *val {
@@ -60,6 +105,27 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
                         };
                         return left_n || right_n;
                     }
+                } else if let TypeKind::Obj { fields } = lt {
+                    if let LiteralType::Obj(ref obj) = *val {
+                        let obj_map: HashMap<_, _> = obj.iter().cloned().collect();
+                        return fields.iter().all(|(name, field_type)| {
+                            if let Some(v) = obj_map.get(&name.lexeme) {
+                                let field_token = Token {
+                                    token: string_to_tokentype(&field_type.to_string()),
+                                    lexeme: field_type.to_string(),
+                                    value: Some(LiteralKind::Type(Box::new(field_type.clone()))),
+                                    line: name.line,
+                                    pos: name.pos,
+                                };
+                                return type_check(
+                                    &field_token,
+                                    &v.eval(env.clone()),
+                                    env,
+                                );
+                            }
+                            false
+                        });
+                    }
                 }
             }
             false
@@ -68,7 +134,8 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
             if val.type_name() == "function" {
                 return true;
             }
-            matches!(val, LiteralType::Number(_))},
+            matches!(val, LiteralType::Number(_))
+        }
         TokenType::StringIdent => matches!(val, LiteralType::String(_)),
         TokenType::BoolIdent => matches!(val, LiteralType::Boolean(_)),
         TokenType::CharIdent => matches!(val, LiteralType::Char(_)),
@@ -105,7 +172,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
                         return array.iter().all(|item| {
                             type_check(
                                 &Token {
-                                    token: string_to_token_type(&value_type.lexeme),
+                                    token: string_to_tokentype(&value_type.lexeme),
                                     lexeme: value_type.lexeme.clone(),
                                     value: None,
                                     line: value_type.line,
@@ -152,7 +219,12 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
                 }
                 LiteralType::Null => {
                     return matches!(value_type.token, TokenType::Null)
-                        && matches!(literalkind_to_literaltype(value_type.value.clone().unwrap_or(LiteralKind::Null)), LiteralType::Null);
+                        && matches!(
+                            literalkind_to_literaltype(
+                                value_type.value.clone().unwrap_or(LiteralKind::Null)
+                            ),
+                            LiteralType::Null
+                        );
                 }
                 _ => {}
             }
@@ -175,6 +247,14 @@ pub fn literalkind_to_literaltype(kind: LiteralKind) -> LiteralType {
 
 pub fn typekind_to_literaltype(kind: TypeKind) -> LiteralType {
     match kind.clone() {
+        TypeKind::Obj { fields } => {
+            let mut obj = vec![];
+            for (k, v) in fields {
+                let v = typekind_to_literaltype(v);
+                obj.push((k.lexeme, Expression::Value { id: 0, value: v }));
+            }
+            LiteralType::Obj(obj)
+        }
         TypeKind::Var { name } => {
             let n = match name.clone().value {
                 Some(v) => v,
@@ -205,7 +285,7 @@ pub fn typekind_to_literaltype(kind: TypeKind) -> LiteralType {
     }
 }
 
-pub fn string_to_token_type(s: &str) -> TokenType {
+pub fn string_to_tokentype(s: &str) -> TokenType {
     match s {
         "number" => TokenType::NumberIdent,
         "string" => TokenType::StringIdent,
