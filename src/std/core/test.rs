@@ -3,22 +3,12 @@ use std::{cell::RefCell, rc::Rc};
 use crate::{
     ast::{LiteralType, Token, Wrapper},
     errors::raw,
-    interpreter::env::Env,
-    std::func,
+    std::{func, StdFunc},
 };
 use colored::Colorize;
 
-pub struct StdCoreTest {
-    env: Rc<RefCell<Env>>,
-    is_test: bool,
-}
-
-impl StdCoreTest {
-    pub fn new(env: Rc<RefCell<Env>>, is_test: bool) -> Self {
-        Self { env, is_test }
-    }
-
-    pub fn load(&mut self) {
+impl StdFunc {
+    pub fn load_core_test(&mut self) {
         self.load_assert(None);
     }
 
@@ -77,14 +67,5 @@ impl StdCoreTest {
     #[inline]
     fn fail(&self, name: String) {
         println!("  {}", format!("fail: test '{}'", name).red());
-    }
-}
-
-impl Clone for StdCoreTest {
-    fn clone(&self) -> Self {
-        Self {
-            env: Rc::clone(&self.env),
-            is_test: self.is_test,
-        }
     }
 }

@@ -9,6 +9,7 @@
 ### internal changes
 
 - code optimization and re-organization
+- updated std managing system
 
 ### fixes
 

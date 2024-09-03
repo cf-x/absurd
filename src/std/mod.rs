@@ -1,9 +1,6 @@
-use core::{io::StdCoreIo, load_core, test::StdCoreTest};
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 pub mod core;
 pub mod literal;
-
-use literal::{load_literal, number::StdLiteralNumber, string::StdLiteralString};
 
 use crate::{
     ast::{DeclrFuncType, FuncValType, LiteralType, Token},
@@ -31,9 +28,598 @@ pub fn func(name: &str, arity: usize, env: &mut Rc<RefCell<Env>>, func: Rc<dyn F
     )
 }
 
+#[derive(Clone)]
+pub struct StdFunc {
+    env: Rc<RefCell<Env>>,
+    is_test: bool,
+}
+
+impl StdFunc {
+    pub fn new(env: Rc<RefCell<Env>>, is_test: bool) -> Self {
+        Self { env, is_test }
+    }
+}
+
 impl Interpreter {
-    pub fn load_std(&self, src: String, names: Vec<(Token, Option<Token>)>, all: bool) {
+    pub fn std_map(
+        &mut self,
+    ) -> HashMap<&str, Vec<(&str, HashMap<&str, Box<dyn FnMut(&Option<Token>) + '_>>)>> {
+        let std = StdFunc::new(self.env.clone(), self.project.test);
+
+        HashMap::from([
+            (
+                "core",
+                vec![
+                    (
+                        "io",
+                        HashMap::from([
+                            (
+                                "print",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_print(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "eprint",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_print(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "warn",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_warn(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "panic",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_panic(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "exit",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_exit(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "read_num",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_read_num(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "read_str",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_read_str(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "read_char",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_read_char(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "read_bool",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_read_bool(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                        ]),
+                    ),
+                    (
+                        "test",
+                        HashMap::from([(
+                            "assert",
+                            Box::new({
+                                let mut std = std.clone();
+                                move |name2: &Option<Token>| {
+                                    std.load_assert(name2.clone());
+                                }
+                            }) as Box<dyn FnMut(&Option<Token>)>,
+                        )]),
+                    ),
+                ],
+            ),
+            (
+                "literal",
+                vec![
+                    (
+                        "number",
+                        HashMap::from([
+                            (
+                                "sqr",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_sqr(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "add",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_add(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "sub",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_sub(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "mult",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_mult(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "div",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_div(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "rem",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_rem(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "sqrt",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_sqrt(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "cbrt",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_cbrt(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "pow",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_pow(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "log",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_log(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "sin",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_sin(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "asin",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_asin(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "cos",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_cos(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "acos",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_acos(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "tan",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_tan(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "atan",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_atan(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "abs",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_abs(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "floor",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_floor(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "ceil",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_ceil(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "round",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_round(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "signum",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_signum(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "hypot",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_hypot(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "exp",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_exp(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "exp2",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_exp2(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "exp_m1",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_exp_m1(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "ln",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_ln(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "max",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_max(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "min",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_min(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "avg",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_avg(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "to_degrees",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_to_degrees(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "to_radians",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_to_radians(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                        ]),
+                    ),
+                    (
+                        "string",
+                        HashMap::from([
+                            (
+                                "chars_count",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_chars_count(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "contains",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_contains(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "find",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_find(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "ends_with",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_ends_with(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "starts_with",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_starts_with(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "is_empty",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_is_empty(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "len",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_len(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "to_uppercase",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_to_uppercase(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "to_lowercase",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_to_lowercase(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "trim",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_trim(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "trim_end",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_trim_end(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "trim_start",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_trim_start(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "replace",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_replace(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                        ]),
+                    ),
+                ],
+            ),
+        ])
+    }
+
+    pub fn load_std(&mut self, src: String, names: Vec<(Token, Option<Token>)>) {
         let parts: Vec<&str> = src.split("::").collect();
+        let mut std = StdFunc::new(self.env.clone(), self.project.test);
 
         if parts[0] != "std" {
             raw(format!("standard library '{src}' doesn't exist").as_str());
@@ -45,160 +631,49 @@ impl Interpreter {
             return;
         }
 
-        match parts[1] {
-            "core" => self.load_core_module(&parts, names, all),
-            "literal" => self.load_literal_module(&parts, names, all),
-            _ => raw(format!("std module '{}' doesn't exist", parts[1]).as_str()),
-        }
-    }
-
-    fn load_core_module(&self, parts: &[&str], names: Vec<(Token, Option<Token>)>, all: bool) {
-        if parts.len() < 3 {
-            load_core(self.env.clone(), self.project.test);
-            return;
-        }
-
-        match parts[2] {
-            "io" => self.load_core_io(names, all),
-            "test" => self.load_core_test(names, all),
-            _ => raw(format!("std module 'core::{}' doesn't exist", parts[2]).as_str()),
-        }
-    }
-
-    fn load_core_test(&self, names: Vec<(Token, Option<Token>)>, all: bool) {
-        let mut std_core_test = StdCoreTest::new(self.env.clone(), self.project.test);
-        if all {
-            std_core_test.load();
-        } else {
-            for (name, name2) in names {
-                match name.lexeme.as_str() {
-                    "assert" => std_core_test.load_assert(name2),
-                    // "assert_eq" => std_core_test.load_assert_eq(name2),
-                    // "assert_ne" => std_core_test.load_assert_ne(name2),
-                    // "assert_gt" => std_core_test.load_assert_gt(name2),
-                    // "assert_lt" => std_core_test.load_assert_lt(name2),
-                    // "assert_ge" => std_core_test.load_assert_ge(name2),
-                    // "assert_le" => std_core_test.load_assert_le(name2),
-                    _ => raw(
-                        format!("std module 'core::test::{}' doesn't exist", name.lexeme).as_str(),
-                    ),
+        match self.std_map().get_mut(parts[1]) {
+            Some(n) => match n.iter_mut().find(|(i, _)| parts[2] == *i) {
+                Some(m) => {
+                    if names.is_empty() {
+                        match parts[1] {
+                            "core" => match parts[2] {
+                                "io" => std.load_core_io(),
+                                "test" => std.load_core_test(),
+                                _ => raw(format!(
+                                    "std module '{}::{}' doesn't exist",
+                                    parts[1], parts[2]
+                                )
+                                .as_str()),
+                            },
+                            "literal" => match parts[2] {
+                                "number" => std.load_literal_number(),
+                                "string" => std.load_literal_string(),
+                                _ => raw(format!(
+                                    "std module '{}::{}' doesn't exist",
+                                    parts[1], parts[2]
+                                )
+                                .as_str()),
+                            },
+                            _ => raw(format!("std module '{}' doesn't exist", parts[1]).as_str()),
+                        }
+                    }
+                    names.iter().for_each(|(name1, name2)| {
+                        if let Some(l) = m.1.get_mut(&name1.lexeme.as_str()) {
+                            (l)(name2);
+                        } else {
+                            raw(format!(
+                                "std module '{}::{}::{}' doesn't exist",
+                                parts[1], parts[2], parts[3]
+                            )
+                            .as_str())
+                        }
+                    });
                 }
-            }
-        }
-    }
-
-    fn load_core_io(&self, names: Vec<(Token, Option<Token>)>, all: bool) {
-        let mut std_core_io = StdCoreIo::new(self.env.clone());
-        if all {
-            std_core_io.load();
-        } else {
-            for (name, name2) in names {
-                match name.lexeme.as_str() {
-                    "print" => std_core_io.load_print(name2),
-                    "eprint" => std_core_io.load_eprint(name2),
-                    "warn" => std_core_io.load_warn(name2),
-                    "panic" => std_core_io.load_panic(name2),
-                    "exit" => std_core_io.load_exit(name2),
-                    "read_num" => std_core_io.load_read_num(name2),
-                    "read_str" => std_core_io.load_read_str(name2),
-                    "read_char" => std_core_io.load_read_char(name2),
-                    "read_bool" => std_core_io.load_read_bool(name2),
-                    _ => raw(
-                        format!("std module 'core::io::{}' doesn't exist", name.lexeme).as_str(),
-                    ),
+                None => {
+                    raw(format!("std module '{}::{}' doesn't exist", parts[1], parts[2]).as_str())
                 }
-            }
-        }
-    }
-
-    fn load_literal_module(&self, parts: &[&str], names: Vec<(Token, Option<Token>)>, all: bool) {
-        if parts.len() < 3 {
-            load_literal(self.env.clone());
-            return;
-        }
-
-        match parts[2] {
-            "number" => self.load_literal_number(names, all),
-            "string" => self.load_literal_string(names, all),
-            _ => raw(format!("std module 'literal::{}' doesn't exist", parts[2]).as_str()),
-        }
-    }
-
-    fn load_literal_string(&self, names: Vec<(Token, Option<Token>)>, all: bool) {
-        let mut std = StdLiteralString::new(self.env.clone());
-        if all {
-            std.load();
-        }
-
-        for (name, name2) in names {
-            match name.lexeme.as_str() {
-                "chars_count" => std.load_chars_count(name2),
-                "contains" => std.load_contains(name2),
-                "find" => std.load_find(name2),
-                "ends_with" => std.load_ends_with(name2),
-                "starts_with" => std.load_starts_with(name2),
-                "is_empty" => std.load_is_empty(name2),
-                "len" => std.load_len(name2),
-                "to_uppercase" => std.load_to_uppercase(name2),
-                "to_lowercase" => std.load_to_lowercase(name2),
-                "trim" => std.load_trim(name2),
-                "trim_end" => std.load_trim_end(name2),
-                "trim_start" => std.load_trim_start(name2),
-                "replace" => std.load_replace(name2),
-                _ => raw(format!(
-                    "std module 'literal::string::{}' doesn't exist",
-                    name.lexeme
-                )
-                .as_str()),
-            }
-        }
-    }
-
-    fn load_literal_number(&self, names: Vec<(Token, Option<Token>)>, all: bool) {
-        let mut std = StdLiteralNumber::new(self.env.clone());
-        if all {
-            std.load();
-        }
-
-        for (name, name2) in names {
-            match name.lexeme.as_str() {
-                "sqr" => std.load_sqr(name2),
-                "add" => std.load_add(name2),
-                "sub" => std.load_sub(name2),
-                "mult" => std.load_mult(name2),
-                "div" => std.load_div(name2),
-                "rem" => std.load_rem(name2),
-                "sqrt" => std.load_sqrt(name2),
-                "cbrt" => std.load_cbrt(name2),
-                "pow" => std.load_pow(name2),
-                "log" => std.load_log(name2),
-                "sin" => std.load_sin(name2),
-                "asin" => std.load_asin(name2),
-                "cos" => std.load_cos(name2),
-                "acos" => std.load_acos(name2),
-                "tan" => std.load_tan(name2),
-                "atan" => std.load_atan(name2),
-                "abs" => std.load_abs(name2),
-                "floor" => std.load_floor(name2),
-                "ceil" => std.load_ceil(name2),
-                "round" => std.load_round(name2),
-                "signum" => std.load_signum(name2),
-                "hypot" => std.load_hypot(name2),
-                "exp" => std.load_exp(name2),
-                "exp2" => std.load_exp2(name2),
-                "exp_m1" => std.load_exp_m1(name2),
-                "ln" => std.load_ln(name2),
-                "max" => std.load_max(name2),
-                "min" => std.load_min(name2),
-                "avg" => std.load_avg(name2),
-                "to_degrees" => std.load_to_degrees(name2),
-                "to_radians" => std.load_to_radians(name2),
-                _ => raw(format!(
-                    "std module 'literal::number::{}' doesn't exist",
-                    name.lexeme
-                )
-                .as_str()),
-            }
+            },
+            None => raw(format!("std module '{}' doesn't exist", parts[1]).as_str()),
         }
     }
 }

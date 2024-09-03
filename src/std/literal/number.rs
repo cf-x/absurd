@@ -1,21 +1,12 @@
 use crate::{
     ast::{LiteralType, Token, Wrapper},
     errors::raw,
-    interpreter::env::Env,
-    std::func,
+    std::{func, StdFunc},
 };
-use std::{cell::RefCell, process, rc::Rc};
+use std::{process, rc::Rc};
 
-pub struct StdLiteralNumber {
-    env: Rc<RefCell<Env>>,
-}
-
-impl StdLiteralNumber {
-    pub fn new(env: Rc<RefCell<Env>>) -> Self {
-        Self { env }
-    }
-
-    pub fn load(&mut self) {
+impl StdFunc {
+    pub fn load_literal_number(&mut self) {
         self.load_sqr(None);
         self.load_add(None);
         self.load_sub(None);

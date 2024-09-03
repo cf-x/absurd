@@ -1,16 +1,18 @@
 pub mod env;
 pub mod expr;
 pub mod types;
-use crate::ast::{
-    FuncBody, FuncImpl, FuncValueType, LiteralType,
-    Statement::{self, *},
-    Token,
-};
 use crate::bundler::interpreter_mod;
 use crate::errors::{raw, Error, ErrorCode::*};
 use crate::interpreter::types::type_check;
 use crate::manifest::Project;
-use crate::std::core::io::StdCoreIo;
+use crate::{
+    ast::{
+        FuncBody, FuncImpl, FuncValueType, LiteralType,
+        Statement::{self, *},
+        Token,
+    },
+    std::StdFunc,
+};
 use env::{Env, FuncKind, VarKind};
 use expr::Expression;
 use std::cell::RefCell;
@@ -44,8 +46,8 @@ impl Interpreter {
         };
 
         if !project.clone().disable_std && project.clone().load_std {
-            let mut std_core_io = StdCoreIo::new(env);
-            std_core_io.load();
+            let mut std_core_io = StdFunc::new(env, int.project.test);
+            std_core_io.load_core_io();
         }
         int
     }
@@ -65,8 +67,8 @@ impl Interpreter {
             project: Project::new(),
         };
         if is_mod {
-            let mut std_core_io = StdCoreIo::new(env);
-            std_core_io.load();
+            let mut std_core_io = StdFunc::new(env, false);
+            std_core_io.load_core_io();
         }
         int
     }
@@ -463,11 +465,7 @@ impl Interpreter {
                     }
 
                     if src.clone().contains("::") {
-                        self.load_std(
-                            src.trim_matches('"').to_string().clone(),
-                            names.clone(),
-                            all.clone(),
-                        );
+                        self.load_std(src.trim_matches('"').to_string().clone(), names.clone());
                     } else {
                         let mod_vals = self.env.borrow().mod_vals.borrow().clone();
                         let vals = match mod_vals.get(src) {

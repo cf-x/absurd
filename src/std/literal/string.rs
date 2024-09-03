@@ -1,22 +1,13 @@
-use std::{cell::RefCell, rc::Rc};
+use std::rc::Rc;
 
 use crate::{
     ast::{LiteralType, Token, Wrapper},
     errors::raw,
-    interpreter::env::Env,
-    std::func,
+    std::{func, StdFunc},
 };
 
-pub struct StdLiteralString {
-    env: Rc<RefCell<Env>>,
-}
-
-impl StdLiteralString {
-    pub fn new(env: Rc<RefCell<Env>>) -> Self {
-        Self { env }
-    }
-
-    pub fn load(&mut self) {
+impl StdFunc {
+    pub fn load_literal_string(&mut self) {
         self.load_string(None);
         // self.load_chars(None);
         self.load_chars_count(None);

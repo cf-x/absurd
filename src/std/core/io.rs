@@ -1,22 +1,13 @@
 use crate::{
     ast::{LiteralType, Token, Wrapper},
     errors::raw,
-    interpreter::env::Env,
-    std::func,
+    std::{func, StdFunc},
 };
 use colored::Colorize;
-use std::{cell::RefCell, process::exit, rc::Rc};
+use std::{process::exit, rc::Rc};
 
-pub struct StdCoreIo {
-    env: Rc<RefCell<Env>>,
-}
-
-impl StdCoreIo {
-    pub fn new(env: Rc<RefCell<Env>>) -> Self {
-        Self { env }
-    }
-
-    pub fn load(&mut self) {
+impl StdFunc {
+    pub fn load_core_io(&mut self) {
         self.load_print(None);
         self.load_eprint(None);
         self.load_warn(None);
