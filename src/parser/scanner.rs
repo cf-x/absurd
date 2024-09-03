@@ -32,7 +32,7 @@ impl<'a> Scanner<'a> {
                 ("let", Let),
                 ("if", If),
                 ("else", Else),
-                ("elif", ElseIf),
+                ("elif", Elif),
                 ("return", Return),
                 ("while", While),
                 ("loop", Loop),
@@ -51,8 +51,8 @@ impl<'a> Scanner<'a> {
                 ("func", Func),
                 ("true", TrueLit),
                 ("false", FalseLit),
-                ("number", NumberIdent),
-                ("string", StringIdent),
+                ("number", NumIdent),
+                ("string", StrIdent),
                 ("char", CharIdent),
                 ("bool", BoolIdent),
                 ("null", Null),
@@ -106,29 +106,29 @@ impl<'a> Scanner<'a> {
         match c {
             // single character tokens
             '_' => self.push(Underscore, None),
-            '%' => self.push(Percent, None),
-            '(' => self.push(LeftParen, None),
-            ')' => self.push(RightParen, None),
-            '{' => self.push(LeftBrace, None),
-            '}' => self.push(RightBrace, None),
-            '[' => self.push(LeftBracket, None),
-            ']' => self.push(RightBracket, None),
+            '%' => self.push(Prcnt, None),
+            '(' => self.push(LParen, None),
+            ')' => self.push(RParen, None),
+            '{' => self.push(LBrace, None),
+            '}' => self.push(RBrace, None),
+            '[' => self.push(LBracket, None),
+            ']' => self.push(RBracket, None),
             ';' => self.push(Semi, None),
             ',' => self.push(Comma, None),
-            '?' => self.push(Queston, None),
+            '?' => self.push(Qstn, None),
             // double character tokens
             ':' => self.dbl_char(':', Colon, DblColon),
-            '!' => self.mult_char(Not, &[('=', NotEq), ('!', NotNot)]),
-            '&' => self.dbl_char('&', And, AndAnd),
-            '+' => self.mult_char(Plus, &[('+', Increment), ('=', PlusEq)]),
-            '-' => self.mult_char(Minus, &[('>', Arrow), ('-', Decr), ('=', MinEq)]),
-            '*' => self.mult_char(Mult, &[('=', MultEq), ('*', Square)]),
+            '!' => self.mult_char(Bang, &[('=', BangEq), ('!', DblBang)]),
+            '&' => self.dbl_char('&', And, DblAnd),
+            '+' => self.mult_char(Plus, &[('+', Incr), ('=', PlusEq)]),
+            '-' => self.mult_char(Min, &[('>', Arrow), ('-', Decr), ('=', MinEq)]),
+            '*' => self.mult_char(Mul, &[('=', MulEq), ('*', Sqr)]),
             '=' => self.mult_char(Assign, &[('=', Eq), ('>', ArrowBig)]),
             '|' => self.dbl_char('|', Pipe, Or),
-            '.' => self.dbl_char('.', Dot, DotDot),
-            '<' => self.dbl_char('=', Less, LessOrEq),
-            '>' => self.dbl_char('=', Greater, GreaterOrEq),
-            '\\' => self.mult_char(Escape, &[('{', StartParse), ('}', EndParse)]),
+            '.' => self.dbl_char('.', Dot, DblDot),
+            '<' => self.dbl_char('=', Ls, LsOrEq),
+            '>' => self.dbl_char('=', Gr, GrOrEq),
+            '\\' => self.mult_char(Esc, &[('{', LParse), ('}', RParse)]),
             // whitespaces and comments
             '/' => self.div(),
             '#' => self.line_comment(),
@@ -180,7 +180,7 @@ impl<'a> Scanner<'a> {
                 self.advance();
                 self.push(DivEq, None);
             }
-            _ => self.push(Divide, None),
+            _ => self.push(Div, None),
         }
     }
 
@@ -246,7 +246,7 @@ impl<'a> Scanner<'a> {
         }
         self.advance();
         let value: String = self.src[self.start + 1..self.crnt - 1].to_string();
-        self.push(StringLit, Some(LiteralKind::String { value }));
+        self.push(StrLit, Some(LiteralKind::String { value }));
     }
 
     /// handles identifier, Unicode emoji, '_' or alphanumeric
@@ -268,7 +268,7 @@ impl<'a> Scanner<'a> {
                 'x' => self.parse_numlit(16, Base::Hexadecimal),
                 '0'..='9' | '_' | '.' => self.parse_numlit(10, Base::Decimal),
                 _ => self.push(
-                    NumberLit,
+                    NumLit,
                     Some(LiteralKind::Number {
                         base: Base::Decimal,
                         value: 0.0,
@@ -306,7 +306,7 @@ impl<'a> Scanner<'a> {
                 0.0
             }
         };
-        self.push(NumberLit, Some(LiteralKind::Number { base, value }));
+        self.push(NumLit, Some(LiteralKind::Number { base, value }));
     }
 
     /// just as name says, pushes tokens

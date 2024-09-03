@@ -65,7 +65,7 @@ impl Parser {
             Mod => self.mods(),
             Use => self.uses(),
             Enum => self.enums(),
-            LeftBrace => self.block_stmt(),
+            LBrace => self.block_stmt(),
             TypeStmt => self.types(),
             _ => self.exprs(),
         }
@@ -85,7 +85,7 @@ impl Parser {
             is_pub = true;
             // if `(` comes, public names will be parsed
             // example: `let pub(name2) name1 ...`
-            if self.if_token_consume(LeftParen) {
+            if self.if_token_consume(LParen) {
                 loop {
                     // allow empty names, to don't publish certain names
                     // `let pub(_, name3) name1, name2 ...
@@ -101,19 +101,19 @@ impl Parser {
                         let name = self.consume(Ident);
                         pub_names.push(name);
                     }
-                    if !self.if_token_consume(Comma) || self.is_token(RightParen) {
+                    if !self.if_token_consume(Comma) || self.is_token(RParen) {
                         break;
                     }
                 }
-                self.consume(RightParen);
+                self.consume(RParen);
             }
         }
 
         // if `[` is peeked, variable is destructuring an array,
         // example: `let [item1, item2]: <number> = [0, 1];`
-        if self.if_token_consume(LeftBracket) {
+        if self.if_token_consume(LBracket) {
             is_arr_dest = true;
-            while !self.if_token_consume(RightBracket) {
+            while !self.if_token_consume(RBracket) {
                 // allow empty values
                 // example: `let [item1, _]: <number> = [0, 1];`
                 // @todo: `let [item1, ..] ...`, `let [.., item1] ...`
@@ -134,7 +134,7 @@ impl Parser {
                 }
                 self.advance();
             }
-            self.consume(RightBracket);
+            self.consume(RBracket);
         } else {
             // normally parse through names.
             // if name ends with `;`, return null
@@ -248,15 +248,15 @@ impl Parser {
         let name = self.consume(Ident);
 
         // handles parameters, `...(i: T, i: T)...`
-        self.consume(LeftParen);
-        while !self.if_token_consume(RightParen) {
+        self.consume(LParen);
+        while !self.if_token_consume(RParen) {
             if self.is_token(Ident) {
                 let param_name = self.consume(Ident);
                 self.consume(Colon);
                 let param_type = self.consume_type();
                 params.push((param_name, param_type))
             } else if self.if_token_consume(Comma) {
-            } else if !self.is_token(RightParen) {
+            } else if !self.is_token(RParen) {
                 self.throw_error(E0x201, vec![self.peek().lexeme]);
             }
         }
@@ -281,7 +281,7 @@ impl Parser {
         }
 
         // standard block parsing
-        self.consume(LeftBrace);
+        self.consume(LBrace);
         let body = self.block_stmts();
         self.log("function statement");
         Statement::Func {
@@ -315,7 +315,7 @@ impl Parser {
         let body = self.block_stmts();
         let mut else_if_branches = vec![];
         // parse elifs
-        while self.if_token_consume(ElseIf) {
+        while self.if_token_consume(Elif) {
             let elif_preds = self.expr();
             let elif_stmt = self.block_stmts();
             else_if_branches.push((elif_preds, elif_stmt))
@@ -348,8 +348,8 @@ impl Parser {
     fn loops(&mut self) -> Statement {
         self.start("loop statement");
         // checks if iterator index is there
-        let iter = if self.is_token(NumberLit) {
-            let num = match self.consume(NumberLit).value {
+        let iter = if self.is_token(NumLit) {
+            let num = match self.consume(NumLit).value {
                 Some(LiteralKind::Number { value, .. }) => value,
                 _ => self.throw_error(E0x202, vec![self.peek().lexeme]),
             };
@@ -376,7 +376,7 @@ impl Parser {
     fn matchs(&mut self) -> Statement {
         self.start("match statement");
         let cond = self.expr();
-        self.consume(LeftBrace);
+        self.consume(LBrace);
         let mut cases = vec![];
 
         // match can only "match" literals and Enums
@@ -384,9 +384,9 @@ impl Parser {
             let expr = self.expr();
             self.consume(ArrowBig);
             // consume block
-            if self.if_token_advance(LeftBrace) {
+            if self.if_token_advance(LBrace) {
                 let body = self.block_stmts();
-                self.consume(RightBrace);
+                self.consume(RBrace);
                 cases.push((expr, FuncBody::Statements(body)))
             } else {
                 // consume expression
@@ -400,7 +400,7 @@ impl Parser {
         // default branch `_ => {}`
         if self.if_token_consume(Underscore) {
             self.consume(ArrowBig);
-            if self.if_token_consume(LeftBrace) {
+            if self.if_token_consume(LBrace) {
                 let body = self.block_stmts();
                 def_case = FuncBody::Statements(body)
             } else {
@@ -413,7 +413,7 @@ impl Parser {
             cases,
             def_case,
         };
-        self.consume(RightBrace);
+        self.consume(RBrace);
         self.log("match statement");
         stmt
     }
@@ -421,7 +421,7 @@ impl Parser {
     // very simple syntax
     fn shs(&mut self) -> Statement {
         self.start("sh statement");
-        let cmd = self.consume(StringLit).lexeme;
+        let cmd = self.consume(StrLit).lexeme;
         self.consume(Semi);
         self.log("sh statement");
         Statement::Sh { cmd }
@@ -429,7 +429,7 @@ impl Parser {
 
     fn mods(&mut self) -> Statement {
         self.start("mod statement");
-        let src = self.consume(StringLit).lexeme;
+        let src = self.consume(StrLit).lexeme;
         self.consume(Semi);
         self.log("mod statement");
         Statement::Mod { src }
@@ -440,7 +440,7 @@ impl Parser {
         let mut names = vec![];
         let mut all = false;
         // `use * from ""`, imports everything
-        if self.if_token_advance(Mult) {
+        if self.if_token_advance(Mul) {
             all = true;
             self.consume(From);
         } else {
@@ -458,7 +458,7 @@ impl Parser {
                 self.if_token_consume(Comma);
             }
         }
-        let src = self.consume(StringLit).lexeme;
+        let src = self.consume(StrLit).lexeme;
         self.consume(Semi);
         self.log("use statement");
         Statement::Use { src, names, all }
@@ -468,14 +468,14 @@ impl Parser {
         self.start("enum statement");
         let is_pub = self.if_token_consume(Pub);
         let name = self.consume_uppercase_ident();
-        self.consume(LeftBrace);
+        self.consume(LBrace);
 
         let mut enums = vec![];
         // block with uppercase identifiers
-        while !self.if_token_consume(RightBrace) {
+        while !self.if_token_consume(RBrace) {
             let enm = self.consume(Ident);
             enums.push(enm);
-            if !self.if_token_consume(Comma) && !self.is_token(RightBrace) {
+            if !self.if_token_consume(Comma) && !self.is_token(RBrace) {
                 self.throw_error(E0x201, vec![self.peek().lexeme]);
             }
         }
@@ -506,7 +506,7 @@ impl Parser {
     fn block_stmts(&mut self) -> Vec<Statement> {
         match self.block_stmt() {
             Statement::Block { stmts } => {
-                self.consume(RightBrace);
+                self.consume(RBrace);
                 stmts
             }
             _ => self.throw_error(E0x203, vec!["a block statement".to_string()]),
@@ -516,7 +516,7 @@ impl Parser {
     fn block_stmt(&mut self) -> Statement {
         self.start("block statement");
         let mut stmts = vec![];
-        while !self.is_token(RightBrace) && !self.is_token(Eof) {
+        while !self.is_token(RBrace) && !self.is_token(Eof) {
             let stmt = self.stmt();
             stmts.push(stmt);
         }

@@ -1,6 +1,6 @@
-use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
-use crate::ast::{LiteralKind, LiteralType, Token, TokenType};
 use super::{env::Env, expr::Expression};
+use crate::ast::{LiteralKind, LiteralType, Token, TokenType};
+use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeKind {
@@ -115,11 +115,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
                                     line: name.line,
                                     pos: name.pos,
                                 };
-                                return type_check(
-                                    &field_token,
-                                    &v.eval(env.clone()),
-                                    env,
-                                );
+                                return type_check(&field_token, &v.eval(env.clone()), env);
                             }
                             false
                         });
@@ -128,13 +124,13 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
             }
             false
         }
-        TokenType::NumberIdent => {
+        TokenType::NumIdent => {
             if val.type_name() == "function" {
                 return true;
             }
             matches!(val, LiteralType::Number(_))
         }
-        TokenType::StringIdent => matches!(val, LiteralType::String(_)),
+        TokenType::StrIdent => matches!(val, LiteralType::String(_)),
         TokenType::BoolIdent => matches!(val, LiteralType::Boolean(_)),
         TokenType::CharIdent => matches!(val, LiteralType::Char(_)),
         TokenType::Null => matches!(val, LiteralType::Null),
@@ -188,19 +184,19 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
             }
         }
         TokenType::AnyIdent => true,
-        TokenType::NumberLit
-        | TokenType::StringLit
+        TokenType::NumLit
+        | TokenType::StrLit
         | TokenType::TrueLit
         | TokenType::FalseLit
         | TokenType::CharLit
-        | TokenType::ArrayLit => {
+        | TokenType::ArrLit => {
             match *val {
                 LiteralType::Number(ref num) => {
-                    return matches!(value_type.token, TokenType::NumberLit)
+                    return matches!(value_type.token, TokenType::NumLit)
                         && matches!(literalkind_to_literaltype(value_type.value.clone().unwrap_or(LiteralKind::Null)), LiteralType::Number(ref n) if n == num);
                 }
                 LiteralType::String(ref s) => {
-                    return matches!(value_type.token, TokenType::StringLit)
+                    return matches!(value_type.token, TokenType::StrLit)
                         && matches!(literalkind_to_literaltype(value_type.value.clone().unwrap_or(LiteralKind::Null)), LiteralType::String(ref n) if n == s);
                 }
                 LiteralType::Boolean(ref b) => {
@@ -212,7 +208,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
                         && matches!(literalkind_to_literaltype(value_type.value.clone().unwrap_or(LiteralKind::Null)), LiteralType::Char(ref n) if n == c);
                 }
                 LiteralType::Array(ref v) => {
-                    return matches!(value_type.token, TokenType::ArrayLit)
+                    return matches!(value_type.token, TokenType::ArrLit)
                         && matches!(literalkind_to_literaltype(value_type.value.clone().unwrap_or(LiteralKind::Null)), LiteralType::Array(ref n) if n == v);
                 }
                 LiteralType::Null => {
@@ -285,8 +281,8 @@ pub fn typekind_to_literaltype(kind: TypeKind) -> LiteralType {
 
 pub fn string_to_tokentype(s: &str) -> TokenType {
     match s {
-        "number" => TokenType::NumberIdent,
-        "string" => TokenType::StringIdent,
+        "number" => TokenType::NumIdent,
+        "string" => TokenType::StrIdent,
         "boolean" => TokenType::BoolIdent,
         "char" => TokenType::CharIdent,
         "null" => TokenType::Null,

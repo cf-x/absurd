@@ -1,7 +1,6 @@
 pub mod literals;
 use std::{
     cell::RefCell,
-    
     fmt::{self, Debug},
     rc::Rc,
 };
@@ -12,27 +11,25 @@ use crate::interpreter::{env::Env, expr::Expression, types::TypeKind};
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     /// !
-    Not,
+    Bang,
     /// !!
-    NotNot,
-    /// ~
-    Tilde,
+    DblBang,
     /// %
-    Percent,
+    Prcnt,
     /// &
     And,
     /// &&
-    AndAnd,
+    DblAnd,
     /// `*`
-    Mult,
+    Mul,
     /// **
-    Square,
+    Sqr,
     /// (
-    LeftParen,
+    LParen,
     /// )
-    RightParen,
+    RParen,
     /// -
-    Minus,
+    Min,
     /// --
     Decr,
     /// ->
@@ -44,29 +41,29 @@ pub enum TokenType {
     /// +
     Plus,
     /// ++
-    Increment,
+    Incr,
     /// =
     Assign,
     /// ==
     Eq,
     /// !=
-    NotEq,
+    BangEq,
     /// +=
     PlusEq,
     /// -=
     MinEq,
     /// *=
-    MultEq,
+    MulEq,
     /// /=
     DivEq,
     /// {
-    LeftBrace,
+    LBrace,
     /// }
-    RightBrace,
+    RBrace,
     /// [
-    LeftBracket,
+    LBracket,
     /// ]
-    RightBracket,
+    RBracket,
     /// ;
     Semi,
     /// :
@@ -76,40 +73,40 @@ pub enum TokenType {
     /// char
     CharLit,
     /// string
-    StringLit,
+    StrLit,
     /// number
-    NumberLit,
+    NumLit,
     /// true
     TrueLit,
     /// false
     FalseLit,
     /// array
     #[allow(dead_code)]
-    ArrayLit,
+    ArrLit,
     /// <
-    Less,
+    Ls,
     /// <=
-    LessOrEq,
+    LsOrEq,
     /// >
-    Greater,
+    Gr,
     /// >=
-    GreaterOrEq,
+    GrOrEq,
     /// ,
     Comma,
     /// .
     Dot,
     /// ..
-    DotDot,
+    DblDot,
     /// /
-    Divide,
+    Div,
     /// \
-    Escape,
+    Esc,
     /// \{
-    StartParse,
+    LParse,
     /// \}
-    EndParse,
+    RParse,
     /// ?
-    Queston,
+    Qstn,
     /// |
     Pipe,
     /// ||
@@ -124,8 +121,8 @@ pub enum TokenType {
     If,
     /// else
     Else,
-    /// else if
-    ElseIf,
+    /// elif
+    Elif,
     /// return
     Return,
     /// while
@@ -163,9 +160,9 @@ pub enum TokenType {
     /// sh
     Sh,
     /// number
-    NumberIdent,
+    NumIdent,
     /// string
-    StringIdent,
+    StrIdent,
     /// char
     CharIdent,
     /// bool

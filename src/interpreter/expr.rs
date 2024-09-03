@@ -1,8 +1,8 @@
 use super::env::{Env, ValueKind, ValueType, VarKind};
 use super::types::TypeKind;
 use crate::ast::{LiteralKind, Statement};
-use crate::interpreter::types::{type_check, typekind_to_literaltype};
 use crate::errors::{Error, ErrorCode::*};
+use crate::interpreter::types::{type_check, typekind_to_literaltype};
 use crate::manifest::Project;
 use crate::{
     ast::{CallType, FuncBody, FuncImpl, FuncValueType, LiteralType, Token, TokenType::*},
@@ -597,12 +597,12 @@ impl Expression {
     ) -> LiteralType {
         let left = left.eval(Rc::clone(&env));
         match (operator.clone().token, left.clone()) {
-            (Minus, LiteralType::Number(a)) => LiteralType::Number(-a),
-            (Not, _) => LiteralType::Boolean(!left.is_truthy()),
-            (NotNot, _) => LiteralType::Boolean(!!left.is_truthy()),
-            (Square, LiteralType::Number(a)) => LiteralType::Number(a * a),
+            (Min, LiteralType::Number(a)) => LiteralType::Number(-a),
+            (Bang, _) => LiteralType::Boolean(!left.is_truthy()),
+            (DblBang, _) => LiteralType::Boolean(!!left.is_truthy()),
+            (Sqr, LiteralType::Number(a)) => LiteralType::Number(a * a),
             (Decr, LiteralType::Number(a)) => LiteralType::Number(a - 1.0),
-            (Increment, LiteralType::Number(a)) => LiteralType::Number(a + 1.0),
+            (Incr, LiteralType::Number(a)) => LiteralType::Number(a + 1.0),
             _ => LiteralType::Null,
         }
     }
@@ -623,73 +623,73 @@ impl Expression {
                 }
                 return right;
             }
-            (_, AndAnd, _) => {
+            (_, DblAnd, _) => {
                 if !left.is_truthy() {
                     return left.is_truthy_literal();
                 }
                 return right;
             }
-            (LiteralType::Number(a), Percent, LiteralType::Number(b)) => {
+            (LiteralType::Number(a), Prcnt, LiteralType::Number(b)) => {
                 return LiteralType::Number(a % b);
             }
-            (LiteralType::Number(a), Mult, LiteralType::Number(b)) => {
+            (LiteralType::Number(a), Mul, LiteralType::Number(b)) => {
                 return LiteralType::Number(a * b);
             }
-            (LiteralType::Number(a), Minus, LiteralType::Number(b)) => {
+            (LiteralType::Number(a), Min, LiteralType::Number(b)) => {
                 return LiteralType::Number(a - b);
             }
-            (LiteralType::Number(a), Divide, LiteralType::Number(b)) => {
+            (LiteralType::Number(a), Div, LiteralType::Number(b)) => {
                 return LiteralType::Number(a / b);
             }
             (LiteralType::Number(a), Plus, LiteralType::Number(b)) => {
                 return LiteralType::Number(a + b);
             }
-            (LiteralType::Number(a), Greater, LiteralType::Number(b)) => {
+            (LiteralType::Number(a), Gr, LiteralType::Number(b)) => {
                 return LiteralType::Boolean(a > b);
             }
-            (LiteralType::Number(a), GreaterOrEq, LiteralType::Number(b)) => {
+            (LiteralType::Number(a), GrOrEq, LiteralType::Number(b)) => {
                 return LiteralType::Boolean(a >= b);
             }
-            (LiteralType::Number(a), Less, LiteralType::Number(b)) => {
+            (LiteralType::Number(a), Ls, LiteralType::Number(b)) => {
                 return LiteralType::Boolean(a < b);
             }
-            (LiteralType::Number(a), LessOrEq, LiteralType::Number(b)) => {
+            (LiteralType::Number(a), LsOrEq, LiteralType::Number(b)) => {
                 return LiteralType::Boolean(a <= b);
             }
             (LiteralType::Number(a), Eq, LiteralType::Number(b)) => {
                 return LiteralType::Boolean(a == b);
             }
-            (LiteralType::Number(a), NotEq, LiteralType::Number(b)) => {
+            (LiteralType::Number(a), BangEq, LiteralType::Number(b)) => {
                 return LiteralType::Boolean(a != b);
             }
             (LiteralType::String(a), Eq, LiteralType::String(b)) => {
                 return LiteralType::Boolean(a == b);
             }
-            (LiteralType::String(a), NotEq, LiteralType::String(b)) => {
+            (LiteralType::String(a), BangEq, LiteralType::String(b)) => {
                 return LiteralType::Boolean(a != b);
             }
             (LiteralType::Char(a), Eq, LiteralType::Char(b)) => {
                 return LiteralType::Boolean(a == b);
             }
-            (LiteralType::Char(a), NotEq, LiteralType::Char(b)) => {
+            (LiteralType::Char(a), BangEq, LiteralType::Char(b)) => {
                 return LiteralType::Boolean(a != b);
             }
             (LiteralType::Boolean(a), Eq, LiteralType::Boolean(b)) => {
                 return LiteralType::Boolean(a == b);
             }
-            (LiteralType::Boolean(a), NotEq, LiteralType::Boolean(b)) => {
+            (LiteralType::Boolean(a), BangEq, LiteralType::Boolean(b)) => {
                 return LiteralType::Boolean(a != b);
             }
             (LiteralType::Null, Eq, LiteralType::Null) => {
                 return LiteralType::Boolean(true);
             }
-            (LiteralType::Null, NotEq, LiteralType::Null) => {
+            (LiteralType::Null, BangEq, LiteralType::Null) => {
                 return LiteralType::Boolean(false);
             }
             (_, Eq, _) => {
                 return LiteralType::Boolean(false);
             }
-            (_, NotEq, _) => {
+            (_, BangEq, _) => {
                 return LiteralType::Boolean(false);
             }
             _ => LiteralType::Null,

@@ -14,7 +14,9 @@ mod manifest;
 pub const VERSION: &str = "0.16.0";
 
 fn main() {
+    // load manifest
     let mut project = Project::new();
     project.load();
+    // load cli
     cli(&mut project);
 }

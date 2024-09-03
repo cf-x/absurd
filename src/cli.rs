@@ -1,3 +1,4 @@
+// well, handles CLI
 use std::{
     env,
     fs::File,

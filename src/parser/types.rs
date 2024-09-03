@@ -24,7 +24,7 @@ impl Parser {
                 line: left.line,
             };
         // T?
-        } else if self.if_token_consume(Queston) {
+        } else if self.if_token_consume(Qstn) {
             let mut null = Token {
                 token: Null,
                 lexeme: "null".to_string(),
@@ -50,20 +50,21 @@ impl Parser {
     fn primary_type(&mut self) -> Token {
         match self.peek().token {
             // {i: T, i: T}
-            LeftBrace => self.parse_obj_type(),
+            LBrace => self.parse_obj_type(),
             // <i>
-            Less => self.parse_array_type(),
+            Ls => self.parse_array_type(),
             // |i, i| i
             Pipe => self.parse_func_type(),
             // literal types
-            StringLit | NumberLit | CharLit | Null | TrueLit | ArrayLit | FalseLit => {
+            StrLit | NumLit | CharLit | Null | TrueLit | ArrLit | FalseLit => {
                 self.parse_literal_type()
             }
             // for calling aliases
             Ident => self.parse_ident_type(),
             // standard types
-            AnyIdent | BoolIdent | CharIdent | VoidIdent | ArrayIdent | NumberIdent
-            | StringIdent => self.parse_builtin_type(),
+            AnyIdent | BoolIdent | CharIdent | VoidIdent | ArrayIdent | NumIdent | StrIdent => {
+                self.parse_builtin_type()
+            }
             c => Token {
                 token: c,
                 lexeme: self.peek().lexeme.clone(),
@@ -76,15 +77,15 @@ impl Parser {
 
     fn parse_obj_type(&mut self) -> Token {
         let mut fields = vec![];
-        self.consume(LeftBrace);
-        while !self.if_token_consume(RightBrace) {
+        self.consume(LBrace);
+        while !self.if_token_consume(RBrace) {
             let ident = self.consume(Ident);
             self.consume(Colon);
 
             let value = self.consume_type();
             fields.push((ident, TypeKind::Var { name: value }));
             if !self.if_token_consume(Comma) {
-                self.consume(RightBrace);
+                self.consume(RBrace);
                 break;
             }
         }
@@ -106,14 +107,7 @@ impl Parser {
 
     fn parse_builtin_type(&mut self) -> Token {
         let token = self.consume_some(&[
-            AnyIdent,
-            BoolIdent,
-            CharIdent,
-            Null,
-            VoidIdent,
-            ArrayIdent,
-            NumberIdent,
-            StringIdent,
+            AnyIdent, BoolIdent, CharIdent, Null, VoidIdent, ArrayIdent, NumIdent, StrIdent,
         ]);
         let value = Some(LiteralKind::Type(Box::new(TypeKind::Var {
             name: token.clone(),
@@ -183,18 +177,18 @@ impl Parser {
     }
 
     fn parse_array_type(&mut self) -> Token {
-        self.consume(Less);
-        if self.if_token_consume(LeftParen) {
+        self.consume(Ls);
+        if self.if_token_consume(LParen) {
             let mut statics: Vec<TypeKind> = vec![];
-            while !self.if_token_consume(RightParen) {
+            while !self.if_token_consume(RParen) {
                 let static_size = self.consume_type();
                 statics.push(TypeKind::Var { name: static_size });
-                if !self.if_token_consume(Comma) && !self.is_token(RightParen) {
+                if !self.if_token_consume(Comma) && !self.is_token(RParen) {
                     self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
                 }
             }
             let typ = self.consume_type();
-            self.consume(Greater);
+            self.consume(Gr);
             return Token {
                 token: ArrayIdent,
                 lexeme: typ.lexeme,
@@ -208,7 +202,7 @@ impl Parser {
         }
 
         let typ = self.consume_type();
-        self.consume(Greater);
+        self.consume(Gr);
         Token {
             token: ArrayIdent,
             lexeme: typ.clone().lexeme,

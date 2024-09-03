@@ -12,14 +12,14 @@ impl Parser {
     /// extracts values from token
     pub fn to_value_type(&mut self, token: Token) -> LiteralType {
         match token.token {
-            NumberLit => {
+            NumLit => {
                 if let Some(LiteralKind::Number { value, .. }) = token.value {
                     LiteralType::Number(value)
                 } else {
                     self.throw_error(E0x202, vec![self.peek().lexeme])
                 }
             }
-            StringLit => {
+            StrLit => {
                 if let Some(LiteralKind::String { value }) = token.value {
                     LiteralType::String(value)
                 } else {
@@ -43,7 +43,7 @@ impl Parser {
     #[inline]
     /// well, checks if token is literal
     pub fn is_literal(&self) -> bool {
-        self.are_tokens(&[NumberLit, StringLit, CharLit, TrueLit, FalseLit, Null])
+        self.are_tokens(&[NumLit, StrLit, CharLit, TrueLit, FalseLit, Null])
     }
 
     #[inline]

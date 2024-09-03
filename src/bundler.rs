@@ -1,3 +1,4 @@
+// bundles multiple parts together
 use colored::Colorize;
 use std::{cell::RefCell, rc::Rc, time::Instant};
 

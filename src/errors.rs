@@ -1,3 +1,4 @@
+// handles Absurd errors
 use super::manifest::Project;
 use colored::Colorize;
 use std::process::exit;

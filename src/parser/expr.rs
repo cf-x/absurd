@@ -21,7 +21,7 @@ impl Parser {
             Assign => self.assign(&expr, AssignKind::Normal),
             PlusEq => self.assign(&expr, AssignKind::Plus),
             MinEq => self.assign(&expr, AssignKind::Minus),
-            MultEq => self.assign(&expr, AssignKind::Mult),
+            MulEq => self.assign(&expr, AssignKind::Mult),
             DivEq => self.assign(&expr, AssignKind::Div),
             _ => {
                 self.retreat();
@@ -41,15 +41,15 @@ impl Parser {
                     name: token,
                 }
             }
-            LeftBracket => {
+            LBracket => {
                 self.advance();
                 self.arr_expr()
             }
-            LeftBrace => {
+            LBrace => {
                 self.advance();
                 self.obj_expr()
             }
-            LeftParen => {
+            LParen => {
                 if self.prev(1).token == Ident {
                     self.advance();
                     self.func_call()
@@ -74,10 +74,10 @@ impl Parser {
     }
 
     fn call(&mut self) -> Expression {
-        if self.is_token(LeftBracket) && self.prev(1).token == Ident {
+        if self.is_token(LBracket) && self.prev(1).token == Ident {
             self.advance();
             let arr = self.array_call();
-            self.consume(RightBracket);
+            self.consume(RBracket);
             return arr;
         }
         let mut expr = self.method();
@@ -97,10 +97,10 @@ impl Parser {
                 DblColon => {
                     expr = self.enum_call();
                 }
-                LeftParen => {
+                LParen => {
                     expr = self.func_call();
                 }
-                LeftBracket => {
+                LBracket => {
                     expr = self.array_call();
                 }
                 Ident => {
@@ -116,7 +116,7 @@ impl Parser {
     }
 
     fn unary(&mut self) -> Expression {
-        if self.are_tokens(&[Not, NotNot, Queston, Decr, Increment, Minus]) {
+        if self.are_tokens(&[Bang, DblBang, Qstn, Decr, Incr, Min]) {
             self.advance();
             let operator = self.prev(1).clone();
             let rhs = self.unary();
@@ -134,21 +134,7 @@ impl Parser {
     fn binary(&mut self) -> Expression {
         let mut expr = self.unary();
         while self.are_tokens(&[
-            Plus,
-            Minus,
-            Mult,
-            Divide,
-            Percent,
-            AndAnd,
-            Or,
-            Eq,
-            NotEq,
-            Greater,
-            GreaterOrEq,
-            Less,
-            LessOrEq,
-            Square,
-            And,
+            Plus, Min, Mul, Div, Prcnt, DblAnd, Or, Eq, BangEq, Gr, GrOrEq, Ls, LsOrEq, Sqr, And,
         ]) {
             self.advance();
             let operator = self.prev(1).clone();
@@ -179,12 +165,12 @@ impl Parser {
 
     fn obj_expr(&mut self) -> Expression {
         let mut fields = vec![];
-        while !self.if_token_consume(RightBrace) {
+        while !self.if_token_consume(RBrace) {
             let key = self.consume(Ident).clone();
             self.consume(Colon);
             let value = self.expr();
             fields.push((key.lexeme, value));
-            if !self.if_token_consume(Comma) && !self.is_token(RightBrace) {
+            if !self.if_token_consume(Comma) && !self.is_token(RBrace) {
                 self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
             }
         }
@@ -196,10 +182,10 @@ impl Parser {
 
     fn arr_expr(&mut self) -> Expression {
         let mut items = vec![];
-        while !self.if_token_consume(RightBracket) {
+        while !self.if_token_consume(RBracket) {
             let e = self.expr();
             items.push(e);
-            if !self.if_token_consume(Comma) && !self.is_token(RightBracket) {
+            if !self.if_token_consume(Comma) && !self.is_token(RBracket) {
                 self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
             }
         }
@@ -212,7 +198,7 @@ impl Parser {
     fn group_expr(&mut self) -> Expression {
         self.advance();
         let expr = self.expr();
-        self.consume(RightParen);
+        self.consume(RParen);
         Expression::Grouping {
             id: self.id(),
             expression: Box::new(expr),
@@ -278,7 +264,7 @@ impl Parser {
                 is_pub,
             };
         }
-        self.consume(LeftBrace);
+        self.consume(LBrace);
         let body = self.block_stmts();
         Expression::Func {
             id: self.id(),

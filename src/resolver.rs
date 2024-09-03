@@ -1,3 +1,4 @@
+// Absurd resolver, it resolves statements and returns locals
 use crate::ast::{FuncBody, Statement, Token};
 use crate::errors::{Error, ErrorCode::*};
 use crate::interpreter::env::Env;
@@ -26,34 +27,37 @@ impl Resolver {
         }
     }
 
+    /// entry method
     pub fn resolve(
         &mut self,
         stmts: &[Statement],
         env: &Rc<RefCell<Env>>,
     ) -> HashMap<usize, usize> {
-        stmts.iter().for_each(|stmt| self.resolve_int(stmt, env));
+        stmts.iter().for_each(|stmt| self.resolve_stmt(stmt, env));
         self.locals.clone()
     }
 
-    fn resolve_int(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
+    /// statement resolver
+    fn resolve_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
         match stmt {
-            Statement::If { .. } => self.resolve_if_stmt(stmt, env),
-            Statement::Block { .. } => self.resolve_block(stmt, env),
-            Statement::Break {} => self.resolve_break_stmt(),
-            Statement::Enum { .. } => self.resolve_enum_stmt(stmt),
-            Statement::Expression { expr } => self.resolve_expr(expr, env),
-            Statement::Func { .. } => self.resolve_func_stmt(stmt, env),
-            Statement::Loop { .. } => self.resolve_loop_stmt(stmt, env),
-            Statement::Match { .. } => self.resolve_match_stmt(stmt, env),
-            Statement::Return { .. } => self.resolve_return_stmt(stmt, env),
-            Statement::Use { .. } => self.resolve_use_stmt(stmt),
-            Statement::Var { .. } => self.resolve_var_stmt(stmt, env),
-            Statement::While { .. } => self.resolve_while_stmt(stmt, env),
+            Statement::If { .. } => self.ifs(stmt, env),
+            Statement::Block { .. } => self.block(stmt, env),
+            Statement::Break {} => self.breaks(),
+            Statement::Enum { .. } => self.enums(stmt),
+            Statement::Expression { expr } => self.expr(expr, env),
+            Statement::Func { .. } => self.func(stmt, env),
+            Statement::Loop { .. } => self.loops(stmt, env),
+            Statement::Match { .. } => self.matchs(stmt, env),
+            Statement::Return { .. } => self.returns(stmt, env),
+            Statement::Use { .. } => self.uses(stmt),
+            Statement::Var { .. } => self.var(stmt, env),
+            Statement::While { .. } => self.whiles(stmt, env),
             _ => {}
         }
     }
 
-    fn resolve_use_stmt(&mut self, stmt: &Statement) {
+    // everything below is self explanatory
+    fn uses(&mut self, stmt: &Statement) {
         if let Statement::Use { names, .. } = stmt {
             for (old, new) in names {
                 if let Some(new_name) = new {
@@ -67,42 +71,42 @@ impl Resolver {
         }
     }
 
-    fn resolve_var_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
+    fn var(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
         if let Statement::Var { names, value, .. } = stmt {
             for name in names {
                 self.declare(name);
                 if let Some(value) = value {
-                    self.resolve_expr(value, env);
+                    self.expr(value, env);
                 }
                 self.define(name);
             }
         }
     }
 
-    fn resolve_while_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
+    fn whiles(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
         if let Statement::While { body, cond } = stmt {
             let encl_loop = self.is_crnt_loop;
-            self.resolve_expr(cond, env);
+            self.expr(cond, env);
             self.is_crnt_loop = true;
             self.resolve_many(body, env);
             self.is_crnt_loop = encl_loop;
         }
     }
 
-    fn resolve_break_stmt(&mut self) {
+    fn breaks(&mut self) {
         if !self.is_crnt_loop {
             self.err.throw(E0x302, 0, (0, 0), vec![]);
         }
     }
 
-    fn resolve_enum_stmt(&mut self, stmt: &Statement) {
+    fn enums(&mut self, stmt: &Statement) {
         if let Statement::Enum { name, .. } = stmt {
             self.declare(name);
             self.define(name);
         }
     }
 
-    fn resolve_func_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
+    fn func(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
         if let Statement::Func { body, params, .. } = stmt {
             let encl_func = self.is_crnt_fnc;
             self.is_crnt_fnc = true;
@@ -116,7 +120,7 @@ impl Resolver {
                 self.resolve_many(body, env);
                 for stmt in body {
                     if let Statement::Return { expr } = stmt {
-                        self.resolve_expr(expr, env);
+                        self.expr(expr, env);
                     }
                 }
             } else {
@@ -128,7 +132,7 @@ impl Resolver {
         }
     }
 
-    fn resolve_loop_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
+    fn loops(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
         if let Statement::Loop { body, .. } = stmt {
             self.scope_start();
             let encl_loop = self.is_crnt_loop;
@@ -139,23 +143,23 @@ impl Resolver {
         }
     }
 
-    fn resolve_match_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
+    fn matchs(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
         if let Statement::Match {
             cond,
             def_case,
             cases,
         } = stmt
         {
-            self.resolve_expr(cond, env);
+            self.expr(cond, env);
             for (case, body) in cases {
                 self.scope_start();
-                self.resolve_expr(case, env);
+                self.expr(case, env);
                 match body {
                     FuncBody::Statements(stmts) => {
                         self.resolve_many(&stmts, env);
                     }
                     FuncBody::Expression(expr) => {
-                        self.resolve_expr(expr, env);
+                        self.expr(expr, env);
                     }
                 }
                 self.scope_end();
@@ -170,23 +174,23 @@ impl Resolver {
                     }
                 }
                 FuncBody::Expression(expr) => {
-                    self.resolve_expr(expr, env);
+                    self.expr(expr, env);
                 }
             }
         }
     }
 
-    fn resolve_return_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
+    fn returns(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
         if self.is_crnt_fnc {
             if let Statement::Return { expr } = stmt {
-                self.resolve_expr(expr, env);
+                self.expr(expr, env);
             }
         } else {
             self.err.throw(E0x303, 0, (0, 0), vec![]);
         }
     }
 
-    fn resolve_if_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
+    fn ifs(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
         if let Statement::If {
             cond,
             body,
@@ -194,12 +198,12 @@ impl Resolver {
             else_branch,
         } = stmt
         {
-            self.resolve_expr(cond, env);
+            self.expr(cond, env);
             self.scope_start();
             self.resolve_many(body, env);
             self.scope_end();
             for (elif_pred, elif_stmt) in else_if_branches {
-                self.resolve_expr(elif_pred, env);
+                self.expr(elif_pred, env);
                 self.scope_start();
                 self.resolve_many(elif_stmt, env);
                 self.scope_end();
@@ -212,7 +216,7 @@ impl Resolver {
         }
     }
 
-    fn resolve_block(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
+    fn block(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
         if let Statement::Block { stmts } = stmt {
             self.scope_start();
             self.resolve_many(stmts, env);
@@ -223,43 +227,36 @@ impl Resolver {
         }
     }
 
-    fn resolve_expr(&mut self, expr: &Expression, env: &Rc<RefCell<Env>>) {
+    fn expr(&mut self, expr: &Expression, env: &Rc<RefCell<Env>>) {
         match expr {
             Expression::Object { fields, .. } => {
                 fields.iter().for_each(|(_, val)| {
-                    self.resolve_expr(val, env);
+                    self.expr(val, env);
                 });
             }
-            Expression::Method { args, .. } => {
-                args.iter().for_each(|arg| self.resolve_expr(arg, env))
-            }
-            Expression::Assign { value, .. } => self.resolve_expr(value, env),
+            Expression::Method { args, .. } => args.iter().for_each(|arg| self.expr(arg, env)),
+            Expression::Assign { value, .. } => self.expr(value, env),
             Expression::Array { items, .. } => {
-                items.iter().for_each(|item| self.resolve_expr(item, env));
+                items.iter().for_each(|item| self.expr(item, env));
             }
-            Expression::Var { .. } => self.resolve_var_expr(expr),
+            Expression::Var { .. } => self.varexpr(expr),
             Expression::Call { name, args, .. } => {
-                self.resolve_expr(name.as_ref(), env);
-                args.iter().for_each(|arg| self.resolve_expr(arg, env));
+                self.expr(name.as_ref(), env);
+                args.iter().for_each(|arg| self.expr(arg, env));
             }
-            Expression::Func { body, params, .. } => self.resolve_func_expr(body, params, env),
-            Expression::Await { expr, .. } => self.resolve_expr(expr, env),
-            Expression::Unary { left, .. } => self.resolve_expr(left, env),
+            Expression::Func { body, params, .. } => self.callback(body, params, env),
+            Expression::Await { expr, .. } => self.expr(expr, env),
+            Expression::Unary { left, .. } => self.expr(left, env),
             Expression::Value { .. } => {}
             Expression::Binary { left, right, .. } => {
-                self.resolve_expr(left, env);
-                self.resolve_expr(right, env);
+                self.expr(left, env);
+                self.expr(right, env);
             }
-            Expression::Grouping { expression, .. } => self.resolve_expr(expression, env),
+            Expression::Grouping { expression, .. } => self.expr(expression, env),
         }
     }
 
-    fn resolve_func_expr(
-        &mut self,
-        body: &FuncBody,
-        params: &[(Token, Token)],
-        env: &Rc<RefCell<Env>>,
-    ) {
+    fn callback(&mut self, body: &FuncBody, params: &[(Token, Token)], env: &Rc<RefCell<Env>>) {
         let encl_func = self.is_crnt_fnc;
         self.is_crnt_fnc = true;
         self.scope_start();
@@ -272,13 +269,13 @@ impl Resolver {
                 self.resolve_many(body, env);
                 body.iter().for_each(|stmt| {
                     if let Statement::Return { expr } = stmt {
-                        self.resolve_expr(expr, env);
+                        self.expr(expr, env);
                     }
                 });
             }
             FuncBody::Expression(expr) => {
-                self.resolve_expr(expr, env);
-                self.resolve_expr(expr, env);
+                self.expr(expr, env);
+                self.expr(expr, env);
             }
         }
 
@@ -286,7 +283,7 @@ impl Resolver {
         self.is_crnt_fnc = encl_func;
     }
 
-    fn resolve_var_expr(&mut self, expr: &Expression) {
+    fn varexpr(&mut self, expr: &Expression) {
         if let Expression::Var { name, .. } = expr {
             if let Some(false) = self.scopes.last().and_then(|scope| scope.get(&name.lexeme)) {
                 self.err.throw(
@@ -335,7 +332,7 @@ impl Resolver {
     }
 
     fn resolve_many(&mut self, stmts: &[Statement], env: &Rc<RefCell<Env>>) {
-        stmts.iter().for_each(|stmt| self.resolve_int(stmt, env));
+        stmts.iter().for_each(|stmt| self.resolve_stmt(stmt, env));
     }
 
     fn scope_start(&mut self) {

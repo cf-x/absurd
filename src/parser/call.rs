@@ -2,15 +2,15 @@ use super::Parser;
 use crate::ast::CallType;
 use crate::ast::LiteralType;
 use crate::ast::TokenType::*;
-use crate::interpreter::expr::Expression;
 use crate::errors::ErrorCode::E0x201;
+use crate::interpreter::expr::Expression;
 
 impl Parser {
     pub fn array_call(&mut self) -> Expression {
         let name = self.prev(2).clone();
         let e = self.expr();
         let args = vec![e];
-        self.consume(RightBracket);
+        self.consume(RBracket);
         Expression::Call {
             id: self.id(),
             name: Box::new(Expression::Var {
@@ -59,17 +59,17 @@ impl Parser {
     pub fn func_call(&mut self) -> Expression {
         let name = self.prev(2).clone();
         let mut args = vec![];
-        while !self.is_token(RightParen) {
+        while !self.is_token(RParen) {
             let arg = self.expr();
             args.push(arg);
-            if self.is_token(RightParen) {
+            if self.is_token(RParen) {
                 break;
             }
-            if !self.if_token_consume(Comma) && !self.is_token(RightParen) {
+            if !self.if_token_consume(Comma) && !self.is_token(RParen) {
                 self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
             }
         }
-        self.consume(RightParen);
+        self.consume(RParen);
         Expression::Call {
             id: self.id(),
             name: Box::new(Expression::Var {
@@ -85,7 +85,7 @@ impl Parser {
         let mut expr = self.primary();
         if self.if_token_consume(Dot) {
             self.advance();
-            if self.peek().token == LeftParen {
+            if self.peek().token == LParen {
                 self.retreat();
                 expr = self.method_body(expr);
             } else {
@@ -98,9 +98,9 @@ impl Parser {
 
     pub fn method_body(&mut self, expr: Expression) -> Expression {
         let name = self.consume(Ident).clone();
-        self.consume(LeftParen);
+        self.consume(LParen);
         let mut args = vec![];
-        while !self.if_token_consume(RightParen) {
+        while !self.if_token_consume(RParen) {
             let e = self.expr();
             args.push(e);
             self.if_token_consume(Comma);

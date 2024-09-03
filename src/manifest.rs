@@ -1,3 +1,4 @@
+// handles Absurd manifesto file
 use ::std::{fs::File, io::Read};
 use std::process::exit;
 use toml::{from_str, Value};
