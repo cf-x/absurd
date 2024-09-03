@@ -1,16 +1,14 @@
-use super::errors::Error;
-use super::manifest::Project;
-use crate::ast::Statement;
-use crate::interpreter::env::Env;
-use crate::interpreter::Interpreter;
-use crate::parser::Parser;
-use crate::resolver::Resolver;
-use crate::scanner::Scanner;
 use colored::Colorize;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, rc::Rc, time::Instant};
 
-use std::time::Instant;
+use crate::{
+    ast::Statement,
+    errors::Error,
+    interpreter::{env::Env, Interpreter},
+    manifest::Project,
+    parser::{scanner::Scanner, Parser},
+    resolver::Resolver,
+};
 
 pub fn parser(src: &str, err: Error, log: bool) -> Vec<Statement> {
     let mut start = None;

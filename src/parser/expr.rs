@@ -1,20 +1,23 @@
+// parses expressions
 use super::Parser;
-use crate::ast::{CallType, FuncBody, LiteralType, Statement, Token, TokenType::*};
+use crate::ast::{FuncBody, Statement, Token, TokenType::*};
+use crate::errors::ErrorCode::*;
 use crate::interpreter::expr::{AssignKind, Expression};
-use crate::utils::errors::ErrorCode::*;
 
 impl Parser {
-    pub fn expr_stmt(&mut self) -> Statement {
+    pub fn exprs(&mut self) -> Statement {
+        // retreat consumed keyword
         self.retreat();
         let expr = self.expr();
         self.consume(Semi);
         Statement::Expression { expr }
     }
-
+    // goes from most to least important expression
     pub fn expr(&mut self) -> Expression {
         let expr = self.binary();
         self.advance();
         match self.prev(1).token {
+            // assignments
             Assign => self.assign(&expr, AssignKind::Normal),
             PlusEq => self.assign(&expr, AssignKind::Plus),
             MinEq => self.assign(&expr, AssignKind::Minus),
@@ -27,65 +30,46 @@ impl Parser {
         }
     }
 
-    fn assign(&mut self, expr: &Expression, kind: AssignKind) -> Expression {
-        let value = self.expr();
-        if let Expression::Var { name, .. } = expr {
-            Expression::Assign {
-                id: self.id(),
-                name: name.clone(),
-                value: Box::new(value),
-                kind,
+    // I think everything is self explanatory bellow
+    pub fn primary(&mut self) -> Expression {
+        let token = self.peek().clone();
+        match token.token {
+            Ident => {
+                self.advance();
+                Expression::Var {
+                    id: self.id(),
+                    name: token,
+                }
             }
-        } else {
-            self.throw_error(E0x201, vec!["Invalid assignment target".to_string()]);
-        }
-    }
-
-    fn binary(&mut self) -> Expression {
-        let mut expr = self.unary();
-        while self.are_tokens(&[
-            Plus,
-            Minus,
-            Mult,
-            Divide,
-            Percent,
-            AndAnd,
-            Or,
-            Eq,
-            NotEq,
-            Greater,
-            GreaterOrEq,
-            Less,
-            LessOrEq,
-            Square,
-            And,
-        ]) {
-            self.advance();
-            let operator = self.prev(1).clone();
-            let rhs = self.unary();
-            expr = Expression::Binary {
-                id: self.id(),
-                left: Box::new(expr),
-                operator,
-                right: Box::new(rhs),
-            };
-        }
-        expr
-    }
-
-    fn unary(&mut self) -> Expression {
-        if self.are_tokens(&[Not, NotNot, Queston, Decr, Increment, Minus]) {
-            self.advance();
-            let operator = self.prev(1).clone();
-            let rhs = self.unary();
-            let id = self.id();
-            Expression::Unary {
-                id,
-                left: Box::new(rhs),
-                operator,
+            LeftBracket => {
+                self.advance();
+                self.arr_expr()
             }
-        } else {
-            self.call()
+            LeftBrace => {
+                self.advance();
+                self.obj_expr()
+            }
+            LeftParen => {
+                if self.prev(1).token == Ident {
+                    self.advance();
+                    self.func_call()
+                } else {
+                    self.group_expr()
+                }
+            }
+            Pipe => self.func_expr(),
+            Await => self.await_expr(),
+            _ => {
+                if self.is_literal() {
+                    self.advance();
+                    Expression::Value {
+                        id: self.id(),
+                        value: self.to_value_type(token),
+                    }
+                } else {
+                    self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
+                }
+            }
         }
     }
 
@@ -131,152 +115,65 @@ impl Parser {
         expr
     }
 
-    fn array_call(&mut self) -> Expression {
-        let name = self.prev(2).clone();
-        let e = self.expr();
-        let args = vec![e];
-        self.consume(RightBracket);
-        Expression::Call {
-            id: self.id(),
-            name: Box::new(Expression::Var {
-                id: self.id(),
-                name,
-            }),
-            args,
-            call_type: CallType::Array,
-        }
-    }
-
-    fn obj_call(&mut self) -> Expression {
-        let name = self.prev(2).clone();
-        let e = self.consume(Ident);
-        let args = vec![Expression::Value {
-            id: self.id(),
-            value: LiteralType::String(e.lexeme),
-        }];
-        Expression::Call {
-            id: self.id(),
-            name: Box::new(Expression::Var {
-                id: self.id(),
-                name,
-            }),
-            args,
-            call_type: CallType::Struct,
-        }
-    }
-
-    fn enum_call(&mut self) -> Expression {
-        let name = self.prev(2).clone();
-        let e = self.expr();
-        let args = vec![e];
-
-        Expression::Call {
-            id: self.id(),
-            name: Box::new(Expression::Var {
-                id: self.id(),
-                name,
-            }),
-            args,
-            call_type: CallType::Enum,
-        }
-    }
-
-    fn func_call(&mut self) -> Expression {
-        let name = self.prev(2).clone();
-        let mut args = vec![];
-        while !self.is_token(RightParen) {
-            let arg = self.expr();
-            args.push(arg);
-            if self.is_token(RightParen) {
-                break;
-            }
-            if !self.if_token_consume(Comma) && !self.is_token(RightParen) {
-                self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
-            }
-        }
-        self.consume(RightParen);
-        Expression::Call {
-            id: self.id(),
-            name: Box::new(Expression::Var {
-                id: self.id(),
-                name,
-            }),
-            args,
-            call_type: CallType::Func,
-        }
-    }
-
-    fn method(&mut self) -> Expression {
-        let mut expr = self.primary();
-        if self.if_token_consume(Dot) {
+    fn unary(&mut self) -> Expression {
+        if self.are_tokens(&[Not, NotNot, Queston, Decr, Increment, Minus]) {
             self.advance();
-            if self.peek().token == LeftParen {
-                self.retreat();
-                expr = self.method_body(expr);
-            } else {
-                self.retreat();
-                expr = self.obj_call()
+            let operator = self.prev(1).clone();
+            let rhs = self.unary();
+            let id = self.id();
+            Expression::Unary {
+                id,
+                left: Box::new(rhs),
+                operator,
             }
+        } else {
+            self.call()
+        }
+    }
+
+    fn binary(&mut self) -> Expression {
+        let mut expr = self.unary();
+        while self.are_tokens(&[
+            Plus,
+            Minus,
+            Mult,
+            Divide,
+            Percent,
+            AndAnd,
+            Or,
+            Eq,
+            NotEq,
+            Greater,
+            GreaterOrEq,
+            Less,
+            LessOrEq,
+            Square,
+            And,
+        ]) {
+            self.advance();
+            let operator = self.prev(1).clone();
+            let rhs = self.unary();
+            expr = Expression::Binary {
+                id: self.id(),
+                left: Box::new(expr),
+                operator,
+                right: Box::new(rhs),
+            };
         }
         expr
     }
 
-    fn method_body(&mut self, expr: Expression) -> Expression {
-        let name = self.consume(Ident).clone();
-        self.consume(LeftParen);
-        let mut args = vec![];
-        while !self.if_token_consume(RightParen) {
-            let e = self.expr();
-            args.push(e);
-            self.if_token_consume(Comma);
-        }
-        Expression::Method {
-            id: self.id(),
-            name,
-            left: Box::new(expr),
-            args,
-        }
-    }
-
-    fn primary(&mut self) -> Expression {
-        let token = self.peek().clone();
-        match token.token {
-            Ident => {
-                self.advance();
-                Expression::Var {
-                    id: self.id(),
-                    name: token,
-                }
+    fn assign(&mut self, expr: &Expression, kind: AssignKind) -> Expression {
+        let value = self.expr();
+        if let Expression::Var { name, .. } = expr {
+            Expression::Assign {
+                id: self.id(),
+                name: name.clone(),
+                value: Box::new(value),
+                kind,
             }
-            LeftBracket => {
-                self.advance();
-                self.arr_expr()
-            }
-            LeftBrace => {
-                self.advance();
-                self.obj_expr()
-            }
-            LeftParen => {
-                if self.prev(1).token == Ident {
-                    self.advance();
-                    self.func_call()
-                } else {
-                    self.group_expr()
-                }
-            }
-            Pipe => self.func_expr(),
-            Await => self.await_expr(),
-            _ => {
-                if self.is_literal() {
-                    self.advance();
-                    Expression::Value {
-                        id: self.id(),
-                        value: self.to_value_type(token),
-                    }
-                } else {
-                    self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
-                }
-            }
+        } else {
+            self.throw_error(E0x201, vec!["Invalid assignment target".to_string()]);
         }
     }
 

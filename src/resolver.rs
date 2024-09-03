@@ -1,7 +1,7 @@
 use crate::ast::{FuncBody, Statement, Token};
+use crate::errors::{Error, ErrorCode::*};
 use crate::interpreter::env::Env;
 use crate::interpreter::expr::Expression;
-use crate::utils::errors::{Error, ErrorCode::*};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -52,6 +52,7 @@ impl Resolver {
             _ => {}
         }
     }
+
     fn resolve_use_stmt(&mut self, stmt: &Statement) {
         if let Statement::Use { names, .. } = stmt {
             for (old, new) in names {

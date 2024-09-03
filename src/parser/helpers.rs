@@ -1,14 +1,15 @@
-use colored::Colorize;
-
+// helper methods for parser
 use super::Parser;
 use crate::ast::{
     LiteralKind, LiteralType, Token,
     TokenType::{self, *},
 };
-use crate::utils::errors::ErrorCode::{self, *};
+use crate::errors::ErrorCode::{self, *};
+use colored::Colorize;
 use std::process::exit;
 
 impl Parser {
+    /// extracts values from token
     pub fn to_value_type(&mut self, token: Token) -> LiteralType {
         match token.token {
             NumberLit => {
@@ -35,16 +36,18 @@ impl Parser {
             TrueLit => LiteralType::Boolean(true),
             FalseLit => LiteralType::Boolean(false),
             Null => LiteralType::Null,
-            _ => LiteralType::Any,
+            _ => LiteralType::Null,
         }
     }
 
     #[inline]
+    /// well, checks if token is literal
     pub fn is_literal(&self) -> bool {
         self.are_tokens(&[NumberLit, StringLit, CharLit, TrueLit, FalseLit, Null])
     }
 
     #[inline]
+    /// consumes token if its there
     pub fn if_token_consume(&mut self, token: TokenType) -> bool {
         if self.is_token(token.clone()) {
             self.consume(token);
@@ -55,6 +58,7 @@ impl Parser {
     }
 
     #[inline]
+    /// advance, instead of consuming, if token is here
     pub fn if_token_advance(&mut self, token: TokenType) -> bool {
         if self.is_token(token) {
             self.advance();
@@ -65,6 +69,7 @@ impl Parser {
     }
 
     #[inline]
+    /// checks if identifier is uppercase
     pub fn is_uppercase_ident(&self) -> bool {
         self.peek()
             .lexeme
@@ -73,6 +78,7 @@ impl Parser {
             .map_or(false, |c| c.is_uppercase())
     }
 
+    /// self explanatory
     pub fn consume_uppercase_ident(&mut self) -> Token {
         if self.is_uppercase_ident() {
             self.consume(Ident)
@@ -81,6 +87,7 @@ impl Parser {
         }
     }
 
+    /// takes multiple tokens and consumes whichever matches first
     pub fn consume_some(&mut self, ts: &[TokenType]) -> Token {
         for t in ts {
             if self.if_token_advance(t.clone()) {
@@ -90,6 +97,7 @@ impl Parser {
         self.throw_error(E0x204, vec![self.prev(1).lexeme])
     }
 
+    /// self explanatory
     pub fn consume(&mut self, t: TokenType) -> Token {
         if self.if_token_advance(t.clone()) {
             self.prev(1)
@@ -99,6 +107,7 @@ impl Parser {
     }
 
     #[inline]
+    /// self explanatory
     pub fn advance(&mut self) -> Token {
         if !self.is_token(Eof) {
             self.crnt += 1;
@@ -107,6 +116,7 @@ impl Parser {
     }
 
     #[inline]
+    /// opposite of advance
     pub fn retreat(&mut self) -> Token {
         if self.crnt > 0 {
             self.crnt -= 1;
@@ -115,6 +125,7 @@ impl Parser {
     }
 
     #[inline]
+    /// peeks back
     pub fn prev(&self, back: usize) -> Token {
         if self.crnt < back {
             Token {
@@ -130,26 +141,31 @@ impl Parser {
     }
 
     #[inline]
+    /// checks if multiple tokens are checked
     pub fn are_tokens(&self, tokens: &[TokenType]) -> bool {
         tokens.iter().any(|token| self.is_token(token.clone()))
     }
 
     #[inline]
+    /// checks if token is checked
     pub fn is_token(&self, token: TokenType) -> bool {
         !self.check(Eof) && self.check(token)
     }
 
     #[inline]
+    /// self explanatory
     pub fn check(&self, token: TokenType) -> bool {
         self.peek().token == token
     }
 
     #[inline]
+    /// self explanatory
     pub fn peek(&self) -> Token {
         self.tokens[self.crnt].clone()
     }
 
     #[inline]
+    /// gets id and increases previous
     pub fn id(&mut self) -> usize {
         self.id += 1;
         self.id - 1

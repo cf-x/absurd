@@ -7,11 +7,11 @@ use literal::{load_literal, number::StdLiteralNumber, string::StdLiteralString};
 
 use crate::{
     ast::{DeclrFuncType, FuncValType, LiteralType, Token},
+    errors::raw,
     interpreter::{
         env::{Env, FuncKind},
         Interpreter,
     },
-    utils::errors::raw,
 };
 
 pub fn func(name: &str, arity: usize, env: &mut Rc<RefCell<Env>>, func: Rc<dyn FuncValType>) {

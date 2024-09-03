@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.16.0
+
+### core changes
+
+- rebanded to **Absurd Programming Language**
+
+### internal changes
+
+- code optimization and re-organization
+
+### fixes
+
 ## 0.15.1
 
 - added string slicing (`"string"[0]`)

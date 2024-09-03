@@ -1,15 +1,17 @@
-use utils::cli::cli;
-use utils::manifest::Project;
 // mod analyzer;
 mod ast;
+mod cli;
 mod interpreter;
 mod parser;
 mod resolver;
-mod scanner;
 mod std;
-mod utils;
+use cli::cli;
+use manifest::Project;
+mod bundler;
+mod errors;
+mod manifest;
 
-pub const VERSION: &str = "0.15.1";
+pub const VERSION: &str = "0.16.0";
 
 fn main() {
     let mut project = Project::new();

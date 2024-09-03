@@ -1,32 +1,33 @@
 <div align=center>
 
 ```
-  _______  _____  _______  ______ _______ _     _  ______ _______
-  |_____| |_____] |______ |_____/    |    |     | |_____/ |______
-  |     | |       |______ |    \_    |    |_____| |    \_ |______
+_______ ______  _______ _     _  ______ ______
+|_____| |_____] |______ |     | |_____/ |     \
+|     | |_____] ______| |_____| |    \_ |_____/
 ```
 
 </div>
 
-# Aperture Programming Language
+# Absurd Programming language
 
-Aperture is an interpreted programming language that is designed to be simple but powerful. Interpreter is currently under the heavy development and is not ready for use.
+Absurd, but not literally. Statically typed, interpreted programming language, built to kill (my) boredom. Why should you use Absurd? Because you like it, 
+if you don't, create your own language.
 
 ## Installation
 
-To install Aperture on Linux, run the following command in your terminal:
+To install Absurd on Linux, run the following command in your terminal:
 
 ```sh
 curl -sSL https://static.ykk2b.xyz/install.sh | bash
 ```
 
-version of the Aperture should be displayed if the installation was successful. You can verify that by running:
+version should be displayed if the installation was successful. You can verify that by running:
 
 ```sh
-aperture -h
+absurd -h
 ```
 
-On Windows, you can install Aperture by running the following commands in PowerShell:
+On Windows, you can install absurd by running the following commands in PowerShell:
 
 ```sh
 Invoke-WebRequest -Uri https://static.ykk2b.xyz/install.sh -OutFile install.sh
@@ -37,11 +38,11 @@ Support for MacOS will be available soon.
 
 ## Documentation
 
-Visit the [documentation](https://aperture.ykk2b.xyz) for more information about the language.
+Visit the [documentation](https://absurd.ykk2b.xyz) for more information about the language.
 
 ## Contributing
 
-For contributing to Aperture, please visit the [documentation for contributors](https://aperture.ykk2b.xyz/contributing.html).
+For contributing to absurd, please visit the [documentation for contributors](https://absurd.ykk2b.xyz/contributing.html).
 
 ## License
 

@@ -1,19 +1,16 @@
 pub mod env;
 pub mod expr;
 pub mod types;
-use crate::interpreter::types::type_check;
-use crate::std::core::io::StdCoreIo;
-use crate::utils::bundler::interpreter_mod;
-use crate::utils::errors::{Error, ErrorCode::*};
-use crate::utils::manifest::Project;
-use crate::{
-    ast::{
-        FuncBody, FuncImpl, FuncValueType, LiteralType,
-        Statement::{self, *},
-        Token,
-    },
-    utils::errors::raw,
+use crate::ast::{
+    FuncBody, FuncImpl, FuncValueType, LiteralType,
+    Statement::{self, *},
+    Token,
 };
+use crate::bundler::interpreter_mod;
+use crate::errors::{raw, Error, ErrorCode::*};
+use crate::interpreter::types::type_check;
+use crate::manifest::Project;
+use crate::std::core::io::StdCoreIo;
 use env::{Env, FuncKind, VarKind};
 use expr::Expression;
 use std::cell::RefCell;

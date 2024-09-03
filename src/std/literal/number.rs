@@ -1,8 +1,8 @@
 use crate::{
     ast::{LiteralType, Token, Wrapper},
+    errors::raw,
     interpreter::env::Env,
     std::func,
-    utils::errors::raw,
 };
 use std::{cell::RefCell, process, rc::Rc};
 

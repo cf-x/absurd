@@ -1,5 +1,6 @@
+// Absurd type parser
 use super::Parser;
-use crate::utils::errors::ErrorCode::*;
+use crate::errors::ErrorCode::*;
 use crate::{
     ast::{LiteralKind, Token, TokenType::*},
     interpreter::types::TypeKind,
@@ -8,6 +9,7 @@ use crate::{
 impl Parser {
     pub fn consume_type(&mut self) -> Token {
         let mut left = self.primary_type();
+        // T || T
         if self.if_token_consume(Or) {
             let mut right = self.consume_type();
             let value = Some(LiteralKind::Type(Box::new(TypeKind::Or {
@@ -21,6 +23,7 @@ impl Parser {
                 value,
                 line: left.line,
             };
+        // T?
         } else if self.if_token_consume(Queston) {
             let mut null = Token {
                 token: Null,
@@ -46,13 +49,19 @@ impl Parser {
 
     fn primary_type(&mut self) -> Token {
         match self.peek().token {
+            // {i: T, i: T}
             LeftBrace => self.parse_obj_type(),
+            // <i>
             Less => self.parse_array_type(),
+            // |i, i| i
             Pipe => self.parse_func_type(),
+            // literal types
             StringLit | NumberLit | CharLit | Null | TrueLit | ArrayLit | FalseLit => {
                 self.parse_literal_type()
             }
+            // for calling aliases
             Ident => self.parse_ident_type(),
+            // standard types
             AnyIdent | BoolIdent | CharIdent | VoidIdent | ArrayIdent | NumberIdent
             | StringIdent => self.parse_builtin_type(),
             c => Token {

@@ -1,9 +1,7 @@
 use crate::{
     ast::{LiteralType, Token, TokenType},
-    utils::{
-        errors::{Error, ErrorCode::*},
-        manifest::Project,
-    },
+    errors::{Error, ErrorCode::*},
+    manifest::Project,
 };
 use std::{borrow::Borrow, cell::RefCell, collections::HashMap, process::exit, rc::Rc};
 

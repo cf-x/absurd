@@ -2,9 +2,9 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::{
     ast::{LiteralType, Token, Wrapper},
+    errors::raw,
     interpreter::env::Env,
     std::func,
-    utils::errors::raw,
 };
 
 pub struct StdLiteralString {

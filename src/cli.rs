@@ -1,13 +1,13 @@
-use colored::Colorize;
-
-use super::{errors::raw, manifest::Project};
-use crate::{utils::bundler::interpreter_raw, VERSION};
 use std::{
     env,
     fs::File,
-    io::{self, Read},
-    process::{self, Command, Stdio},
+    io::{stdin, Read, Write},
+    process::{exit, Command, Stdio},
 };
+
+use colored::Colorize;
+
+use crate::{bundler::interpreter_raw, errors::raw, manifest::Project, VERSION};
 
 struct Args {
     file: Option<String>,
@@ -19,7 +19,7 @@ fn print_help() {
     println!(
         "{} {} {} {}",
         "usage:".yellow(),
-        "aperture".red(),
+        "absurd".red(),
         "<file>".blue(),
         "[OPTIONS]".green()
     );
@@ -40,8 +40,16 @@ fn print_help() {
         "--side-effects, -s".blue(),
         "disable side-effects"
     );
-    println!("  {}            {}", "--log, -l".blue(), "enable logging mode");
-    println!("  {}           {}", "--test, -t".blue(), "enable testing mode");
+    println!(
+        "  {}            {}",
+        "--log, -l".blue(),
+        "enable logging mode"
+    );
+    println!(
+        "  {}           {}",
+        "--test, -t".blue(),
+        "enable testing mode"
+    );
     println!();
     println!("{}", "Arguments:".yellow());
     println!(
@@ -78,16 +86,16 @@ fn parse_args(project: &mut Project) -> Args {
         match arg.as_str() {
             "--help" | "-h" => {
                 print_help();
-                process::exit(0);
+                exit(0);
             }
             "--version" | "-v" => {
                 get_wall();
                 print_version();
-                process::exit(0);
+                exit(0);
             }
             "update" => {
                 update();
-                process::exit(0);
+                exit(0);
             }
             "--side-effects" | "-s" => project.side_effects = false,
             "--log" | "-l" => project.log = true,
@@ -95,7 +103,7 @@ fn parse_args(project: &mut Project) -> Args {
             "ci" => {
                 println!("Enter your code (end with Ctrl+D):");
                 let mut code_input = String::new();
-                io::stdin()
+                stdin()
                     .read_to_string(&mut code_input)
                     .expect("Failed to read input");
                 println!("");
@@ -128,7 +136,7 @@ fn run_file(f: String, project: Project) {
         Ok(s) => s,
         Err(_) => {
             raw(format!("failed to open file '{f}'").as_str());
-            process::exit(1);
+            exit(1);
         }
     };
     let mut contents = String::new();
@@ -136,7 +144,7 @@ fn run_file(f: String, project: Project) {
         Ok(_) => {}
         Err(_) => {
             raw(format!("failed to read file '{f}'").as_str());
-            process::exit(1);
+            exit(1);
         }
     }
 
@@ -157,7 +165,7 @@ fn update() {
 
     if !curl_output.status.success() {
         eprintln!("curl command failed with status: {}", curl_output.status);
-        std::process::exit(1);
+        exit(1);
     }
 
     let mut bash_output = Command::new("bash")
@@ -168,7 +176,6 @@ fn update() {
         .expect("failed to execute bash command");
 
     if let Some(bash_stdin) = bash_output.stdin.as_mut() {
-        use std::io::Write;
         bash_stdin
             .write_all(&curl_output.stdout)
             .expect("failed to write to bash stdin");
@@ -178,16 +185,16 @@ fn update() {
 
     if !bash_status.success() {
         eprintln!("bash command failed with status: {}", bash_status);
-        std::process::exit(1);
+        exit(1);
     }
 }
 
 fn get_wall() {
     let a = r#"
-        _______  _____  _______  ______ _______ _     _  ______ _______
-        |_____| |_____] |______ |_____/    |    |     | |_____/ |______
-        |     | |       |______ |    \_    |    |_____| |    \_ |______
+        _______ ______  _______ _     _  ______ ______
+        |_____| |_____] |______ |     | |_____/ |     \
+        |     | |_____] ______| |_____| |    \_ |_____/
     "#;
 
-    println!("{}", a.red());
+    println!("{}", a.yellow());
 }

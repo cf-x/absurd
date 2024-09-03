@@ -2,8 +2,8 @@ use super::env::{Env, ValueKind, ValueType, VarKind};
 use super::types::TypeKind;
 use crate::ast::{LiteralKind, Statement};
 use crate::interpreter::types::{type_check, typekind_to_literaltype};
-use crate::utils::errors::{Error, ErrorCode::*};
-use crate::utils::manifest::Project;
+use crate::errors::{Error, ErrorCode::*};
+use crate::manifest::Project;
 use crate::{
     ast::{CallType, FuncBody, FuncImpl, FuncValueType, LiteralType, Token, TokenType::*},
     interpreter::run_func,

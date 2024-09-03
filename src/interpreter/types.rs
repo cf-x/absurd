@@ -1,7 +1,5 @@
 use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
-
 use crate::ast::{LiteralKind, LiteralType, Token, TokenType};
-
 use super::{env::Env, expr::Expression};
 
 #[derive(Debug, PartialEq, Clone)]

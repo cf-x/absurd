@@ -1,6 +1,6 @@
 [package]
-name = "aperture"
-description = "Aperture programming language"
+name = "absurd"
+description = "Absurd programming language"
 license = "MIT"
 version = "0.15.1"
 edition = "2021"
