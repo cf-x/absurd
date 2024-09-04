@@ -436,3 +436,5 @@ pub fn raw(msg: &str) {
     eprintln!("{}", msg.red());
     exit(0);
 }
+
+// @todo add better flexibility and add `absurd error <code>` for getting detailed error info

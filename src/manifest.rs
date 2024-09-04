@@ -91,3 +91,5 @@ impl Project {
         table.get(name).unwrap().as_integer().unwrap() as i8
     }
 }
+
+// @todo enlarge the manifesto for analyzer, linter and interpreter in general

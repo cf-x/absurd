@@ -250,3 +250,5 @@ fn get_empty_tc() -> EnvTypeValueType {
 fn get_empty_md() -> ModEnvValueType {
     Rc::new(RefCell::new(HashMap::new()))
 }
+
+// @todo better memory manager

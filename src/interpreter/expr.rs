@@ -174,15 +174,14 @@ impl Expression {
                             if v.value.type_name() != val.type_name() {
                                 if let ValueKind::Var(s) = v.kind {
                                     if let Some(LiteralKind::Type(c)) = s.value_type.value.clone() {
-                                        if let TypeKind::Or { left, right } = *c {
-                                            let left_true = if let TypeKind::Var { name } = *left {
+                                        if let TypeKind::Either { lhs, rhs } = *c {
+                                            let left_true = if let TypeKind::Var { name } = *lhs {
                                                 type_check(&name, &val, &env)
                                             } else {
                                                 false
                                             };
 
-                                            let right_true = if let TypeKind::Var { name } = *right
-                                            {
+                                            let right_true = if let TypeKind::Var { name } = *rhs {
                                                 type_check(&name, &val, &env)
                                             } else {
                                                 false
@@ -748,3 +747,5 @@ impl fmt::Display for Expression {
         }
     }
 }
+
+// @todo better organize it

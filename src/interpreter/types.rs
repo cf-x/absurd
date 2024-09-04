@@ -2,15 +2,18 @@ use super::{env::Env, expr::Expression};
 use crate::ast::{LiteralKind, LiteralType, Token, TokenType};
 use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
 
+#[allow(dead_code)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeKind {
-    Array {
+    Vec {
         // <type>
-        kind: Option<Box<TypeKind>>,
-        // <(type, type, ..)>
-        statics: Option<Vec<TypeKind>>,
+        kind: Box<TypeKind>,
     },
-    Obj {
+    Tuple {
+        // <(type, type)>
+        kind: Vec<Box<TypeKind>>,
+    },
+    Object {
         // {name: type, name: type, ..}
         fields: Vec<(Token, TypeKind)>,
     },
@@ -18,34 +21,40 @@ pub enum TypeKind {
         // identifier for calling types
         name: Token,
     },
-    Or {
-        left: Box<TypeKind>,
-        right: Box<TypeKind>,
+    Either {
+        // T || T
+        lhs: Box<TypeKind>,
+        rhs: Box<TypeKind>,
     },
-    Value {
-        // "string" 5.21 false
-        kind: LiteralKind,
+    Maybe {
+        // T?
+        lhs: Box<TypeKind>,
     },
-    Func {
+    Important {
+        // T!
+        lhs: Box<TypeKind>,
+    },
+    Callback {
         // |type, type, ..| type
         params: Vec<TypeKind>,
         ret: Box<TypeKind>,
+    },
+    Literal {
+        // "string" 5.21 false
+        kind: LiteralKind,
     },
 }
 
 impl fmt::Display for TypeKind {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            TypeKind::Array { kind, statics } => {
-                if let Some(k) = kind {
-                    write!(f, "[{}]", k)
-                } else if let Some(s) = statics {
-                    write!(f, "[{:?}]", s)
-                } else {
-                    write!(f, "[]")
-                }
+            TypeKind::Vec { kind } => {
+                write!(f, "<{}>", kind)
             }
-            TypeKind::Obj { fields } => {
+            TypeKind::Tuple { kind } => {
+                write!(f, "<({:?})>", kind)
+            }
+            TypeKind::Object { fields } => {
                 write!(f, "{{")?;
                 for (i, (name, t)) in fields.iter().enumerate() {
                     write!(f, "{}: {}", name.lexeme, t)?;
@@ -56,9 +65,11 @@ impl fmt::Display for TypeKind {
                 write!(f, "}}")
             }
             TypeKind::Var { name } => write!(f, "{}", name.lexeme),
-            TypeKind::Or { left, right } => write!(f, "{} | {}", left, right),
-            TypeKind::Value { kind } => write!(f, "{:?}", kind),
-            TypeKind::Func { params, ret } => {
+            TypeKind::Either { lhs, rhs } => write!(f, "{} || {}", lhs, rhs),
+            TypeKind::Maybe { lhs } => write!(f, "{}?", lhs),
+            TypeKind::Important { lhs } => write!(f, "{}!", lhs),
+            TypeKind::Literal { kind } => write!(f, "{:?}", kind),
+            TypeKind::Callback { params, ret } => {
                 write!(f, "|")?;
                 for (i, p) in params.iter().enumerate() {
                     write!(f, "{}", p)?;
@@ -82,28 +93,23 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
         TokenType::Type => {
             if let Some(LiteralKind::Type(ref t)) = value_type.value {
                 let lt = *t.clone();
-                if let TypeKind::Or {
-                    ref left,
-                    ref right,
-                } = lt
-                {
-                    let left_t = typekind_to_literaltype(*left.clone());
-                    let right_t = typekind_to_literaltype(*right.clone());
-                    if left_t == *val || right_t == *val {
+                if let TypeKind::Either { ref lhs, ref rhs } = lt {
+                    let lhs_t = typekind_to_literaltype(*lhs.clone());
+                    let rhs_t = typekind_to_literaltype(*rhs.clone());
+                    if lhs_t == *val || rhs_t == *val {
                         return true;
                     } else {
-                        let left_n = match **left {
+                        let lhs_n = match **lhs {
                             TypeKind::Var { ref name } => type_check(name, val, env),
-                            _ => left_t == *val,
+                            _ => lhs_t == *val,
                         };
-
-                        let right_n = match **right {
+                        let rhs_n = match **rhs {
                             TypeKind::Var { ref name } => type_check(name, val, env),
-                            _ => right_t == *val,
+                            _ => rhs_t == *val,
                         };
-                        return left_n || right_n;
+                        return lhs_n || rhs_n;
                     }
-                } else if let TypeKind::Obj { fields } = lt {
+                } else if let TypeKind::Object { fields } = lt {
                     if let LiteralType::Obj(ref obj) = *val {
                         let obj_map: HashMap<_, _> = obj.iter().cloned().collect();
                         return fields.iter().all(|(name, field_type)| {
@@ -138,31 +144,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
         TokenType::ArrayIdent => {
             if let LiteralType::Array(ref array) = *val {
                 if let Some(LiteralKind::Type(ref t)) = value_type.value {
-                    if let TypeKind::Array { ref statics, .. } = **t {
-                        if let Some(ref statics) = *statics {
-                            if statics.len() != array.len() {
-                                return false;
-                            }
-
-                            return statics.iter().zip(array.iter()).all(|(stat, item)| {
-                                let stat_token = match *stat {
-                                    TypeKind::Var { ref name } => name.clone(),
-                                    _ => value_type.clone(),
-                                };
-                                type_check(
-                                    &Token {
-                                        token: stat_token.token,
-                                        lexeme: stat_token.lexeme.clone(),
-                                        value: None,
-                                        line: stat_token.line,
-                                        pos: stat_token.pos,
-                                    },
-                                    &item.to_literal(),
-                                    env,
-                                )
-                            });
-                        }
-
+                    if let TypeKind::Vec { .. } = **t {
                         return array.iter().all(|item| {
                             type_check(
                                 &Token {
@@ -241,7 +223,7 @@ pub fn literalkind_to_literaltype(kind: LiteralKind) -> LiteralType {
 
 pub fn typekind_to_literaltype(kind: TypeKind) -> LiteralType {
     match kind.clone() {
-        TypeKind::Obj { fields } => {
+        TypeKind::Object { fields } => {
             let mut obj = vec![];
             for (k, v) in fields {
                 let v = typekind_to_literaltype(v);
@@ -256,26 +238,13 @@ pub fn typekind_to_literaltype(kind: TypeKind) -> LiteralType {
             };
             literalkind_to_literaltype(n)
         }
-        TypeKind::Func { ret, .. } => typekind_to_literaltype(*ret),
-        TypeKind::Array { kind, statics } => {
-            if kind.is_some() {
-                typekind_to_literaltype(*kind.unwrap_or(Box::new(TypeKind::Value {
-                    kind: LiteralKind::Null,
-                })))
-            } else {
-                typekind_to_literaltype(
-                    statics
-                        .unwrap_or(vec![])
-                        .get(0)
-                        .unwrap_or(&TypeKind::Value {
-                            kind: LiteralKind::Null,
-                        })
-                        .clone(),
-                )
-            }
-        }
-        TypeKind::Value { kind } => literalkind_to_literaltype(kind),
-        TypeKind::Or { left, .. } => typekind_to_literaltype(*left),
+        TypeKind::Callback { ret, .. } => typekind_to_literaltype(*ret),
+        TypeKind::Vec { kind } => typekind_to_literaltype(*kind),
+        TypeKind::Tuple { .. } => LiteralType::Null,
+        TypeKind::Literal { kind } => literalkind_to_literaltype(kind),
+        TypeKind::Either { lhs, .. } => typekind_to_literaltype(*lhs),
+        TypeKind::Maybe { lhs } => typekind_to_literaltype(*lhs),
+        TypeKind::Important { lhs } => typekind_to_literaltype(*lhs),
     }
 }
 

@@ -5,6 +5,7 @@
 ### core changes
 
 - rebanded to **Absurd Programming Language**
+- added `vector`, `callback`, `either`, `maybe` and `important` types
 
 ### internal changes
 
@@ -12,6 +13,8 @@
 - updated std managing system
 
 ### fixes
+
+- fixed vector parsing
 
 ## 0.15.1
 

@@ -1,6 +1,5 @@
 // Absurd type parser
 use super::Parser;
-use crate::errors::ErrorCode::*;
 use crate::{
     ast::{LiteralKind, Token, TokenType::*},
     interpreter::types::TypeKind,
@@ -12,9 +11,9 @@ impl Parser {
         // T || T
         if self.if_token_consume(Or) {
             let mut right = self.consume_type();
-            let value = Some(LiteralKind::Type(Box::new(TypeKind::Or {
-                left: Box::new(left.token_to_typekind()),
-                right: Box::new(right.token_to_typekind()),
+            let value = Some(LiteralKind::Type(Box::new(TypeKind::Either {
+                lhs: Box::new(left.token_to_typekind()),
+                rhs: Box::new(right.token_to_typekind()),
             })));
             left = Token {
                 token: Type,
@@ -32,9 +31,9 @@ impl Parser {
                 value: Some(LiteralKind::Null),
                 line: left.line,
             };
-            let value = Some(LiteralKind::Type(Box::new(TypeKind::Or {
-                left: Box::new(left.token_to_typekind()),
-                right: Box::new(null.token_to_typekind()),
+            let value = Some(LiteralKind::Type(Box::new(TypeKind::Either {
+                lhs: Box::new(left.token_to_typekind()),
+                rhs: Box::new(null.token_to_typekind()),
             })));
             left = Token {
                 token: Type,
@@ -89,7 +88,7 @@ impl Parser {
                 break;
             }
         }
-        let value = Some(LiteralKind::Type(Box::new(TypeKind::Obj {
+        let value = Some(LiteralKind::Type(Box::new(TypeKind::Object {
             fields: fields.clone(),
         })));
         let s: String = fields
@@ -137,7 +136,7 @@ impl Parser {
 
     fn parse_literal_type(&mut self) -> Token {
         let token = self.peek();
-        let value = Some(LiteralKind::Type(Box::new(TypeKind::Value {
+        let value = Some(LiteralKind::Type(Box::new(TypeKind::Literal {
             kind: token.value.clone().unwrap_or(LiteralKind::Null),
         })));
         self.advance();
@@ -167,7 +166,7 @@ impl Parser {
         Token {
             token: AnyIdent,
             lexeme: "any".to_string(),
-            value: Some(LiteralKind::Type(Box::new(TypeKind::Func {
+            value: Some(LiteralKind::Type(Box::new(TypeKind::Callback {
                 params,
                 ret: Box::new(TypeKind::Var { name: return_type }),
             }))),
@@ -178,38 +177,14 @@ impl Parser {
 
     fn parse_array_type(&mut self) -> Token {
         self.consume(Ls);
-        if self.if_token_consume(LParen) {
-            let mut statics: Vec<TypeKind> = vec![];
-            while !self.if_token_consume(RParen) {
-                let static_size = self.consume_type();
-                statics.push(TypeKind::Var { name: static_size });
-                if !self.if_token_consume(Comma) && !self.is_token(RParen) {
-                    self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
-                }
-            }
-            let typ = self.consume_type();
-            self.consume(Gr);
-            return Token {
-                token: ArrayIdent,
-                lexeme: typ.lexeme,
-                pos: self.peek().pos,
-                value: Some(LiteralKind::Type(Box::new(TypeKind::Array {
-                    kind: None,
-                    statics: Some(statics),
-                }))),
-                line: self.peek().line,
-            };
-        }
-
         let typ = self.consume_type();
         self.consume(Gr);
         Token {
             token: ArrayIdent,
             lexeme: typ.clone().lexeme,
             pos: self.peek().pos,
-            value: Some(LiteralKind::Type(Box::new(TypeKind::Array {
-                kind: Some(Box::new(TypeKind::Var { name: typ })),
-                statics: None,
+            value: Some(LiteralKind::Type(Box::new(TypeKind::Vec {
+                kind: Box::new(TypeKind::Var { name: typ }),
             }))),
             line: self.peek().line,
         }

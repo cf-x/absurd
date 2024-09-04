@@ -199,3 +199,5 @@ fn get_wall() {
 
     println!("{}", a.yellow());
 }
+
+// @todo more flags

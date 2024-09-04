@@ -20,3 +20,5 @@ fn main() {
     // load cli
     cli(&mut project);
 }
+
+// @todo handle `release`, `rc` and `dev` branches
