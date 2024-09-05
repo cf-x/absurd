@@ -38,7 +38,7 @@ Support for MacOS will be available soon.
 
 ## Documentation
 
-Visit the [documentation](https://absurd.ykk2b.xyz) for more information about the language.
+Visit the [documentation](#) for more information about the language.
 
 ## Contributing
 

@@ -6,6 +6,7 @@
 
 - rebanded to **Absurd Programming Language**
 - added `vector`, `callback`, `either` and `maybe` types
+- added type inference in variables
 
 ### internal changes
 

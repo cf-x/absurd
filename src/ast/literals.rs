@@ -1,3 +1,4 @@
+use super::{Base, LiteralKind, Token, TokenType};
 use crate::ast::{FuncValueType, LiteralType};
 use std::fmt;
 
@@ -15,6 +16,91 @@ impl LiteralType {
             Self::DeclrFunc(_) => "declared function".to_string(),
             Self::Null => "null".to_string(),
             Self::Any => "any".to_string(),
+        }
+    }
+
+    pub fn to_token(&self) -> Token {
+        match self {
+            Self::Obj(_) => Token {
+                token: TokenType::AnyIdent,
+                lexeme: "any".to_string(),
+                value: None,
+                line: 0,
+                pos: (0, 0),
+            },
+            Self::Number(n) => Token {
+                token: TokenType::NumLit,
+                lexeme: n.to_string(),
+                value: Some(LiteralKind::Number {
+                    base: Base::Decimal,
+                    value: *n,
+                }),
+                line: 0,
+                pos: (0, 0),
+            },
+            Self::String(s) => Token {
+                token: TokenType::StrLit,
+                lexeme: s.to_string(),
+                value: Some(LiteralKind::String { value: s.clone() }),
+                line: 0,
+                pos: (0, 0),
+            },
+            Self::Char(c) => Token {
+                token: TokenType::CharLit,
+                lexeme: c.to_string(),
+                value: Some(LiteralKind::Char { value: *c }),
+                line: 0,
+                pos: (0, 0),
+            },
+            Self::Boolean(b) => Token {
+                token: TokenType::BoolIdent,
+                lexeme: b.to_string(),
+                value: Some(LiteralKind::Bool { value: *b }),
+                line: 0,
+                pos: (0, 0),
+            },
+            Self::Array(_) => Token {
+                token: TokenType::AnyIdent,
+                lexeme: "any".to_string(),
+                value: None,
+                line: 0,
+                pos: (0, 0),
+            },
+            Self::Func(_) => Token {
+                token: TokenType::AnyIdent,
+                lexeme: "any".to_string(),
+                value: None,
+                line: 0,
+                pos: (0, 0),
+            },
+            Self::Void => Token {
+                token: TokenType::VoidIdent,
+                lexeme: "void".to_string(),
+                value: None,
+                line: 0,
+                pos: (0, 0),
+            },
+            Self::DeclrFunc(_) => Token {
+                token: TokenType::AnyIdent,
+                lexeme: "any".to_string(),
+                value: None,
+                line: 0,
+                pos: (0, 0),
+            },
+            Self::Null => Token {
+                token: TokenType::Null,
+                lexeme: "null".to_string(),
+                value: Some(LiteralKind::Null),
+                line: 0,
+                pos: (0, 0),
+            },
+            Self::Any => Token {
+                token: TokenType::AnyIdent,
+                lexeme: "any".to_string(),
+                value: None,
+                line: 0,
+                pos: (0, 0),
+            },
         }
     }
 

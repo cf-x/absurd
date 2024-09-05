@@ -180,15 +180,26 @@ impl Parser {
             return null_var;
         }
 
-        // consume type after `:`
-        self.consume(Colon);
-        let value_type = self.consume_type();
-        if value_type.token == Null && self.peek().token != Assign {
-            self.log("variable statement");
-            self.consume(Semi);
-            return null_var;
+        let mut value_type = Token {
+            token: AnyIdent,
+            lexeme: "any".to_string(),
+            value: None,
+            line: 0,
+            pos: (0, 0),
+        };
+        let mut is_inference = false;
+        if self.if_token_consume(Colon) {
+            value_type = self.consume_type();
+            if value_type.token == Null && self.peek().token != Assign {
+                self.log("variable statement");
+                self.consume(Semi);
+                return null_var;
+            }
+        } else {
+            is_inference = true;
         }
 
+        // consume type after `:`
         if self.if_token_consume(Semi) {
             self.log("variable statement");
             // differes from normal `null_var` with dynamic `value_type`
@@ -211,6 +222,9 @@ impl Parser {
         // check if variable has a callback as a value
         let is_func = self.is_token(Pipe);
         let value = self.expr();
+        if is_inference {
+            value_type = value.to_literal().to_token();
+        }
         self.consume(Semi);
 
         self.log("variable statement");

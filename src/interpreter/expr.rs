@@ -117,6 +117,7 @@ impl Expression {
             _ => LiteralType::Null,
         }
     }
+    
     pub fn eval(&self, env: Rc<RefCell<Env>>) -> LiteralType {
         match self {
             Expression::Object { fields, .. } => LiteralType::Obj(fields.clone()),
