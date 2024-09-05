@@ -256,7 +256,11 @@ impl<'a> Scanner<'a> {
         }
         let sub = &self.src[self.start..self.crnt];
         let token = self.kwds.get(sub).cloned().unwrap_or(Ident);
-        self.push(token, None);
+        match token {
+            TrueLit => self.push(TrueLit, Some(LiteralKind::Bool { value: true })),
+            FalseLit => self.push(FalseLit, Some(LiteralKind::Bool { value: false })),
+            _ => self.push(token, None),
+        }
     }
 
     /// handles numbers and supports multiple base systems

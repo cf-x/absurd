@@ -5,7 +5,7 @@
 ### core changes
 
 - rebanded to **Absurd Programming Language**
-- added `vector`, `callback`, `either`, `maybe` and `important` types
+- added `vector`, `callback`, `either` and `maybe` types
 
 ### internal changes
 
@@ -15,6 +15,7 @@
 ### fixes
 
 - fixed vector parsing
+- fixed boolean types
 
 ## 0.15.1
 

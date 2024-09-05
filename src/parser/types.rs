@@ -7,63 +7,63 @@ use crate::{
 
 impl Parser {
     pub fn consume_type(&mut self) -> Token {
-        let mut left = self.primary_type();
+        let mut lhs = self.primary_type();
         // T || T
         if self.if_token_consume(Or) {
             let mut right = self.consume_type();
             let value = Some(LiteralKind::Type(Box::new(TypeKind::Either {
-                lhs: Box::new(left.token_to_typekind()),
+                lhs: Box::new(lhs.token_to_typekind()),
                 rhs: Box::new(right.token_to_typekind()),
             })));
-            left = Token {
+            lhs = Token {
                 token: Type,
                 lexeme: "type".to_string(),
-                pos: left.pos,
+                pos: lhs.pos,
                 value,
-                line: left.line,
+                line: lhs.line,
             };
         // T?
         } else if self.if_token_consume(Qstn) {
-            let mut null = Token {
-                token: Null,
-                lexeme: "null".to_string(),
-                pos: left.pos,
-                value: Some(LiteralKind::Null),
-                line: left.line,
-            };
-            let value = Some(LiteralKind::Type(Box::new(TypeKind::Either {
-                lhs: Box::new(left.token_to_typekind()),
-                rhs: Box::new(null.token_to_typekind()),
-            })));
-            left = Token {
+            lhs = Token {
                 token: Type,
                 lexeme: "type".to_string(),
-                pos: left.pos,
-                value,
-                line: left.line,
+                pos: lhs.pos,
+                value: Some(LiteralKind::Type(Box::new(TypeKind::Maybe {
+                    lhs: Box::new(lhs.token_to_typekind()),
+                }))),
+                line: lhs.line,
+            };
+        // T!
+        } else if self.if_token_consume(Bang) {
+            lhs = Token {
+                token: Type,
+                lexeme: "type".to_string(),
+                pos: lhs.pos,
+                value: Some(LiteralKind::Type(Box::new(TypeKind::Important {
+                    lhs: Box::new(lhs.token_to_typekind()),
+                }))),
+                line: lhs.line,
             };
         }
-        left
+        lhs
     }
 
     fn primary_type(&mut self) -> Token {
         match self.peek().token {
             // {i: T, i: T}
-            LBrace => self.parse_obj_type(),
+            LBrace => self.object(),
             // <i>
-            Ls => self.parse_array_type(),
+            Ls => self.vec(),
             // |i, i| i
-            Pipe => self.parse_func_type(),
+            Pipe => self.callback(),
             // literal types
-            StrLit | NumLit | CharLit | Null | TrueLit | ArrLit | FalseLit => {
-                self.parse_literal_type()
-            }
-            // for calling aliases
-            Ident => self.parse_ident_type(),
+            StrLit | NumLit | CharLit | Null | TrueLit | ArrLit | FalseLit => self.literal(),
             // standard types
             AnyIdent | BoolIdent | CharIdent | VoidIdent | ArrayIdent | NumIdent | StrIdent => {
-                self.parse_builtin_type()
+                self.builtin()
             }
+            // for calling aliases
+            Ident => self.ident(),
             c => Token {
                 token: c,
                 lexeme: self.peek().lexeme.clone(),
@@ -74,13 +74,12 @@ impl Parser {
         }
     }
 
-    fn parse_obj_type(&mut self) -> Token {
+    fn object(&mut self) -> Token {
         let mut fields = vec![];
         self.consume(LBrace);
         while !self.if_token_consume(RBrace) {
             let ident = self.consume(Ident);
             self.consume(Colon);
-
             let value = self.consume_type();
             fields.push((ident, TypeKind::Var { name: value }));
             if !self.if_token_consume(Comma) {
@@ -104,7 +103,7 @@ impl Parser {
         }
     }
 
-    fn parse_builtin_type(&mut self) -> Token {
+    fn builtin(&mut self) -> Token {
         let token = self.consume_some(&[
             AnyIdent, BoolIdent, CharIdent, Null, VoidIdent, ArrayIdent, NumIdent, StrIdent,
         ]);
@@ -120,7 +119,7 @@ impl Parser {
         }
     }
 
-    fn parse_ident_type(&mut self) -> Token {
+    fn ident(&mut self) -> Token {
         let token = self.consume(Ident);
         let value = Some(LiteralKind::Type(Box::new(TypeKind::Var {
             name: token.clone(),
@@ -134,7 +133,7 @@ impl Parser {
         }
     }
 
-    fn parse_literal_type(&mut self) -> Token {
+    fn literal(&mut self) -> Token {
         let token = self.peek();
         let value = Some(LiteralKind::Type(Box::new(TypeKind::Literal {
             kind: token.value.clone().unwrap_or(LiteralKind::Null),
@@ -149,7 +148,7 @@ impl Parser {
         }
     }
 
-    fn parse_func_type(&mut self) -> Token {
+    fn callback(&mut self) -> Token {
         self.consume(Pipe);
         let mut params: Vec<TypeKind> = vec![];
         while !self.if_token_consume(Pipe) {
@@ -164,8 +163,8 @@ impl Parser {
         self.advance();
         let return_type = self.consume_type();
         Token {
-            token: AnyIdent,
-            lexeme: "any".to_string(),
+            token: FuncIdent,
+            lexeme: "callback".to_string(),
             value: Some(LiteralKind::Type(Box::new(TypeKind::Callback {
                 params,
                 ret: Box::new(TypeKind::Var { name: return_type }),
@@ -175,7 +174,7 @@ impl Parser {
         }
     }
 
-    fn parse_array_type(&mut self) -> Token {
+    fn vec(&mut self) -> Token {
         self.consume(Ls);
         let typ = self.consume_type();
         self.consume(Gr);
