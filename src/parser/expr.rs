@@ -80,32 +80,19 @@ impl Parser {
             self.consume(RBracket);
             return arr;
         }
-        let mut expr = self.method();
+
+        let mut expr = self.primary();
 
         while let Some(token) = {
             self.advance();
             Some(self.prev(1).token)
         } {
             match token {
-                Dot => {
-                    if let Expression::Method { .. } = expr {
-                        expr = self.method_body(expr);
-                    } else {
-                        expr = self.obj_call();
-                    }
-                }
-                DblColon => {
-                    expr = self.enum_call();
-                }
-                LParen => {
-                    expr = self.func_call();
-                }
-                LBracket => {
-                    expr = self.array_call();
-                }
-                Ident => {
-                    expr = self.call();
-                }
+                Dot => expr = self.obj_call(),
+                DblColon => expr = self.enum_call(),
+                LParen => expr = self.func_call(),
+                LBracket => expr = self.array_call(),
+                Ident => expr = self.call(),
                 _ => {
                     self.retreat();
                     break;
@@ -189,7 +176,7 @@ impl Parser {
                 self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
             }
         }
-        Expression::Array {
+        Expression::Vec {
             id: self.id(),
             items,
         }

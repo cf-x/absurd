@@ -10,7 +10,7 @@ impl LiteralType {
             Self::String(_) => "string".to_string(),
             Self::Char(_) => "char".to_string(),
             Self::Boolean(_) => "bool".to_string(),
-            Self::Array(_) => "array".to_string(),
+            Self::Vec(_) => "vector".to_string(),
             Self::Func(_) => "function".to_string(),
             Self::Void => "void".to_string(),
             Self::DeclrFunc(_) => "declared function".to_string(),
@@ -59,7 +59,7 @@ impl LiteralType {
                 line: 0,
                 pos: (0, 0),
             },
-            Self::Array(_) => Token {
+            Self::Vec(_) => Token {
                 token: TokenType::AnyIdent,
                 lexeme: "any".to_string(),
                 value: None,
@@ -111,7 +111,7 @@ impl LiteralType {
             Self::Char(val) => *val != '\0',
             Self::Boolean(val) => *val,
             Self::Null => false,
-            Self::Array(val) => !val.is_empty(),
+            Self::Vec(val) => !val.is_empty(),
             Self::Obj(obj) => !obj.is_empty(),
             _ => false,
         }
@@ -137,7 +137,7 @@ impl fmt::Display for LiteralType {
             Self::Char(val) => write!(f, "{}", val),
             Self::Boolean(val) => write!(f, "{}", val),
             Self::Null => write!(f, "null"),
-            Self::Array(val) => {
+            Self::Vec(val) => {
                 let mut s = String::new();
                 s.push('[');
                 for (i, v) in val.iter().enumerate() {

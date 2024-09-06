@@ -4,11 +4,12 @@
 
 ### core changes
 
-- added `push`
+- removed methods
 
 ### fixes
 
 - fixed `match` statement parsing
+- fixed vectors
 
 ## 0.16.0
 

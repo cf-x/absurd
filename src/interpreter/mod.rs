@@ -171,12 +171,12 @@ impl Interpreter {
                                 let mut index = 0;
                                 for name in names.clone() {
                                     match val.clone() {
-                                        LiteralType::Array(c) => {
+                                        LiteralType::Vec(c) => {
                                             if is_arr_dest.clone() {
                                                 let i = c
                                                     .get(index)
                                                     .expect("@error failed to destructure an array")
-                                                    .eval(self.env.clone());
+                                                    .clone();
                                                 self.env.borrow_mut().define_var(
                                                     name.lexeme.clone(),
                                                     i,

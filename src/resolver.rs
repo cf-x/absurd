@@ -221,9 +221,8 @@ impl Resolver {
                     self.expr(val, env);
                 });
             }
-            Expression::Method { args, .. } => args.iter().for_each(|arg| self.expr(arg, env)),
             Expression::Assign { value, .. } => self.expr(value, env),
-            Expression::Array { items, .. } => {
+            Expression::Vec { items, .. } => {
                 items.iter().for_each(|item| self.expr(item, env));
             }
             Expression::Var { .. } => self.varexpr(expr),

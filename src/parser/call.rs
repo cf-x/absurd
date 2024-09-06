@@ -81,35 +81,4 @@ impl Parser {
         }
     }
 
-    pub fn method(&mut self) -> Expression {
-        let mut expr = self.primary();
-        if self.if_token_consume(Dot) {
-            self.advance();
-            if self.peek().token == LParen {
-                self.retreat();
-                expr = self.method_body(expr);
-            } else {
-                self.retreat();
-                expr = self.obj_call()
-            }
-        }
-        expr
-    }
-
-    pub fn method_body(&mut self, expr: Expression) -> Expression {
-        let name = self.consume(Ident).clone();
-        self.consume(LParen);
-        let mut args = vec![];
-        while !self.if_token_consume(RParen) {
-            let e = self.expr();
-            args.push(e);
-            self.if_token_consume(Comma);
-        }
-        Expression::Method {
-            id: self.id(),
-            name,
-            left: Box::new(expr),
-            args,
-        }
-    }
 }

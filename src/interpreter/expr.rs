@@ -1,7 +1,7 @@
 use super::env::{Env, ValueKind, ValueType, VarKind};
 use super::types::TypeKind;
-use crate::ast::{LiteralKind, Statement, TokenType};
-use crate::errors::{Error, ErrorCode::*};
+use crate::ast::{LiteralKind, Statement};
+use crate::errors::{raw, Error, ErrorCode::*};
 use crate::interpreter::types::{type_check, typekind_to_literaltype};
 use crate::manifest::Project;
 use crate::{
@@ -9,7 +9,6 @@ use crate::{
     interpreter::run_func,
 };
 use core::cmp::Eq;
-use std::borrow::Cow;
 use std::process::exit;
 use std::{cell::RefCell, fmt, rc::Rc};
 
@@ -34,7 +33,7 @@ pub enum Expression {
         value: Box<Expression>,
         kind: AssignKind,
     },
-    Array {
+    Vec {
         id: usize,
         items: Vec<Expression>,
     },
@@ -58,12 +57,6 @@ pub enum Expression {
         left: Box<Expression>,
         operator: Token,
         right: Box<Expression>,
-    },
-    Method {
-        id: usize,
-        left: Box<Expression>,
-        name: Token,
-        args: Vec<Expression>,
     },
     Grouping {
         id: usize,
@@ -100,14 +93,13 @@ impl Expression {
             Expression::Var { id, .. } => *id,
             Expression::Call { id, .. } => *id,
             Expression::Func { id, .. } => *id,
-            Expression::Array { id, .. } => *id,
+            Expression::Vec { id, .. } => *id,
             Expression::Await { id, .. } => *id,
             Expression::Binary { id, .. } => *id,
             Expression::Unary { id, .. } => *id,
             Expression::Value { id, .. } => *id,
             Expression::Grouping { id, .. } => *id,
             Expression::Assign { id, .. } => *id,
-            Expression::Method { id, .. } => *id,
         }
     }
 
@@ -249,25 +241,12 @@ impl Expression {
                     Some(v) => v.clone().value,
                     None => match env.borrow().values.borrow().get(name.lexeme.as_str()) {
                         Some(v) => v.clone().value,
-                        None => LiteralType::Null,
+                        None => {
+                            raw(format!("failed to name: {}", name.lexeme).as_str());
+                            LiteralType::Null
+                        }
                     },
                 }
-            }
-            Expression::Method {
-                left, name, args, ..
-            } => {
-                let literal = left.clone().eval(env.clone());
-                let n = match **left {
-                    Expression::Var { ref name, .. } => name,
-                    _ => &Token {
-                        token: TokenType::Null,
-                        lexeme: "null".to_string(),
-                        value: None,
-                        line: 0,
-                        pos: (0, 0),
-                    },
-                };
-                self.eval_literal_method_b(n.clone(), literal, name.clone(), args, env)
             }
             Expression::Call { name, args, .. } => {
                 let call: LiteralType = name.eval(Rc::clone(&env));
@@ -287,10 +266,10 @@ impl Expression {
                             .collect();
                         (*func.func).call(evals)
                     }
-                    LiteralType::Array(res) => match args.get(0).unwrap() {
+                    LiteralType::Vec(res) => match args.get(0).unwrap() {
                         Expression::Value { value, .. } => {
                             if let LiteralType::Number(n) = value {
-                                res.get(*n as usize).unwrap().eval(env)
+                                res.get(*n as usize).unwrap().clone()
                             } else {
                                 LiteralType::Null
                             }
@@ -325,7 +304,7 @@ impl Expression {
                         }
                         _ => LiteralType::Null,
                     },
-                    _ => self.eval_literal_method(call, args, env),
+                    _ => LiteralType::Null,
                 }
             }
             Expression::Grouping { expression, .. } => expression.eval(env),
@@ -384,7 +363,13 @@ impl Expression {
                 let func = LiteralType::Func(FuncValueType::Func(call));
                 func
             }
-            Expression::Array { items, .. } => LiteralType::Array(items.clone()),
+            Expression::Vec { items, .. } => LiteralType::Vec(
+                items
+                    .iter()
+                    .map(|f| f.eval(Rc::clone(&env)))
+                    .collect::<Vec<LiteralType>>()
+                    .clone(),
+            ),
             Expression::Await { .. } => LiteralType::Null,
             Expression::Binary {
                 left,
@@ -393,260 +378,6 @@ impl Expression {
                 ..
             } => self.eval_binary(left, operator, right, env),
             Expression::Unary { operator, left, .. } => self.eval_unary(operator, left, env),
-        }
-    }
-
-    fn eval_literal_method_b(
-        &self,
-        callee: Token,
-        literal: LiteralType,
-        name: Token,
-        args: &[Expression],
-        env: Rc<RefCell<Env>>,
-    ) -> LiteralType {
-        match literal {
-            LiteralType::Array(a) => {
-                let name_s = name.lexeme;
-                match name_s.as_str() {
-                    "push" => {
-                        if !args.is_empty() {
-                            let m = args[0].eval(env.clone());
-                            let e = Expression::Value {
-                                id: self.id(),
-                                value: m,
-                            };
-                            let mut a = a;
-                            a.push(e);
-                            let value = LiteralType::Array(a.clone());
-                            env.borrow_mut().assing(
-                                callee.lexeme.clone(),
-                                ValueType {
-                                    value: value.clone(),
-                                    kind: ValueKind::Var(VarKind {
-                                        is_mut: true,
-                                        is_pub: false,
-                                        is_func: false,
-                                        value_type: Token {
-                                            token: TokenType::AnyIdent,
-                                            lexeme: "any".to_string(),
-                                            value: None,
-                                            line: 0,
-                                            pos: (0, 0),
-                                        },
-                                    }),
-                                },
-                                self.id(),
-                            );
-                            return value;
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            LiteralType::Number(n) => {
-                let name_s = name.lexeme;
-                match name_s.as_str() {
-                    "sqr" => return LiteralType::Number(n * n),
-                    "add" => {
-                        if !args.is_empty() {
-                            let m = args[0].eval(env.clone());
-                            if let LiteralType::Number(m) = m {
-                                return LiteralType::Number(n + m);
-                            }
-                        }
-                    }
-                    "sub" => {
-                        if !args.is_empty() {
-                            let m = args[0].eval(env.clone());
-                            if let LiteralType::Number(m) = m {
-                                return LiteralType::Number(n - m);
-                            }
-                        }
-                    }
-                    "mult" => {
-                        if !args.is_empty() {
-                            let m = args[0].eval(env.clone());
-                            if let LiteralType::Number(m) = m {
-                                return LiteralType::Number(n * m);
-                            }
-                        }
-                    }
-                    "div" => {
-                        if !args.is_empty() {
-                            let m = args[0].eval(env.clone());
-                            if let LiteralType::Number(m) = m {
-                                return LiteralType::Number(n / m);
-                            }
-                        }
-                    }
-                    "rem" => {
-                        if !args.is_empty() {
-                            let m = args[0].eval(env.clone());
-                            if let LiteralType::Number(m) = m {
-                                return LiteralType::Number(n % m);
-                            }
-                        }
-                    }
-                    "sqrt" => return LiteralType::Number(n.sqrt()),
-                    "cbrt" => return LiteralType::Number(n.cbrt()),
-                    "pow" => {
-                        if !args.is_empty() {
-                            let m = args[0].eval(env.clone());
-                            if let LiteralType::Number(m) = m {
-                                return LiteralType::Number(n.powf(m));
-                            }
-                        }
-                    }
-                    "log" => {
-                        if !args.is_empty() {
-                            let m = args[0].eval(env.clone());
-                            if let LiteralType::Number(m) = m {
-                                return LiteralType::Number(n.log(m));
-                            }
-                        }
-                    }
-                    "sin" => return LiteralType::Number(n.sin()),
-                    "asin" => return LiteralType::Number(n.asin()),
-                    "cos" => return LiteralType::Number(n.cos()),
-                    "acos" => return LiteralType::Number(n.acos()),
-                    "tan" => return LiteralType::Number(n.tan()),
-                    "atan" => return LiteralType::Number(n.atan()),
-                    "abs" => return LiteralType::Number(n.abs()),
-                    "floor" => return LiteralType::Number(n.floor()),
-                    "ceil" => return LiteralType::Number(n.ceil()),
-                    "round" => return LiteralType::Number(n.round()),
-                    "signum" => return LiteralType::Number(n.signum()),
-                    "hypot" => {
-                        if !args.is_empty() {
-                            let m = args[0].eval(env.clone());
-                            if let LiteralType::Number(m) = m {
-                                return LiteralType::Number(n.hypot(m));
-                            }
-                        }
-                    }
-                    "exp" => return LiteralType::Number(n.exp()),
-                    "exp2" => return LiteralType::Number(n.exp2()),
-                    "exp_m1" => return LiteralType::Number(n.exp_m1()),
-                    "ln" => return LiteralType::Number(n.ln()),
-                    "max" => {
-                        if !args.is_empty() {
-                            let m = args[0].eval(env.clone());
-                            if let LiteralType::Number(m) = m {
-                                return LiteralType::Number(n.max(m));
-                            }
-                        }
-                    }
-                    "min" => {
-                        if !args.is_empty() {
-                            let m = args[0].eval(env.clone());
-                            if let LiteralType::Number(m) = m {
-                                return LiteralType::Number(n.min(m));
-                            }
-                        }
-                    }
-                    "avg" => {
-                        if !args.is_empty() {
-                            let m = args[0].eval(env.clone());
-                            if let LiteralType::Number(m) = m {
-                                return LiteralType::Number((n + m) / 2.0);
-                            }
-                        }
-                    }
-                    "to_degrees" => return LiteralType::Number(n.to_degrees()),
-                    "to_radians" => return LiteralType::Number(n.to_radians()),
-                    _ => {}
-                }
-            }
-            LiteralType::String(s) => {
-                let name_s = name.lexeme;
-                match name_s.as_str() {
-                    "len" => return LiteralType::Number(s.len() as f32),
-                    "is_empty" => return LiteralType::Boolean(s.is_empty()),
-                    "contains" => {
-                        if !args.is_empty() {
-                            let substr = args[0].eval(env.clone());
-                            if let LiteralType::String(substr) = substr {
-                                return LiteralType::Boolean(s.contains(&substr));
-                            }
-                        }
-                    }
-                    "starts_with" => {
-                        if !args.is_empty() {
-                            let prefix = args[0].eval(env.clone());
-                            if let LiteralType::String(prefix) = prefix {
-                                return LiteralType::Boolean(s.starts_with(&prefix));
-                            }
-                        }
-                    }
-                    "ends_with" => {
-                        if !args.is_empty() {
-                            let suffix = args[0].eval(env.clone());
-                            if let LiteralType::String(suffix) = suffix {
-                                return LiteralType::Boolean(s.ends_with(&suffix));
-                            }
-                        }
-                    }
-                    "to_uppercase" => return LiteralType::String(s.to_uppercase()),
-                    "to_lowercase" => return LiteralType::String(s.to_lowercase()),
-                    "trim" => return LiteralType::String(s.trim().to_string()),
-                    "trim_start" => return LiteralType::String(s.trim_start().to_string()),
-                    "trim_end" => return LiteralType::String(s.trim_end().to_string()),
-                    "replace" => {
-                        if args.len() > 1 {
-                            let from = args[0].eval(env.clone());
-                            let to = args[1].eval(env.clone());
-                            if let (LiteralType::String(from), LiteralType::String(to)) = (from, to)
-                            {
-                                return LiteralType::String(s.replace(&from, &to));
-                            }
-                        }
-                    }
-                    "find" => {
-                        if !args.is_empty() {
-                            let substr = args[0].eval(env.clone());
-                            if let LiteralType::String(substr) = substr {
-                                if let Some(index) = s.find(&substr) {
-                                    return LiteralType::Number(index as f32);
-                                }
-                            }
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            _ => {}
-        }
-        LiteralType::Any
-    }
-
-    fn eval_literal_method(
-        &self,
-        literal: LiteralType,
-        args: &[Expression],
-        env: Rc<RefCell<Env>>,
-    ) -> LiteralType {
-        if let Expression::Call { name, .. } = &args[0] {
-            if let Cow::Borrowed(Expression::Var { name, .. }) =
-                Cow::Borrowed::<Expression>(name).clone()
-            {
-                return self.eval_literal_method_b(
-                    Token {
-                        token: TokenType::Null,
-                        lexeme: "null".to_string(),
-                        value: None,
-                        line: 0,
-                        pos: (0, 0),
-                    },
-                    literal,
-                    name.clone(),
-                    &args[1..],
-                    env,
-                );
-            } else {
-                LiteralType::Null
-            }
-        } else {
-            LiteralType::Null
         }
     }
 
@@ -780,7 +511,7 @@ impl fmt::Display for Expression {
             Expression::Grouping { expression, .. } => write!(f, "({})", expression),
             Expression::Value { value, .. } => write!(f, "{}", value),
             Expression::Func { name, .. } => write!(f, "{}", name.lexeme),
-            Expression::Array { items, .. } => {
+            Expression::Vec { items, .. } => {
                 let mut items_str = String::new();
                 for item in items {
                     items_str.push_str(&format!("{}, ", item));
@@ -797,15 +528,6 @@ impl fmt::Display for Expression {
                 write!(f, "{} {} {}", left, operator.lexeme, right)
             }
             Expression::Unary { left, operator, .. } => write!(f, "{}{}", operator.lexeme, left),
-            Expression::Method {
-                left, name, args, ..
-            } => {
-                let mut args_str = String::new();
-                for arg in args {
-                    args_str.push_str(&format!("{}, ", arg));
-                }
-                write!(f, "{}.{}({})", left, name.lexeme, args_str)
-            }
         }
     }
 }

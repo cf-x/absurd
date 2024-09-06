@@ -164,7 +164,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
         TokenType::Null => matches!(val, LiteralType::Null),
         TokenType::VoidIdent => matches!(val, LiteralType::Void),
         TokenType::ArrayIdent => {
-            if let LiteralType::Array(ref array) = *val {
+            if let LiteralType::Vec(ref array) = *val {
                 if let Some(LiteralKind::Type(ref t)) = value_type.value {
                     if let TypeKind::Vec { .. } = **t {
                         return array.iter().all(|item| {
@@ -176,7 +176,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
                                     line: value_type.line,
                                     pos: value_type.pos,
                                 },
-                                &item.to_literal(),
+                                &item,
                                 env,
                             )
                         });
@@ -199,7 +199,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
                 LiteralType::String(ref s) => return check_str(s, value_type),
                 LiteralType::Boolean(ref b) => return check_bool(b, value_type),
                 LiteralType::Char(ref c) => return check_char(c, value_type),
-                LiteralType::Array(ref v) => return check_vec(v, value_type),
+                LiteralType::Vec(ref v) => return check_vec(v, value_type),
                 LiteralType::Null => return check_null(value_type),
                 _ => {}
             }
@@ -229,9 +229,9 @@ fn check_char(c: &char, value_type: &Token) -> bool {
         && matches!(literalkind_to_literaltype(value_type.value.clone().unwrap_or(LiteralKind::Null)), LiteralType::Char(ref n) if n == c)
 }
 
-fn check_vec(v: &Vec<Expression>, value_type: &Token) -> bool {
+fn check_vec(v: &Vec<LiteralType>, value_type: &Token) -> bool {
     matches!(value_type.token, TokenType::ArrLit)
-        && matches!(literalkind_to_literaltype(value_type.value.clone().unwrap_or(LiteralKind::Null)), LiteralType::Array(ref n) if n == v)
+        && matches!(literalkind_to_literaltype(value_type.value.clone().unwrap_or(LiteralKind::Null)), LiteralType::Vec(ref n) if n == v)
 }
 
 fn check_null(value_type: &Token) -> bool {

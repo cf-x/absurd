@@ -612,6 +612,18 @@ impl Interpreter {
                             ),
                         ]),
                     ),
+                    (
+                        "vector",
+                        HashMap::from([(
+                            "vector",
+                            Box::new({
+                                let mut std = std.clone();
+                                move |name2: &Option<Token>| {
+                                    std.load_push(name2.clone());
+                                }
+                            }) as Box<dyn FnMut(&Option<Token>)>,
+                        )]),
+                    ),
                 ],
             ),
         ])
@@ -648,6 +660,7 @@ impl Interpreter {
                             "literal" => match parts[2] {
                                 "number" => std.load_literal_number(),
                                 "string" => std.load_literal_string(),
+                                "vector" => std.load_literal_vector(),
                                 _ => raw(format!(
                                     "std module '{}::{}' doesn't exist",
                                     parts[1], parts[2]
@@ -677,5 +690,3 @@ impl Interpreter {
         }
     }
 }
-
-// @todo enlarge the std and introduce better managing system

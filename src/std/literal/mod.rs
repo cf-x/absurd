@@ -1,3 +1,3 @@
 pub mod number;
 pub mod string;
-pub mod vec;
+pub mod vector;

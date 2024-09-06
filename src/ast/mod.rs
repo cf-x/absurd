@@ -206,7 +206,7 @@ pub enum LiteralType {
     Null,
     Void,
     Any,
-    Array(Vec<Expression>),
+    Vec(Vec<LiteralType>),
     Obj(Vec<(String, Expression)>),
     Func(FuncValueType),
     DeclrFunc(DeclrFuncType),
