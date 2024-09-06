@@ -400,7 +400,6 @@ impl Parser {
             // consume block
             if self.if_token_advance(LBrace) {
                 let body = self.block_stmts();
-                self.consume(RBrace);
                 cases.push((expr, FuncBody::Statements(body)))
             } else {
                 // consume expression

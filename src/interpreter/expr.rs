@@ -1,6 +1,6 @@
 use super::env::{Env, ValueKind, ValueType, VarKind};
 use super::types::TypeKind;
-use crate::ast::{LiteralKind, Statement};
+use crate::ast::{LiteralKind, Statement, TokenType};
 use crate::errors::{Error, ErrorCode::*};
 use crate::interpreter::types::{type_check, typekind_to_literaltype};
 use crate::manifest::Project;
@@ -117,7 +117,7 @@ impl Expression {
             _ => LiteralType::Null,
         }
     }
-    
+
     pub fn eval(&self, env: Rc<RefCell<Env>>) -> LiteralType {
         match self {
             Expression::Object { fields, .. } => LiteralType::Obj(fields.clone()),
@@ -256,8 +256,18 @@ impl Expression {
             Expression::Method {
                 left, name, args, ..
             } => {
-                let literal = left.eval(env.clone());
-                self.eval_literal_method_b(literal, name.clone(), args, env)
+                let literal = left.clone().eval(env.clone());
+                let n = match **left {
+                    Expression::Var { ref name, .. } => name,
+                    _ => &Token {
+                        token: TokenType::Null,
+                        lexeme: "null".to_string(),
+                        value: None,
+                        line: 0,
+                        pos: (0, 0),
+                    },
+                };
+                self.eval_literal_method_b(n.clone(), literal, name.clone(), args, env)
             }
             Expression::Call { name, args, .. } => {
                 let call: LiteralType = name.eval(Rc::clone(&env));
@@ -388,12 +398,50 @@ impl Expression {
 
     fn eval_literal_method_b(
         &self,
+        callee: Token,
         literal: LiteralType,
         name: Token,
         args: &[Expression],
         env: Rc<RefCell<Env>>,
     ) -> LiteralType {
         match literal {
+            LiteralType::Array(a) => {
+                let name_s = name.lexeme;
+                match name_s.as_str() {
+                    "push" => {
+                        if !args.is_empty() {
+                            let m = args[0].eval(env.clone());
+                            let e = Expression::Value {
+                                id: self.id(),
+                                value: m,
+                            };
+                            let mut a = a;
+                            a.push(e);
+                            let value = LiteralType::Array(a.clone());
+                            env.borrow_mut().assing(
+                                callee.lexeme.clone(),
+                                ValueType {
+                                    value,
+                                    kind: ValueKind::Var(VarKind {
+                                        is_mut: true,
+                                        is_pub: false,
+                                        is_func: false,
+                                        value_type: Token {
+                                            token: TokenType::AnyIdent,
+                                            lexeme: "any".to_string(),
+                                            value: None,
+                                            line: 0,
+                                            pos: (0, 0),
+                                        },
+                                    }),
+                                },
+                                self.id(),
+                            );
+                        }
+                    }
+                    _ => {}
+                }
+            }
             LiteralType::Number(n) => {
                 let name_s = name.lexeme;
                 match name_s.as_str() {
@@ -580,7 +628,19 @@ impl Expression {
             if let Cow::Borrowed(Expression::Var { name, .. }) =
                 Cow::Borrowed::<Expression>(name).clone()
             {
-                return self.eval_literal_method_b(literal, name.clone(), &args[1..], env);
+                return self.eval_literal_method_b(
+                    Token {
+                        token: TokenType::Null,
+                        lexeme: "null".to_string(),
+                        value: None,
+                        line: 0,
+                        pos: (0, 0),
+                    },
+                    literal,
+                    name.clone(),
+                    &args[1..],
+                    env,
+                );
             } else {
                 LiteralType::Null
             }

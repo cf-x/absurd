@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.17.0
+
+### core changes
+
+- added `push`
+
+### fixes
+
+- fixed `match` statement parsing
+
 ## 0.16.0
 
 ### core changes
