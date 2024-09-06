@@ -421,7 +421,7 @@ impl Expression {
                             env.borrow_mut().assing(
                                 callee.lexeme.clone(),
                                 ValueType {
-                                    value,
+                                    value: value.clone(),
                                     kind: ValueKind::Var(VarKind {
                                         is_mut: true,
                                         is_pub: false,
@@ -437,6 +437,7 @@ impl Expression {
                                 },
                                 self.id(),
                             );
+                            return value;
                         }
                     }
                     _ => {}

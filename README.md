@@ -1,48 +1,39 @@
-<div align=center>
-
-```
-_______ ______  _______ _     _  ______ ______
-|_____| |_____] |______ |     | |_____/ |     \
-|     | |_____] ______| |_____| |    \_ |_____/
-```
-
-</div>
-
 # Absurd Programming language
 
-Absurd, but not literally. Statically typed, interpreted programming language, built to kill (my) boredom. Why should you use Absurd? Because you like it, 
-if you don't, create your own language.
+Absurd is an interpreted, statically typed and high-level language, designed to be as powerful and fast as Rust, but higher-level and much easier to use.
 
 ## Installation
 
-To install Absurd on Linux, run the following command in your terminal:
+Absurd is only avaiable on Windows and Linux, and support for MacOS isn't planned in the near future.
+
+### Linux
+
+To install Absurd on your Linux machine, open the terminal and run the following code:
 
 ```sh
 curl -sSL https://static.ykk2b.xyz/install.sh | bash
 ```
 
-version should be displayed if the installation was successful. You can verify that by running:
+`Sudo` mode might be requested to install the neccessary binaries for the language.
 
-```sh
-absurd -h
-```
+### Windows
 
-On Windows, you can install absurd by running the following commands in PowerShell:
+Run following command in PowerShell:
 
 ```sh
 Invoke-WebRequest -Uri https://static.ykk2b.xyz/install.sh -OutFile install.sh
 bash install.sh
 ```
 
-Support for MacOS will be available soon.
+If the installation was successful latest stable version should have been displayed. To verify the installation, run the version command:
+
+```sh
+absurd --version
+```
 
 ## Documentation
 
-Visit the [documentation](#) for more information about the language.
-
-## Contributing
-
-For contributing to absurd, please visit the [documentation for contributors](https://absurd.ykk2b.xyz/contributing.html).
+Visit the [documentation](https://absurd.ykk2b.xyz/) for more information about the language.
 
 ## License
 
