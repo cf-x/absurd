@@ -289,16 +289,30 @@ impl<'a> Scanner<'a> {
         if radix != 10 {
             self.advance();
         }
-        while self.peek().is_digit(radix) {
-            self.advance();
-        }
-        if radix == 10 && self.peek() == '.' && self.peek_next().is_digit(10) {
-            self.advance();
-            while self.peek().is_digit(10) {
+
+        while self.peek().is_digit(radix) || self.peek() == '_' {
+            if self.peek() == '_' {
+                self.advance();
+            } else {
                 self.advance();
             }
         }
-        let sub = &self.src[self.start..self.crnt];
+
+        if radix == 10 && self.peek() == '.' && self.peek_next().is_digit(10) {
+            self.advance();
+            while self.peek().is_digit(10) || self.peek() == '_' {
+                if self.peek() == '_' {
+                    self.advance();
+                } else {
+                    self.advance();
+                }
+            }
+        }
+        
+        let sub: String = self.src[self.start..self.crnt]
+            .chars()
+            .filter(|&c| c != '_')
+            .collect();
         let value = if radix == 10 {
             sub.parse::<f32>().unwrap_or(0.0)
         } else {
@@ -312,6 +326,7 @@ impl<'a> Scanner<'a> {
         };
         self.push(NumLit, Some(LiteralKind::Number { base, value }));
     }
+
 
     /// just as name says, pushes tokens
     fn push(&mut self, token: TokenType, value: Option<LiteralKind>) {

@@ -85,15 +85,19 @@ impl Interpreter {
                 }
                 Sh { cmd } => {
                     let cmd = cmd.trim_matches('"');
-                    let mut parts = cmd.split_whitespace();
-                    let command = parts.next().expect("no command provided");
-                    let args: Vec<&str> = parts.collect();
-                    let output = Command::new(command)
-                        .args(&args)
-                        .stdout(Stdio::piped())
-                        .stderr(Stdio::piped())
-                        .output()
-                        .expect("failed to execute command");
+                    let output = match Command::new("sh")
+                            .arg("-c")
+                            .arg(cmd)
+                            .stdout(Stdio::piped())
+                            .stderr(Stdio::piped())
+                            .output()
+                    {
+                        Ok(c) => c,
+                        Err(e) => {
+                            raw(format!("sh error: {}", e).as_str());
+                            exit(1)
+                        }
+                    };
 
                     if output.status.success() {
                         let stdout = String::from_utf8_lossy(&output.stdout);

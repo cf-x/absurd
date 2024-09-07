@@ -197,7 +197,7 @@ fn get_wall() {
         |     | |_____] ______| |_____| |    \_ |_____/
     "#;
 
-    println!("{}", a.yellow());
+    println!("{}", a.red().bold());
 }
 
 // @todo more flags

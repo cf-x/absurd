@@ -5,6 +5,11 @@
 ### core changes
 
 - added string parsing (`"hello {name}"`)
+- added digit seperators (`12_500`);
+
+### fixes
+
+- fixed `sh` statement
 
 ## 0.17.0
 
