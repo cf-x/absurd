@@ -7,7 +7,7 @@ use std::{
 pub mod token;
 use crate::interpreter::{env::Env, expr::Expression, types::TypeKind};
 
-#[allow(dead_code)]
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     /// !
@@ -80,9 +80,6 @@ pub enum TokenType {
     TrueLit,
     /// false
     FalseLit,
-    /// array
-    #[allow(dead_code)]
-    ArrLit,
     /// <
     Ls,
     /// <=
@@ -155,8 +152,6 @@ pub enum TokenType {
     Func,
     /// type
     TypeStmt,
-    /// alias
-    Alias,
     /// sh
     Sh,
     /// number
@@ -181,14 +176,6 @@ pub enum TokenType {
     AnyIdent,
 }
 
-#[derive(Debug, PartialEq, Clone)]
-#[allow(dead_code)]
-pub enum FuncValueType {
-    Func(FuncImpl),
-    Std,
-    Callback,
-}
-
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Base {
     Binary = 2,
@@ -205,10 +192,9 @@ pub enum LiteralType {
     Boolean(bool),
     Null,
     Void,
-    Any,
     Vec(Vec<LiteralType>),
     Obj(Vec<(String, Expression)>),
-    Func(FuncValueType),
+    Func(FuncImpl),
     DeclrFunc(DeclrFuncType),
 }
 
@@ -253,7 +239,7 @@ impl FuncValType for Wrapper {
     }
 }
 
-#[allow(dead_code)]
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum LiteralKind {
     Number { base: Base, value: f32 },
@@ -293,14 +279,10 @@ impl Token {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug, PartialEq, Clone)]
 pub enum CallType {
     Func,
-    Var,
     Struct,
-    OpenStruct,
-    Method,
     Enum,
     Array,
 }

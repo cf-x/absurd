@@ -271,7 +271,7 @@ impl Parser {
                 params.push((param_name, param_type))
             } else if self.if_token_consume(Comma) {
             } else if !self.is_token(RParen) {
-                self.throw_error(E0x201, vec![self.peek().lexeme]);
+                self.throw_error(E0x103, vec![self.peek().lexeme]);
             }
         }
 
@@ -365,7 +365,7 @@ impl Parser {
         let iter = if self.is_token(NumLit) {
             let num = match self.consume(NumLit).value {
                 Some(LiteralKind::Number { value, .. }) => value,
-                _ => self.throw_error(E0x202, vec![self.peek().lexeme]),
+                _ => self.throw_error(E0x104, vec![self.peek().lexeme]),
             };
             if num < 0.0 {
                 Some(1)
@@ -489,7 +489,7 @@ impl Parser {
             let enm = self.consume(Ident);
             enums.push(enm);
             if !self.if_token_consume(Comma) && !self.is_token(RBrace) {
-                self.throw_error(E0x201, vec![self.peek().lexeme]);
+                self.throw_error(E0x103, vec![self.peek().lexeme]);
             }
         }
 
@@ -522,7 +522,7 @@ impl Parser {
                 self.consume(RBrace);
                 stmts
             }
-            _ => self.throw_error(E0x203, vec!["a block statement".to_string()]),
+            _ => self.throw_error(E0x105, vec!["a block statement".to_string()]),
         }
     }
 

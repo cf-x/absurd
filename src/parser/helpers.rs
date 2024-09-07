@@ -4,7 +4,7 @@ use crate::ast::{
     LiteralKind, LiteralType, Token,
     TokenType::{self, *},
 };
-use crate::errors::ErrorCode::{self, *};
+use crate::errors::ErrorCode::{self, E0x104, E0x106, E0x108};
 use colored::Colorize;
 use std::process::exit;
 
@@ -16,21 +16,21 @@ impl Parser {
                 if let Some(LiteralKind::Number { value, .. }) = token.value {
                     LiteralType::Number(value)
                 } else {
-                    self.throw_error(E0x202, vec![self.peek().lexeme])
+                    self.throw_error(E0x104, vec![self.peek().lexeme])
                 }
             }
             StrLit => {
                 if let Some(LiteralKind::String { value }) = token.value {
                     LiteralType::String(value)
                 } else {
-                    self.throw_error(E0x202, vec![self.peek().lexeme])
+                    self.throw_error(E0x104, vec![self.peek().lexeme])
                 }
             }
             CharLit => {
                 if let Some(LiteralKind::Char { value }) = token.value {
                     LiteralType::Char(value)
                 } else {
-                    self.throw_error(E0x202, vec![self.peek().lexeme])
+                    self.throw_error(E0x104, vec![self.peek().lexeme])
                 }
             }
             TrueLit => LiteralType::Boolean(true),
@@ -83,7 +83,7 @@ impl Parser {
         if self.is_uppercase_ident() {
             self.consume(Ident)
         } else {
-            self.throw_error(E0x204, vec!["uppercase Ident".to_string()])
+            self.throw_error(E0x108, vec![])
         }
     }
 
@@ -94,7 +94,7 @@ impl Parser {
                 return self.prev(1);
             }
         }
-        self.throw_error(E0x204, vec![self.prev(1).lexeme])
+        self.throw_error(E0x106, vec![self.prev(1).lexeme])
     }
 
     /// self explanatory
@@ -102,7 +102,7 @@ impl Parser {
         if self.if_token_advance(t.clone()) {
             self.prev(1)
         } else {
-            self.throw_error(E0x204, vec![t.to_string()])
+            self.throw_error(E0x106, vec![t.to_string()])
         }
     }
 

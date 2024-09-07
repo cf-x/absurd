@@ -57,7 +57,7 @@ impl Parser {
             // |i, i| i
             Pipe => self.callback(),
             // literal types
-            StrLit | NumLit | CharLit | Null | TrueLit | ArrLit | FalseLit => self.literal(),
+            StrLit | NumLit | CharLit | Null | TrueLit | FalseLit => self.literal(),
             // standard types
             AnyIdent | BoolIdent | CharIdent | VoidIdent | ArrayIdent | NumIdent | StrIdent => {
                 self.builtin()

@@ -4,7 +4,6 @@ impl TokenType {
     pub fn to_string(&self) -> String {
         let s = match self {
             Self::Sh => "sh",
-            Self::Alias => "alias",
             Self::Type | Self::TypeStmt => "type",
             Self::Bang => "!",
             Self::DblBang => "!!",
@@ -41,7 +40,6 @@ impl TokenType {
             Self::NumLit => "number literal",
             Self::TrueLit => "true literal",
             Self::FalseLit => "false literal",
-            Self::ArrLit => "array literal",
             Self::FuncIdent => "function type",
             Self::Ls => "<",
             Self::LsOrEq => "<=",

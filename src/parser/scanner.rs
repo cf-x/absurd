@@ -217,12 +217,12 @@ impl<'a> Scanner<'a> {
             self.advance()
         } else {
             self.err
-                .throw(E0x102, self.line, (self.pos - 1, self.pos), vec![]);
+                .throw(E0x101, self.line, (self.pos - 1, self.pos), vec![]);
             return;
         };
         if self.peek() != '\'' {
             self.err
-                .throw(E0x102, self.line, (self.pos - 1, self.pos), vec![]);
+                .throw(E0x101, self.line, (self.pos - 1, self.pos), vec![]);
             return;
         }
         self.advance();
@@ -241,7 +241,7 @@ impl<'a> Scanner<'a> {
         }
         if self.is_eof() {
             self.err
-                .throw(E0x103, self.line, (self.pos - 1, self.pos), vec![]);
+                .throw(E0x102, self.line, (self.pos - 1, self.pos), vec![]);
             return;
         }
         self.advance();

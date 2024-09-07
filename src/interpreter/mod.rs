@@ -7,7 +7,7 @@ use crate::interpreter::types::type_check;
 use crate::manifest::Project;
 use crate::{
     ast::{
-        FuncBody, FuncImpl, FuncValueType, LiteralType,
+        FuncBody, FuncImpl, LiteralType,
         Statement::{self, *},
         Token,
     },
@@ -151,7 +151,7 @@ impl Interpreter {
                                         .throw(E0x401, names[0].line, names[0].pos, vec![]);
                                 }
                                 let call = self.create_func(stmt);
-                                let func = LiteralType::Func(FuncValueType::Func(call.clone()));
+                                let func = LiteralType::Func(call.clone());
                                 let params = call
                                     .params
                                     .iter()
@@ -287,7 +287,7 @@ impl Interpreter {
                     }
 
                     let call = self.create_func(stmt);
-                    let func = LiteralType::Func(FuncValueType::Func(call));
+                    let func = LiteralType::Func(call);
                     let params: Vec<(String, String)> = params
                         .iter()
                         .map(|(a, b)| (a.clone().lexeme, b.clone().lexeme))

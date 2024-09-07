@@ -1,7 +1,7 @@
 // parses expressions
 use super::Parser;
 use crate::ast::{FuncBody, Statement, Token, TokenType::*};
-use crate::errors::ErrorCode::*;
+use crate::errors::ErrorCode::{E0x103, E0x107};
 use crate::interpreter::expr::{AssignKind, Expression};
 
 impl Parser {
@@ -30,7 +30,6 @@ impl Parser {
         }
     }
 
-    // I think everything is self explanatory bellow
     pub fn primary(&mut self) -> Expression {
         let token = self.peek().clone();
         match token.token {
@@ -67,7 +66,7 @@ impl Parser {
                         value: self.to_value_type(token),
                     }
                 } else {
-                    self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
+                    self.throw_error(E0x103, vec![self.peek().lexeme.clone()]);
                 }
             }
         }
@@ -146,7 +145,7 @@ impl Parser {
                 kind,
             }
         } else {
-            self.throw_error(E0x201, vec!["Invalid assignment target".to_string()]);
+            self.throw_error(E0x107, vec![]);
         }
     }
 
@@ -158,7 +157,7 @@ impl Parser {
             let value = self.expr();
             fields.push((key.lexeme, value));
             if !self.if_token_consume(Comma) && !self.is_token(RBrace) {
-                self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
+                self.throw_error(E0x103, vec![self.peek().lexeme.clone()]);
             }
         }
         Expression::Object {
@@ -173,7 +172,7 @@ impl Parser {
             let e = self.expr();
             items.push(e);
             if !self.if_token_consume(Comma) && !self.is_token(RBracket) {
-                self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
+                self.throw_error(E0x103, vec![self.peek().lexeme.clone()]);
             }
         }
         Expression::Vec {
@@ -225,7 +224,7 @@ impl Parser {
                     }
                 } else if self.if_token_consume(Comma) {
                 } else {
-                    self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
+                    self.throw_error(E0x103, vec![self.peek().lexeme.clone()]);
                 }
             }
         }

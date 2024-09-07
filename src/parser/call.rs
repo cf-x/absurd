@@ -2,7 +2,7 @@ use super::Parser;
 use crate::ast::CallType;
 use crate::ast::LiteralType;
 use crate::ast::TokenType::*;
-use crate::errors::ErrorCode::E0x201;
+use crate::errors::ErrorCode::E0x103;
 use crate::interpreter::expr::Expression;
 
 impl Parser {
@@ -66,7 +66,7 @@ impl Parser {
                 break;
             }
             if !self.if_token_consume(Comma) && !self.is_token(RParen) {
-                self.throw_error(E0x201, vec![self.peek().lexeme.clone()]);
+                self.throw_error(E0x103, vec![self.peek().lexeme.clone()]);
             }
         }
         self.consume(RParen);

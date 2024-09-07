@@ -2,16 +2,12 @@ use super::{env::Env, expr::Expression};
 use crate::ast::{LiteralKind, LiteralType, Token, TokenType};
 use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
 
-#[allow(dead_code)]
+
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeKind {
     Vec {
         // <type>
         kind: Box<TypeKind>,
-    },
-    Tuple {
-        // <(type, type)>
-        kind: Vec<Box<TypeKind>>,
     },
     Object {
         // {name: type, name: type, ..}
@@ -50,9 +46,6 @@ impl fmt::Display for TypeKind {
         match self {
             TypeKind::Vec { kind } => {
                 write!(f, "<{}>", kind)
-            }
-            TypeKind::Tuple { kind } => {
-                write!(f, "<({:?})>", kind)
             }
             TypeKind::Object { fields } => {
                 write!(f, "{{")?;
@@ -193,13 +186,12 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
         | TokenType::TrueLit
         | TokenType::FalseLit
         | TokenType::CharLit
-        | TokenType::ArrLit => {
+       => {
             match *val {
                 LiteralType::Number(ref n) => return check_num(n, value_type),
                 LiteralType::String(ref s) => return check_str(s, value_type),
                 LiteralType::Boolean(ref b) => return check_bool(b, value_type),
                 LiteralType::Char(ref c) => return check_char(c, value_type),
-                LiteralType::Vec(ref v) => return check_vec(v, value_type),
                 LiteralType::Null => return check_null(value_type),
                 _ => {}
             }
@@ -229,11 +221,6 @@ fn check_char(c: &char, value_type: &Token) -> bool {
         && matches!(literalkind_to_literaltype(value_type.value.clone().unwrap_or(LiteralKind::Null)), LiteralType::Char(ref n) if n == c)
 }
 
-fn check_vec(v: &Vec<LiteralType>, value_type: &Token) -> bool {
-    matches!(value_type.token, TokenType::ArrLit)
-        && matches!(literalkind_to_literaltype(value_type.value.clone().unwrap_or(LiteralKind::Null)), LiteralType::Vec(ref n) if n == v)
-}
-
 fn check_null(value_type: &Token) -> bool {
     matches!(value_type.token, TokenType::Null)
         && matches!(
@@ -259,7 +246,6 @@ pub fn typekind_to_literaltype(kind: TypeKind) -> LiteralType {
         TypeKind::Var { name } => var_to_lt(name),
         TypeKind::Callback { ret, .. } => typekind_to_literaltype(*ret),
         TypeKind::Vec { kind } => typekind_to_literaltype(*kind),
-        TypeKind::Tuple { .. } => LiteralType::Null,
         TypeKind::Literal { kind } => literalkind_to_literaltype(kind),
         TypeKind::Either { lhs, .. } => typekind_to_literaltype(*lhs),
         TypeKind::Maybe { lhs } => typekind_to_literaltype(*lhs),

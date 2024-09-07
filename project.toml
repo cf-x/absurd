@@ -11,7 +11,3 @@ disable_std = false
 load_std = true
 # disable the analyzer
 disable_analyzer = true
-
-
-[modules]
-name = "version"

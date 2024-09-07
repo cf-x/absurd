@@ -2,14 +2,16 @@
 
 ## 0.17.0
 
-### core changes
+### internal changes
 
+- updated error system
 - removed methods
 
 ### fixes
 
 - fixed `match` statement parsing
 - fixed vectors
+- fixed minor optimization issues
 
 ## 0.16.0
 

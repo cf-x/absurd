@@ -15,9 +15,6 @@ pub struct Project {
     pub disable_analyzer: bool,
     pub log: bool,
     pub test: bool,
-    // # modules
-    #[allow(dead_code)]
-    pub modules: Vec<(String, String)>,
 }
 
 impl Project {
@@ -31,8 +28,6 @@ impl Project {
             disable_analyzer: true,
             log: false,
             test: false,
-            // # modules
-            modules: Vec::new(),
         }
     }
 

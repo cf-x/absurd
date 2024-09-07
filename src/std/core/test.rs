@@ -57,13 +57,13 @@ impl StdFunc {
         }
     }
 
-    // #[allow(dead_code)]
+    
     #[inline]
     fn success(&self, name: String) {
         println!("  {}", format!("success: test '{}'", name).green());
     }
 
-    // #[allow(dead_code)]
+   
     #[inline]
     fn fail(&self, name: String) {
         println!("  {}", format!("fail: test '{}'", name).red());

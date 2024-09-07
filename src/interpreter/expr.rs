@@ -5,7 +5,7 @@ use crate::errors::{raw, Error, ErrorCode::*};
 use crate::interpreter::types::{type_check, typekind_to_literaltype};
 use crate::manifest::Project;
 use crate::{
-    ast::{CallType, FuncBody, FuncImpl, FuncValueType, LiteralType, Token, TokenType::*},
+    ast::{CallType, FuncBody, FuncImpl, LiteralType, Token, TokenType::*},
     interpreter::run_func,
 };
 use core::cmp::Eq;
@@ -242,7 +242,7 @@ impl Expression {
                     None => match env.borrow().values.borrow().get(name.lexeme.as_str()) {
                         Some(v) => v.clone().value,
                         None => {
-                            raw(format!("failed to name: {}", name.lexeme).as_str());
+                            raw(format!("invalid variable: {}", name.lexeme).as_str());
                             LiteralType::Null
                         }
                     },
@@ -252,13 +252,7 @@ impl Expression {
                 let call: LiteralType = name.eval(Rc::clone(&env));
 
                 match call {
-                    LiteralType::Func(func) => match func {
-                        FuncValueType::Func(func) => run_func(func, args, env),
-                        _ => {
-                            self.err().throw(E0x407, 0, (0, 0), vec![]);
-                            exit(0);
-                        }
-                    },
+                    LiteralType::Func(func) => run_func(func, args, env),
                     LiteralType::DeclrFunc(func) => {
                         let evals = args
                             .iter()
@@ -360,7 +354,7 @@ impl Expression {
                     is_async: *is_async,
                     env: Rc::clone(&env),
                 };
-                let func = LiteralType::Func(FuncValueType::Func(call));
+                let func = LiteralType::Func(call);
                 func
             }
             Expression::Vec { items, .. } => LiteralType::Vec(

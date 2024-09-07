@@ -6,14 +6,14 @@ use crate::ast::{
 };
 use crate::interpreter::expr::Expression;
 
-#[allow(dead_code)]
+
 #[derive(Debug, Clone)]
 pub struct FuncCall {
     name: Token,
     args: Vec<Expression>,
 }
 
-#[allow(dead_code)]
+
 #[derive(Debug, Clone)]
 pub enum Called {
     Var(Token),
@@ -214,7 +214,7 @@ impl Analyzer {
     }
 }
 
-#[allow(dead_code)]
+
 impl Analyzer {
     pub fn next(&mut self) -> Statement {
         let mut ast = self.input_ast.clone();

@@ -273,7 +273,7 @@ impl Resolver {
         if let Expression::Var { name, .. } = expr {
             if let Some(false) = self.scopes.last().and_then(|scope| scope.get(&name.lexeme)) {
                 self.err.throw(
-                    E0x306,
+                    E0x304,
                     name.line,
                     name.pos,
                     vec!["a local variable".to_string()],
@@ -284,11 +284,11 @@ impl Resolver {
                 self.resolve_local(name, expr.id());
             } else {
                 self.err
-                    .throw(E0x306, 0, (0, 0), vec!["a variable".to_string()]);
+                    .throw(E0x304, 0, (0, 0), vec!["a variable".to_string()]);
             }
         } else {
             self.err
-                .throw(E0x306, 0, (0, 0), vec!["a variable".to_string()]);
+                .throw(E0x304, 0, (0, 0), vec!["a variable".to_string()]);
         }
     }
 
@@ -296,7 +296,7 @@ impl Resolver {
         if let Some(scope) = self.scopes.last_mut() {
             if scope.contains_key(&name.lexeme) {
                 self.err
-                    .throw(E0x307, name.line, name.pos, vec![name.lexeme.clone()]);
+                    .throw(E0x305, name.line, name.pos, vec![name.lexeme.clone()]);
             }
             scope.insert(name.lexeme.clone(), false);
         }
@@ -327,7 +327,7 @@ impl Resolver {
 
     fn scope_end(&mut self) {
         if self.scopes.pop().is_none() {
-            self.err.throw(E0x308, 0, (0, 0), vec![]);
+            self.err.throw(E0x306, 0, (0, 0), vec![]);
         }
     }
 }
