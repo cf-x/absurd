@@ -11,7 +11,7 @@ mod bundler;
 mod errors;
 mod manifest;
 
-pub const VERSION: &str = "0.16.0";
+pub const VERSION: &str = "0.18.0";
 
 fn main() {
     // load manifest

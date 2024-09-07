@@ -5,7 +5,7 @@ use std::{cell::RefCell, rc::Rc, time::Instant};
 use crate::{
     ast::Statement,
     errors::Error,
-    interpreter::{env::Env, Interpreter},
+    interpreter::{env::Env, expr::Expression, Interpreter},
     manifest::Project,
     parser::{scanner::Scanner, Parser},
     resolver::Resolver,
@@ -37,6 +37,13 @@ pub fn parser(src: &str, err: Error, log: bool) -> Vec<Statement> {
         println!("{} {}", "completed parsing in".green(), text.blue());
     }
     stmts
+}
+
+pub fn parse_expr(src: &str, err: Error) -> Expression {
+    let mut lexer = Scanner::new(src, err.clone(), false);
+    let tokens = lexer.scan();
+    let mut parser = Parser::new(tokens.clone(), err, false);
+    parser.expr()
 }
 
 pub fn interpreter_raw(src: &str, project: Project, log: bool) {

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.0
+
+### core changes
+
+- added string parsing (`"hello {name}"`)
+
 ## 0.17.0
 
 ### internal changes

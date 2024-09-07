@@ -1,6 +1,7 @@
 use super::env::{Env, ValueKind, ValueType, VarKind};
 use super::types::TypeKind;
 use crate::ast::{LiteralKind, Statement};
+use crate::bundler::parse_expr;
 use crate::errors::{raw, Error, ErrorCode::*};
 use crate::interpreter::types::{type_check, typekind_to_literaltype};
 use crate::manifest::Project;
@@ -302,7 +303,41 @@ impl Expression {
                 }
             }
             Expression::Grouping { expression, .. } => expression.eval(env),
-            Expression::Value { value, .. } => value.clone(),
+            Expression::Value { value, .. } => {
+                let v = match value.clone() {
+                    LiteralType::String(s) => {
+                        let mut result = String::new();
+                        let mut idx = 0;
+
+                        while let Some(start) = s[idx..].find('{') {
+                            result.push_str(&s[idx..idx + start]);
+                            let start_idx = idx + start + 1;
+
+                            if let Some(end) = s[start_idx..].find('}') {
+                                let expr = &s[start_idx..start_idx + end];
+                                let eval_result =
+                                    match parse_expr(expr, self.err()).eval(env.clone()) {
+                                        LiteralType::String(eval_s) => eval_s,
+                                        LiteralType::Number(eval_n) => eval_n.to_string(),
+                                        LiteralType::Boolean(eval_b) => eval_b.to_string(),
+                                        _ => "null".to_string(),
+                                    };
+
+                                result.push_str(&eval_result);
+                                idx = start_idx + end + 1;
+                            } else {
+                                break;
+                            }
+                        }
+
+                        result.push_str(&s[idx..]);
+                        LiteralType::String(result)
+                    }
+                    c => c,
+                };
+                v.clone()
+            }
+
             Expression::Func {
                 name,
                 value_type,
