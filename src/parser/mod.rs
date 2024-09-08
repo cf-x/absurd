@@ -162,7 +162,7 @@ impl Parser {
 
         let null_var = Statement::Var {
             names: names.clone(),
-            value_type: self.create_null_token(names[0].line),
+            value_type: Token::null(),
             value: Some(Expression::Value {
                 id: self.id(),
                 value: LiteralType::Null,

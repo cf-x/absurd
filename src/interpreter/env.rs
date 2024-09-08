@@ -1,5 +1,5 @@
 use crate::{
-    ast::{LiteralType, Token, TokenType},
+    ast::{LiteralType, Token},
     errors::{Error, ErrorCode::*},
     manifest::Project,
 };
@@ -13,7 +13,7 @@ type ModEnvValueType = Rc<RefCell<HashMap<String, Vec<(String, ValueType)>>>>;
 pub enum ValueKind {
     Var(VarKind),
     Func(FuncKind),
-    // @todo add other kinds
+    Type(Token),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -41,9 +41,9 @@ pub struct ValueType {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Env {
     pub values: EnvValueType,
-    pub type_values: EnvTypeValueType,
     pub pub_vals: EnvValueType,
     pub mod_vals: ModEnvValueType,
+    pub type_values: EnvTypeValueType,
     pub mods: Vec<Env>,
     pub locals: Rc<RefCell<HashMap<usize, usize>>>,
     pub enclosing: Option<Rc<RefCell<Env>>>,
@@ -92,13 +92,7 @@ impl Env {
         self.type_values
             .borrow_mut()
             .get(k)
-            .unwrap_or(&Token {
-                token: TokenType::Null,
-                lexeme: "null".to_string(),
-                value: None,
-                line: 0,
-                pos: (0, 0),
-            })
+            .unwrap_or(&Token::null())
             .clone()
     }
 
@@ -122,6 +116,16 @@ impl Env {
         );
     }
 
+    pub fn define_pub_type(&self, k: String, v: Token) {
+        self.pub_vals.borrow_mut().insert(
+            k,
+            ValueType {
+                value: LiteralType::Void,
+                kind: ValueKind::Type(v),
+            },
+        );
+    }
+
     pub fn define_pub_var(&self, k: String, v: LiteralType, f: VarKind) {
         self.pub_vals.borrow_mut().insert(
             k,
@@ -133,7 +137,7 @@ impl Env {
     }
 
     pub fn define_pub_func(&self, k: String, v: LiteralType, f: FuncKind) {
-        self.values.borrow_mut().insert(
+        self.pub_vals.borrow_mut().insert(
             k,
             ValueType {
                 value: v,

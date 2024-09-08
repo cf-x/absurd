@@ -190,14 +190,4 @@ impl Parser {
             .throw(code, self.peek().line, self.peek().pos, args);
         exit(1);
     }
-
-    pub fn create_null_token(&self, line: usize) -> Token {
-        Token {
-            token: Null,
-            pos: self.peek().pos,
-            lexeme: "null".to_string(),
-            value: None,
-            line,
-        }
-    }
 }

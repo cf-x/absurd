@@ -1,4 +1,3 @@
-// mod analyzer;
 mod ast;
 mod cli;
 mod interpreter;
@@ -11,14 +10,11 @@ mod bundler;
 mod errors;
 mod manifest;
 
-pub const VERSION: &str = "0.18.1";
+pub const VERSION: &str = "0.19.0";
 
 fn main() {
-    // load manifest
     let mut project = Project::new();
     project.load();
-    // load cli
     cli(&mut project);
 }
 
-// @todo handle `release`, `rc` and `dev` branches

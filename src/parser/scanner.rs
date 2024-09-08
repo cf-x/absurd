@@ -308,7 +308,7 @@ impl<'a> Scanner<'a> {
                 }
             }
         }
-        
+
         let sub: String = self.src[self.start..self.crnt]
             .chars()
             .filter(|&c| c != '_')
@@ -326,7 +326,6 @@ impl<'a> Scanner<'a> {
         };
         self.push(NumLit, Some(LiteralKind::Number { base, value }));
     }
-
 
     /// just as name says, pushes tokens
     fn push(&mut self, token: TokenType, value: Option<LiteralKind>) {

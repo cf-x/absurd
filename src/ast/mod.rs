@@ -7,7 +7,6 @@ use std::{
 pub mod token;
 use crate::interpreter::{env::Env, expr::Expression, types::TypeKind};
 
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
     /// !
@@ -239,7 +238,6 @@ impl FuncValType for Wrapper {
     }
 }
 
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum LiteralKind {
     Number { base: Base, value: f32 },
@@ -275,6 +273,24 @@ impl Token {
         match self.clone().value {
             Some(LiteralKind::Type(t)) => *t,
             _ => TypeKind::Var { name: self.clone() },
+        }
+    }
+    pub fn null() -> Self {
+        Token {
+            token: TokenType::Null,
+            lexeme: "null".to_string(),
+            value: None,
+            line: 0,
+            pos: (0, 0),
+        }
+    }
+    pub fn empty(token: TokenType, lexeme: &str, value: Option<LiteralKind>) -> Self {
+        Token {
+            token,
+            lexeme: lexeme.to_string(),
+            value,
+            line: 0,
+            pos: (0, 0),
         }
     }
 }

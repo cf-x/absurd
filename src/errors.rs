@@ -340,17 +340,6 @@ impl Error {
         exit(0);
     }
 
-    // pub fn eprintln(&self, kind: &str, code: usize, msg: String) {
-    //     let err_code = format!("E0x{}", code).yellow();
-    //     let head = format!("{} error ({}):", kind, err_code);
-    //     eprintln!("{} {}", head.red().bold(), msg.red());
-    // }
-
-    // pub fn warn(&self, msg: String) {
-    //     let head = "warning:".bold().yellow();
-    //     eprintln!("{} {}", head, msg.yellow());
-    // }
-
     fn split_line_at_char_indices(
         &self,
         line: &str,
@@ -372,5 +361,3 @@ pub fn raw(msg: &str) {
     eprintln!("{}", msg.red());
     exit(0);
 }
-
-// @todo add better flexibility and add `absurd error <code>` for getting detailed error info

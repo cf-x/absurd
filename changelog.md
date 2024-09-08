@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.19.0
+
+### core changes
+
+### internal changes
+
+- codebase stabilization
+
+### fixes
+
+- fixed publicity for types and functions
+
 ## 0.18.1
 
 ### fixes

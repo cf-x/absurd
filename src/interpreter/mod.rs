@@ -76,8 +76,16 @@ impl Interpreter {
     pub fn interpret(&mut self, stmts: Vec<&Statement>) -> Rc<RefCell<Env>> {
         for stmt in stmts {
             match stmt {
-                Type { .. } => {
-                    if let Statement::Type { name, value, .. } = stmt {
+                Type {
+                    name,
+                    value,
+                    is_pub,
+                } => {
+                    if is_pub.clone() {
+                        self.env
+                            .borrow_mut()
+                            .define_pub_type(name.clone().lexeme, value.clone());
+                    } else {
                         self.env
                             .borrow_mut()
                             .define_type(name.clone().lexeme, value.clone());
@@ -179,7 +187,7 @@ impl Interpreter {
                                             if is_arr_dest.clone() {
                                                 let i = c
                                                     .get(index)
-                                                    .expect("@error failed to destructure an array")
+                                                    .expect("failed to destructure an array")
                                                     .clone();
                                                 self.env.borrow_mut().define_var(
                                                     name.lexeme.clone(),
