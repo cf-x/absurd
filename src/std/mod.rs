@@ -44,8 +44,7 @@ impl Interpreter {
     pub fn std_map(
         &mut self,
     ) -> HashMap<&str, Vec<(&str, HashMap<&str, Box<dyn FnMut(&Option<Token>) + '_>>)>> {
-        let std = StdFunc::new(self.env.clone(), self.project.test);
-
+        let std = StdFunc::new(Rc::clone(&self.env), self.project.test);
         HashMap::from([
             (
                 "core",
@@ -631,7 +630,7 @@ impl Interpreter {
 
     pub fn load_std(&mut self, src: String, names: Vec<(Token, Option<Token>)>) {
         let parts: Vec<&str> = src.split("::").collect();
-        let mut std = StdFunc::new(self.env.clone(), self.project.test);
+        let mut std = StdFunc::new(Rc::clone(&self.env), self.project.test);
 
         if parts[0] != "std" {
             raw(format!("standard library '{src}' doesn't exist").as_str());

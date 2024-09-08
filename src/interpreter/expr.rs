@@ -2,7 +2,7 @@ use super::env::{Env, ValueKind, ValueType, VarKind};
 use super::types::TypeKind;
 use crate::ast::{LiteralKind, Statement};
 use crate::bundler::parse_expr;
-use crate::errors::{raw, Error, ErrorCode::*};
+use crate::errors::{Error, ErrorCode::*};
 use crate::interpreter::types::{type_check, typekind_to_literaltype};
 use crate::manifest::Project;
 use crate::{
@@ -242,10 +242,7 @@ impl Expression {
                     Some(v) => v.clone().value,
                     None => match env.borrow().values.borrow().get(name.lexeme.as_str()) {
                         Some(v) => v.clone().value,
-                        None => {
-                            raw(format!("invalid variable: {}", name.lexeme).as_str());
-                            LiteralType::Null
-                        }
+                        None => LiteralType::Null,
                     },
                 }
             }
@@ -289,7 +286,7 @@ impl Expression {
                                 let mut res = LiteralType::Null;
                                 for (k, v) in obj {
                                     if k == *s {
-                                        res = v.eval(env.clone());
+                                        res = v.eval(Rc::clone(&env));
                                     }
                                 }
                                 res
@@ -316,7 +313,7 @@ impl Expression {
                             if let Some(end) = s[start_idx..].find('}') {
                                 let expr = &s[start_idx..start_idx + end];
                                 let eval_result =
-                                    match parse_expr(expr, self.err()).eval(env.clone()) {
+                                    match parse_expr(expr, self.err()).eval(Rc::clone(&env)) {
                                         LiteralType::String(eval_s) => eval_s,
                                         LiteralType::Number(eval_n) => eval_n.to_string(),
                                         LiteralType::Boolean(eval_b) => eval_b.to_string(),
@@ -355,7 +352,7 @@ impl Expression {
                             .iter()
                             .map(|stmt| {
                                 if let Statement::Return { expr } = stmt {
-                                    let v = &(*expr).eval(env.clone());
+                                    let v = &(*expr).eval(Rc::clone(&env));
                                     if !type_check(value_type, v, &env) {
                                         self.err().throw(
                                             E0x301,
@@ -369,7 +366,7 @@ impl Expression {
                             })
                             .collect(),
                         FuncBody::Expression(e) => {
-                            let v = &(*e).eval(env.clone());
+                            let v = &(*e).eval(Rc::clone(&env));
                             if !type_check(value_type, v, &env) {
                                 self.err().throw(
                                     E0x301,

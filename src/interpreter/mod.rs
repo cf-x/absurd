@@ -37,7 +37,7 @@ impl Interpreter {
     pub fn new(project: Project, error: Error) -> Self {
         let env = Rc::new(RefCell::new(Env::new(HashMap::new())));
         let int = Self {
-            env: env.clone(),
+            env: Rc::clone(&env),
             specs: Rc::new(RefCell::new(HashMap::new())),
             is_mod: false,
             mod_src: None,
@@ -59,7 +59,7 @@ impl Interpreter {
         mod_src: Option<String>,
     ) -> Self {
         let int = Self {
-            env: env.clone(),
+            env: Rc::clone(&env),
             specs: Rc::new(RefCell::new(HashMap::new())),
             is_mod,
             mod_src,
@@ -86,11 +86,11 @@ impl Interpreter {
                 Sh { cmd } => {
                     let cmd = cmd.trim_matches('"');
                     let output = match Command::new("sh")
-                            .arg("-c")
-                            .arg(cmd)
-                            .stdout(Stdio::piped())
-                            .stderr(Stdio::piped())
-                            .output()
+                        .arg("-c")
+                        .arg(cmd)
+                        .stdout(Stdio::piped())
+                        .stderr(Stdio::piped())
+                        .output()
                     {
                         Ok(c) => c,
                         Err(e) => {
@@ -171,7 +171,7 @@ impl Interpreter {
                                     },
                                 );
                             } else {
-                                let val = v.eval(self.env.clone());
+                                let val = v.eval(Rc::clone(&self.env));
                                 let mut index = 0;
                                 for name in names.clone() {
                                     match val.clone() {
@@ -267,25 +267,15 @@ impl Interpreter {
                     params,
                     is_async,
                     body,
-                    value_type,
+                    ..
                 } => {
-                    // type inference
                     if let FuncBody::Statements(body) = body {
                         for stmt in body {
                             if let Statement::Return { expr } = stmt {
-                                let v = (*expr).eval(Rc::clone(&self.env));
-                                if !type_check(value_type, &v, &self.env) {
-                                    self.error.throw(
-                                        E0x301,
-                                        name.line,
-                                        name.pos,
-                                        vec![value_type.clone().lexeme, v.to_string()],
-                                    );
-                                }
+                                (*expr).eval(Rc::clone(&self.env));
                             }
                         }
                     }
-                    //
                     if is_pub.clone() && !self.project.side_effects {
                         self.error.throw(E0x415, name.line, name.pos, vec![]);
                     }
@@ -459,7 +449,7 @@ impl Interpreter {
                     interpreter_mod(
                         contents.as_str(),
                         Some(src.to_string()),
-                        self.env.clone(),
+                        Rc::clone(&self.env),
                         self.project.clone(),
                     );
                 }
@@ -511,7 +501,7 @@ impl Interpreter {
                 }
             }
         }
-        self.env.clone()
+        Rc::clone(&self.env)
     }
 
     fn create_func(&self, stmt: &Statement) -> FuncImpl {
@@ -641,7 +631,7 @@ pub fn run_func(func: FuncImpl, args: &[Expression], env: Rc<RefCell<Env>>) -> L
         }
     }
     // @todo pass is_mod
-    let mut int = Interpreter::new_with_env(func_env.clone(), false, "", None);
+    let mut int = Interpreter::new_with_env(Rc::clone(&func_env), false, "", None);
     match func.body {
         FuncBody::Statements(body) => {
             for stmt in body.clone() {
@@ -651,7 +641,7 @@ pub fn run_func(func: FuncImpl, args: &[Expression], env: Rc<RefCell<Env>>) -> L
                     specs.get("return").cloned()
                 };
                 if let Statement::Expression { expr } = body.first().unwrap() {
-                    val = Some(expr.eval(env.clone()));
+                    val = Some(expr.eval(Rc::clone(&env)));
                 }
 
                 if val.is_some() {

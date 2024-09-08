@@ -1,11 +1,18 @@
 # Changelog
 
+## 0.18.1
+
+### fixes
+
+- fixed func parameters not defining
+- fixed environment over-clonning
+
 ## 0.18.0
 
 ### core changes
 
 - added string parsing (`"hello {name}"`)
-- added digit seperators (`12_500`);
+- added digit separators (`12_500`);
 
 ### fixes
 

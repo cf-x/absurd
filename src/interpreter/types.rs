@@ -130,7 +130,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
                                         line: name.line,
                                         pos: name.pos,
                                     };
-                                    return type_check(&field_token, &v.eval(env.clone()), env);
+                                    return type_check(&field_token, &v.eval(Rc::clone(&env)), env);
                                 } else {
                                     false
                                 }
