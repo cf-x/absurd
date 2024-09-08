@@ -25,8 +25,6 @@ pub enum ErrorCode {
     E0x106,
     /// `sybtax error (E0x107): invalid assignment target`
     E0x107,
-    /// `sybtax error (E0x108): expected an uppercase identifier`
-    E0x108,
     /// `runtime error (E0x301): type mismatch: expected '{0}', got '{1}'`
     /// - {0}: expected type
     /// - {1}: actual type
@@ -131,13 +129,6 @@ impl Error {
                 109,
                 "syntax",
                 format!("invalid assignment target"),
-                line,
-                pos,
-            ),
-            E0x108 => self.error(
-                110,
-                "syntax",
-                format!("expected an uppercase identifier"),
                 line,
                 pos,
             ),

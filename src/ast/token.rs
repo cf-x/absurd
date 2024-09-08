@@ -70,7 +70,6 @@ impl TokenType {
             Self::Use => "use keyword",
             Self::As => "as keyword",
             Self::From => "from keyword",
-            Self::Enum => "enum keyword",
             Self::Async => "async keyword",
             Self::Await => "await keyword",
             Self::Pub => "pub keyword",

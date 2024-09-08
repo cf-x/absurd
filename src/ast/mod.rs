@@ -137,8 +137,6 @@ pub enum TokenType {
     As,
     /// from
     From,
-    /// enum
-    Enum,
     /// async
     Async,
     /// await
@@ -299,7 +297,6 @@ impl Token {
 pub enum CallType {
     Func,
     Struct,
-    Enum,
     Array,
 }
 
@@ -367,11 +364,6 @@ pub enum Statement {
         src: String,
         names: Vec<(Token, Option<Token>)>,
         all: bool,
-    },
-    Enum {
-        name: Token,
-        enums: Vec<Token>,
-        is_pub: bool,
     },
 }
 

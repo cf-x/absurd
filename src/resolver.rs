@@ -48,7 +48,6 @@ impl Resolver {
             } => self.ifs(cond, body, else_if_branches, else_branch, env),
             Statement::Block { stmts } => self.block(stmts, env),
             Statement::Break {} => self.breaks(),
-            Statement::Enum { name, .. } => self.enums(name),
             Statement::Expression { expr } => self.expr(expr, env),
             Statement::Func { body, params, .. } => self.func(body, params.as_slice(), env),
             Statement::Loop { body, .. } => self.loops(body, env),
@@ -100,11 +99,6 @@ impl Resolver {
         if !self.is_crnt_loop {
             self.err.throw(E0x302, 0, (0, 0), vec![]);
         }
-    }
-
-    fn enums(&mut self, name: &Token) {
-        self.declare(name);
-        self.define(name);
     }
 
     fn func(&mut self, body: &FuncBody, params: &[(Token, Token)], env: &Rc<RefCell<Env>>) {

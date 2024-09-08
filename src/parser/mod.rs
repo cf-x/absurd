@@ -64,7 +64,6 @@ impl Parser {
             Sh => self.shs(),
             Mod => self.mods(),
             Use => self.uses(),
-            Enum => self.enums(),
             LBrace => self.block_stmt(),
             TypeStmt => self.types(),
             _ => self.exprs(),
@@ -475,30 +474,6 @@ impl Parser {
         self.consume(Semi);
         self.log("use statement");
         Statement::Use { src, names, all }
-    }
-
-    fn enums(&mut self) -> Statement {
-        self.start("enum statement");
-        let is_pub = self.if_token_consume(Pub);
-        let name = self.consume_uppercase_ident();
-        self.consume(LBrace);
-
-        let mut enums = vec![];
-        // block with uppercase identifiers
-        while !self.if_token_consume(RBrace) {
-            let enm = self.consume(Ident);
-            enums.push(enm);
-            if !self.if_token_consume(Comma) && !self.is_token(RBrace) {
-                self.throw_error(E0x103, vec![self.peek().lexeme]);
-            }
-        }
-
-        self.log("enum statement");
-        Statement::Enum {
-            name,
-            enums,
-            is_pub,
-        }
     }
 
     fn types(&mut self) -> Statement {

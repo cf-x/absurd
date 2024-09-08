@@ -88,7 +88,6 @@ impl Parser {
         } {
             match token {
                 Dot => expr = self.obj_call(),
-                DblColon => expr = self.enum_call(),
                 LParen => expr = self.func_call(),
                 LBracket => expr = self.array_call(),
                 Ident => expr = self.call(),

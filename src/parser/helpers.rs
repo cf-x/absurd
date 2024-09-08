@@ -4,7 +4,7 @@ use crate::ast::{
     LiteralKind, LiteralType, Token,
     TokenType::{self, *},
 };
-use crate::errors::ErrorCode::{self, E0x104, E0x106, E0x108};
+use crate::errors::ErrorCode::{self, E0x104, E0x106};
 use colored::Colorize;
 use std::process::exit;
 
@@ -76,15 +76,6 @@ impl Parser {
             .chars()
             .next()
             .map_or(false, |c| c.is_uppercase())
-    }
-
-    /// self explanatory
-    pub fn consume_uppercase_ident(&mut self) -> Token {
-        if self.is_uppercase_ident() {
-            self.consume(Ident)
-        } else {
-            self.throw_error(E0x108, vec![])
-        }
     }
 
     /// takes multiple tokens and consumes whichever matches first

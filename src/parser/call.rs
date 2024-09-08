@@ -40,22 +40,6 @@ impl Parser {
         }
     }
 
-    pub fn enum_call(&mut self) -> Expression {
-        let name = self.prev(2).clone();
-        let e = self.expr();
-        let args = vec![e];
-
-        Expression::Call {
-            id: self.id(),
-            name: Box::new(Expression::Var {
-                id: self.id(),
-                name,
-            }),
-            args,
-            call_type: CallType::Enum,
-        }
-    }
-
     pub fn func_call(&mut self) -> Expression {
         let name = self.prev(2).clone();
         let mut args = vec![];

@@ -42,7 +42,6 @@ impl<'a> Scanner<'a> {
                 ("use", Use),
                 ("as", As),
                 ("from", From),
-                ("enum", Enum),
                 ("async", Async),
                 ("await", Await),
                 ("type", TypeStmt),

@@ -504,9 +504,6 @@ impl Interpreter {
                         }
                     }
                 }
-                Enum { .. } => {
-                    // @todo handle enum statements
-                }
             }
         }
         Rc::clone(&self.env)
