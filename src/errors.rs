@@ -1,6 +1,6 @@
 // handles Absurd errors
 use super::manifest::Project;
-use colored::Colorize;
+use coloredpp::Colorize;
 use std::process::exit;
 use ErrorCode::*;
 

@@ -4,7 +4,7 @@ use crate::ast::{
     TokenType::{self, *},
 };
 use crate::errors::{Error, ErrorCode::*};
-use colored::Colorize;
+use coloredpp::Colorize;
 use std::collections::HashMap;
 use unicode_xid::UnicodeXID;
 

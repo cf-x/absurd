@@ -2,7 +2,7 @@
 use crate::ast::{FuncBody, LiteralKind, LiteralType, Statement, Token, TokenType::*};
 use crate::errors::{Error, ErrorCode::*};
 use crate::interpreter::expr::Expression;
-use colored::Colorize;
+use coloredpp::Colorize;
 mod call;
 pub mod expr;
 mod helpers;

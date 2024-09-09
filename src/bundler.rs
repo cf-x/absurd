@@ -1,5 +1,5 @@
 // bundles multiple parts together
-use colored::Colorize;
+use coloredpp::Colorize;
 use std::{cell::RefCell, rc::Rc, time::Instant};
 
 use crate::{

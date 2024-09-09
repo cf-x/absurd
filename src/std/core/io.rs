@@ -3,7 +3,7 @@ use crate::{
     errors::raw,
     std::{func, StdFunc},
 };
-use colored::Colorize;
+use coloredpp::Colorize;
 use std::{process::exit, rc::Rc};
 
 impl StdFunc {

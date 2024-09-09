@@ -4,9 +4,13 @@
 
 ### core changes
 
+- added 11 new `std::literal::vector` functions
+
 ### internal changes
 
+- switched from `colored` to `coloredpp`
 - codebase stabilization
+- dropped enums and analyzer
 
 ### fixes
 

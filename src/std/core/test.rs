@@ -5,7 +5,7 @@ use crate::{
     errors::raw,
     std::{func, StdFunc},
 };
-use colored::Colorize;
+use coloredpp::Colorize;
 
 impl StdFunc {
     pub fn load_core_test(&mut self) {

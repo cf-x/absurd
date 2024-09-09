@@ -613,15 +613,128 @@ impl Interpreter {
                     ),
                     (
                         "vector",
-                        HashMap::from([(
-                            "vector",
-                            Box::new({
-                                let mut std = std.clone();
-                                move |name2: &Option<Token>| {
-                                    std.load_push(name2.clone());
-                                }
-                            }) as Box<dyn FnMut(&Option<Token>)>,
-                        )]),
+                        HashMap::from([
+                            (
+                                "push",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_push(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "to_string",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_to_string(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "join",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_join(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "first",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_first(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "last",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_last(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "pop",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_pop(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "reverse",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_reverse(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "for_each",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_for_each(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "connect",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_connect(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "has",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_has(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "key",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_key(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                            (
+                                "get",
+                                Box::new({
+                                    let mut std = std.clone();
+                                    move |name2: &Option<Token>| {
+                                        std.load_get(name2.clone());
+                                    }
+                                })
+                                    as Box<dyn FnMut(&Option<Token>)>,
+                            ),
+                        ]),
                     ),
                 ],
             ),

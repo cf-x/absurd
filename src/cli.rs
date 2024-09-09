@@ -6,7 +6,7 @@ use std::{
     process::{exit, Command, Stdio},
 };
 
-use colored::Colorize;
+use coloredpp::Colorize;
 
 use crate::{bundler::interpreter_raw, errors::raw, manifest::Project, VERSION};
 

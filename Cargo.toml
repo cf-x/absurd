@@ -9,7 +9,6 @@ edition = "2021"
 lto = true
 
 [dependencies]
-colored = "2.1.0"
+coloredpp = "0.2.0"
 toml = "0.8.19"
 unicode-xid = "0.2.5"
-

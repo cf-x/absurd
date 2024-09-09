@@ -5,7 +5,7 @@ use crate::ast::{
     TokenType::{self, *},
 };
 use crate::errors::ErrorCode::{self, E0x104, E0x106};
-use colored::Colorize;
+use coloredpp::Colorize;
 use std::process::exit;
 
 impl Parser {
