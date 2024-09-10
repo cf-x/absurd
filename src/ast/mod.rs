@@ -359,6 +359,7 @@ pub enum Statement {
     },
     Mod {
         src: String,
+        name: Option<String>,
     },
     Use {
         src: String,

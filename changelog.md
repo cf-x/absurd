@@ -5,6 +5,8 @@
 ### core changes
 
 - added 11 new `std::literal::vector` functions
+- added module naming (`mod "src" as src`)
+- added type publicity
 
 ### internal changes
 
@@ -14,7 +16,8 @@
 
 ### fixes
 
-- fixed publicity for types and functions
+- fixed function publicity
+- fixed environmental errors
 
 ## 0.18.1
 

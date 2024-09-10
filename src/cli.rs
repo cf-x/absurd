@@ -72,10 +72,6 @@ fn print_help() {
     println!("{} \n", "happy coding ッ".green())
 }
 
-fn print_version() {
-    println!("\tversion {}", VERSION.red());
-}
-
 fn parse_args(project: &mut Project) -> Args {
     let args: Vec<String> = env::args().collect();
 
@@ -90,7 +86,6 @@ fn parse_args(project: &mut Project) -> Args {
                 exit(0);
             }
             "--version" | "-v" => {
-                get_wall();
                 print_version();
                 exit(0);
             }
@@ -190,14 +185,19 @@ fn update() {
     }
 }
 
-fn get_wall() {
-    let a = r#"
-        _______ ______  _______ _     _  ______ ______
-        |_____| |_____] |______ |     | |_____/ |     \
-        |     | |_____] ______| |_____| |    \_ |_____/
-    "#;
+fn print_version() {
+    let abs = VERSION;
 
-    println!("{}", a.red().bold());
+    let colors = vec![
+        "#6800ff", "#8200ff", "#b500ff", "#ed00ff", "#ff00d9", "#ff00aa",
+    ];
+
+    let mut result = String::new();
+    for (i, c) in abs.chars().enumerate() {
+        let color = &colors[i % colors.len()];
+
+        result.push_str(&format!("{}{}", c.to_string().fg_hex(color).bold(), ""));
+    }
+
+    println!("\n    {}: {}\n", "version".cyan(), result);
 }
-
-// @todo more flags

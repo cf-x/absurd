@@ -242,13 +242,14 @@ impl Expression {
                     Some(v) => v.clone().value,
                     None => match env.borrow().values.borrow().get(name.lexeme.as_str()) {
                         Some(v) => v.clone().value,
-                        None => LiteralType::Null,
+                        None => {
+                            
+                            LiteralType::Null},
                     },
                 }
             }
             Expression::Call { name, args, .. } => {
                 let call: LiteralType = name.eval(Rc::clone(&env));
-
                 match call {
                     LiteralType::Func(func) => run_func(func, args, env),
                     LiteralType::DeclrFunc(func) => {
@@ -256,6 +257,7 @@ impl Expression {
                             .iter()
                             .map(|arg| Some(arg.eval(Rc::clone(&env))))
                             .collect();
+
                         (*func.func).call(evals)
                     }
                     LiteralType::Vec(res) => match args.get(0).unwrap() {

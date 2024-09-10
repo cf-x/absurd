@@ -442,9 +442,14 @@ impl Parser {
     fn mods(&mut self) -> Statement {
         self.start("mod statement");
         let src = self.consume(StrLit).lexeme;
+        let name = if self.if_token_consume(As) {
+            Some(self.consume(Ident).lexeme)
+        } else {
+            None
+        };
         self.consume(Semi);
         self.log("mod statement");
-        Statement::Mod { src }
+        Statement::Mod { src, name }
     }
 
     fn uses(&mut self) -> Statement {

@@ -13,7 +13,7 @@ use crate::{
     },
     std::StdFunc,
 };
-use env::{Env, FuncKind, VarKind};
+use env::{Env, FuncKind, ValueKind, VarKind};
 use expr::Expression;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -44,7 +44,6 @@ impl Interpreter {
             error,
             project: project.clone(),
         };
-
         if !project.clone().disable_std && project.clone().load_std {
             let mut std_core_io = StdFunc::new(env, int.project.test);
             std_core_io.load_core_io();
@@ -82,9 +81,18 @@ impl Interpreter {
                     is_pub,
                 } => {
                     if is_pub.clone() {
-                        self.env
-                            .borrow_mut()
-                            .define_pub_type(name.clone().lexeme, value.clone());
+                        if self.is_mod {
+                            self.env.borrow_mut().define_mod_type(
+                                self.mod_src.clone().unwrap(),
+                                LiteralType::Void,
+                                name.clone().lexeme,
+                                value.clone(),
+                            );
+                        } else {
+                            self.env
+                                .borrow_mut()
+                                .define_pub_type(name.clone().lexeme, value.clone());
+                        }
                     } else {
                         self.env
                             .borrow_mut()
@@ -444,19 +452,30 @@ impl Interpreter {
                         }
                     }
                 }
-                Mod { src } => {
+                Mod { src, name } => {
                     if !self.project.side_effects {
                         self.error.throw(E0x415, 0, (0, 0), vec![]);
                     }
                     let mut path = current_dir().expect("failed to get current directory");
                     path.push(src.trim_matches('"'));
-                    let mut file = File::open(path).expect("failed to open a file");
+                    let mut file = match File::open(path) {
+                        Ok(f) => f,
+                        Err(f) => {
+                            raw(format!("failed to opan a file: {}", f).as_str());
+                            exit(0);
+                        }
+                    };
                     let mut contents = String::new();
                     file.read_to_string(&mut contents)
                         .expect("failed to read a file");
+                    let name = if name.is_some() {
+                        format!("\"{}\"", name.clone().unwrap())
+                    } else {
+                        src.to_string()
+                    };
                     interpreter_mod(
                         contents.as_str(),
-                        Some(src.to_string()),
+                        Some(name),
                         Rc::clone(&self.env),
                         self.project.clone(),
                     );
@@ -470,6 +489,7 @@ impl Interpreter {
                         self.load_std(src.trim_matches('"').to_string().clone(), names.clone());
                     } else {
                         let mod_vals = self.env.borrow().mod_vals.borrow().clone();
+
                         let vals = match mod_vals.get(src) {
                             Some(c) => c,
                             None => {
@@ -483,11 +503,22 @@ impl Interpreter {
                         if *all {
                             for val in vals {
                                 let (name, v) = val;
-                                self.env
-                                    .borrow_mut()
-                                    .values
-                                    .borrow_mut()
-                                    .insert(name.clone(), v.clone());
+
+                                if let LiteralType::Void = v.value {
+                                    if let ValueKind::Type(t) = v.kind.clone() {
+                                        self.env
+                                            .borrow_mut()
+                                            .type_values
+                                            .borrow_mut()
+                                            .insert(name.clone(), t);
+                                    }
+                                } else {
+                                    self.env
+                                        .borrow_mut()
+                                        .values
+                                        .borrow_mut()
+                                        .insert(name.clone(), v.clone());
+                                }
                             }
                         } else {
                             for (name, alias) in names {

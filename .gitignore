@@ -1,3 +1,4 @@
 target
 Cargo.lock
-test.ab
+test.abs
+test2.abs

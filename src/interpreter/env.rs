@@ -170,6 +170,18 @@ impl Env {
         ));
     }
 
+    pub fn define_mod_type(&self, source: String, f: LiteralType, k: String, v: Token) {
+        let mut mod_vals = self.mod_vals.borrow_mut();
+        let entry = mod_vals.entry(source).or_insert_with(Vec::new);
+        entry.push((
+            k,
+            ValueType {
+                value: f,
+                kind: ValueKind::Type(v),
+            },
+        ));
+    }
+
     pub fn get(&self, name: String, id: usize) -> Option<ValueType> {
         let d = self.locals.borrow_mut().get(&id).cloned();
         self.get_int(name.as_str(), d)
@@ -179,7 +191,10 @@ impl Env {
         if d.is_none() {
             match &self.enclosing {
                 Some(env) => env.borrow_mut().get_int(name, d),
-                None => self.values.borrow_mut().get(name).cloned(),
+                None => match self.values.borrow_mut().get(name).cloned() {
+                    Some(v) => Some(v),
+                    None => self.pub_vals.borrow_mut().get(name).cloned(),
+                },
             }
         } else {
             let d = match d {

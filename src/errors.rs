@@ -326,7 +326,7 @@ impl Error {
 
     pub fn panic(&self, kind: &str, code: usize, msg: String) {
         let err_code = format!("E0x{}", code).yellow();
-        let head = format!("{} error ({}):", kind, err_code);
+        let head = format!("{} error {}:", kind, err_code);
         eprintln!("{} {}", head.red().bold(), msg.red());
         exit(0);
     }
