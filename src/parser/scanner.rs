@@ -124,7 +124,13 @@ impl<'a> Scanner<'a> {
             '*' => self.mult_char(Mul, &[('=', MulEq), ('*', Sqr)]),
             '=' => self.mult_char(Assign, &[('=', Eq), ('>', ArrowBig)]),
             '|' => self.dbl_char('|', Pipe, Or),
-            '.' => self.dbl_char('.', Dot, DblDot),
+            '.' => {
+                if self.peek().is_alphanumeric() {
+                    self.numlit('0')
+                } else {
+                    self.dbl_char('.', Dot, DblDot)
+                }
+            }
             '<' => self.dbl_char('=', Ls, LsOrEq),
             '>' => self.dbl_char('=', Gr, GrOrEq),
             '\\' => self.mult_char(Esc, &[('{', LParse), ('}', RParse)]),
@@ -286,32 +292,44 @@ impl<'a> Scanner<'a> {
     /// parses numbers in the number literal token
     fn parse_numlit(&mut self, radix: u32, base: Base) {
         if radix != 10 {
-            self.advance();
+            self.advance(); // Skip prefix for non-decimal numbers
         }
 
+        // Parse the integer or fractional part
         while self.peek().is_digit(radix) || self.peek() == '_' {
-            if self.peek() == '_' {
-                self.advance();
-            } else {
-                self.advance();
-            }
-        }
-
-        if radix == 10 && self.peek() == '.' && self.peek_next().is_digit(10) {
             self.advance();
+        }
+
+        // Check for fractional part if radix is 10
+        if radix == 10 && self.peek() == '.' && self.peek_next().is_digit(10) {
+            self.advance(); // Skip '.'
             while self.peek().is_digit(10) || self.peek() == '_' {
-                if self.peek() == '_' {
-                    self.advance();
-                } else {
-                    self.advance();
-                }
+                self.advance();
             }
         }
 
+        // Check for exponent part (e.g., 'e5', 'E-5')
+        if radix == 10 && (self.peek() == 'e' || self.peek() == 'E') {
+            self.advance(); // Skip 'e' or 'E'
+
+            // Optionally, handle the sign of the exponent
+            if self.peek() == '+' || self.peek() == '-' {
+                self.advance();
+            }
+
+            // Parse exponent digits
+            while self.peek().is_digit(10) || self.peek() == '_' {
+                self.advance();
+            }
+        }
+
+        // Filter out underscores and prepare the numeric value string
         let sub: String = self.src[self.start..self.crnt]
             .chars()
             .filter(|&c| c != '_')
             .collect();
+
+        // Parse the value based on the radix
         let value = if radix == 10 {
             sub.parse::<f32>().unwrap_or(0.0)
         } else {
@@ -323,6 +341,8 @@ impl<'a> Scanner<'a> {
                 0.0
             }
         };
+
+        // Push the parsed number literal
         self.push(NumLit, Some(LiteralKind::Number { base, value }));
     }
 

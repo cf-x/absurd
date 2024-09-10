@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.0
+
+- added exponents (`5e2`, `5e-2`)
+- added dot floats (`.05`. `.1415`)
+- added if expression (`if bool: expr`, `if bool: expr ? expr`)
+
 ## 0.19.0
 
 ### core changes

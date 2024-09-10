@@ -58,6 +58,7 @@ impl Parser {
             }
             Pipe => self.func_expr(),
             Await => self.await_expr(),
+            If => self.if_expr(),
             _ => {
                 if self.is_literal() {
                     self.advance();
@@ -69,6 +70,24 @@ impl Parser {
                     self.throw_error(E0x103, vec![self.peek().lexeme.clone()]);
                 }
             }
+        }
+    }
+
+    fn if_expr(&mut self) -> Expression {
+        self.consume(If);
+        let cond = self.expr();
+        self.consume(Colon);
+        let body = self.expr();
+        let mut else_branch = None;
+        if self.if_token_consume(Qstn) {
+            else_branch = Some(Box::new(self.expr()))
+        }
+
+        Expression::If {
+            id: self.id(),
+            cond: Box::new(cond),
+            body: Box::new(body),
+            else_branch,
         }
     }
 

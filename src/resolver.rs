@@ -215,6 +215,21 @@ impl Resolver {
                     self.expr(val, env);
                 });
             }
+            Expression::If {
+                cond,
+                body,
+                else_branch,
+                ..
+            } => {
+                let cond = *(cond.clone());
+                self.expr(&cond, env);
+                let body = *(body.clone());
+                self.expr(&body, env);
+                if else_branch.is_some() {
+                    let branch = *(else_branch.as_ref().unwrap().clone());
+                    self.expr(&branch, env);
+                }
+            }
             Expression::Assign { value, .. } => self.expr(value, env),
             Expression::Vec { items, .. } => {
                 items.iter().for_each(|item| self.expr(item, env));

@@ -1,4 +1,3 @@
-// well, handles CLI
 use std::{
     env,
     fs::File,
@@ -19,57 +18,57 @@ fn print_help() {
     println!("\n");
     println!(
         "{} {} {} {}",
-        "usage:".yellow(),
-        "absurd".red(),
-        "<file>".blue(),
-        "[OPTIONS]".green()
+        "usage:".bright_yellow(),
+        "absurd".bright_red(),
+        "<file>".bright_blue(),
+        "[OPTIONS]".bright_green()
     );
     println!();
-    println!("{}", "Options:".yellow());
+    println!("{}", "Options:".bright_yellow());
     println!(
         "  {}           {}",
-        "--help, -h".blue(),
+        "--help, -h".bright_blue(),
         "print this message"
     );
     println!(
         "  {}        {}",
-        "--version, -v".blue(),
+        "--version, -v".bright_blue(),
         "print current version"
     );
     println!(
         "  {}   {}",
-        "--side-effects, -s".blue(),
+        "--side-effects, -s".bright_blue(),
         "disable side-effects"
     );
     println!(
         "  {}            {}",
-        "--log, -l".blue(),
+        "--log, -l".bright_blue(),
         "enable logging mode"
     );
     println!(
         "  {}           {}",
-        "--test, -t".blue(),
+        "--test, -t".bright_blue(),
         "enable testing mode"
     );
     println!();
-    println!("{}", "Arguments:".yellow());
+    println!("{}", "Arguments:".bright_yellow());
     println!(
         "  {}               {}",
-        "<file>".blue(),
+        "<file>".bright_blue(),
         "file to interpret"
     );
     println!(
         "  {}               {}",
-        "update".blue(),
+        "update".bright_blue(),
         "update to latest version"
     );
     println!(
         "  {}                   {}",
-        "ci".blue(),
+        "ci".bright_blue(),
         "enter code directly in the CLI"
     );
     println!("");
-    println!("{} \n", "happy coding ッ".green())
+    println!("{} \n", "happy coding ッ".bright_green())
 }
 
 fn parse_args(project: &mut Project) -> Args {

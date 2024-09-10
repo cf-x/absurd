@@ -24,6 +24,12 @@ pub enum AssignKind {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
+    If {
+        id: usize,
+        cond: Box<Expression>,
+        body: Box<Expression>,
+        else_branch: Option<Box<Expression>>,
+    },
     Object {
         id: usize,
         fields: Vec<(String, Expression)>,
@@ -101,6 +107,7 @@ impl Expression {
             Expression::Value { id, .. } => *id,
             Expression::Grouping { id, .. } => *id,
             Expression::Assign { id, .. } => *id,
+            Expression::If { id, .. } => *id,
         }
     }
 
@@ -113,6 +120,21 @@ impl Expression {
 
     pub fn eval(&self, env: Rc<RefCell<Env>>) -> LiteralType {
         match self {
+            Expression::If {
+                cond,
+                body,
+                else_branch,
+                ..
+            } => {
+                let val = cond.clone().eval(Rc::clone(&env));
+                if val.is_truthy() {
+                    return body.clone().eval(Rc::clone(&env));
+                } else if else_branch.is_some() {
+                    return else_branch.as_ref().unwrap().clone().eval(Rc::clone(&env));
+                }
+
+                LiteralType::Null
+            }
             Expression::Object { fields, .. } => LiteralType::Obj(fields.clone()),
             Expression::Assign {
                 name, value, kind, ..
@@ -242,9 +264,7 @@ impl Expression {
                     Some(v) => v.clone().value,
                     None => match env.borrow().values.borrow().get(name.lexeme.as_str()) {
                         Some(v) => v.clone().value,
-                        None => {
-                            
-                            LiteralType::Null},
+                        None => LiteralType::Null,
                     },
                 }
             }
@@ -520,6 +540,24 @@ impl Expression {
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Expression::If {
+                cond,
+                body,
+                else_branch,
+                ..
+            } => {
+                if else_branch.is_some() {
+                    return write!(
+                        f,
+                        "if {}: {} ? {}",
+                        cond,
+                        body,
+                        else_branch.as_ref().unwrap()
+                    );
+                }
+
+                write!(f, "if {}: {}", cond, body)
+            }
             Expression::Object { fields, .. } => {
                 let mut fields_str = String::new();
                 for (name, value) in fields {
