@@ -2,7 +2,7 @@
 name = "absurd"
 description = "Absurd programming language"
 license = "MIT"
-version = "0.21.0"
+version = "0.21.1"
 edition = "2021"
 
 [profile.release]

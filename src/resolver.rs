@@ -210,7 +210,7 @@ impl Resolver {
 
     fn expr(&mut self, expr: &Expression, env: &Rc<RefCell<Env>>) {
         match expr {
-            Expression::Object { fields, .. } => {
+            Expression::Record { fields, .. } => {
                 fields.iter().for_each(|(_, val)| {
                     self.expr(val, env);
                 });
@@ -232,6 +232,9 @@ impl Resolver {
             }
             Expression::Assign { value, .. } => self.expr(value, env),
             Expression::Vec { items, .. } => {
+                items.iter().for_each(|item| self.expr(item, env));
+            }
+            Expression::Tuple { items, .. } => {
                 items.iter().for_each(|item| self.expr(item, env));
             }
             Expression::Var { .. } => self.varexpr(expr),

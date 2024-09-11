@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.21.1
+
+- added tuple data type (`Tuple<(T, T)>`, `(1, 2)`, `tuple[0]`)
+
 ## 0.21.0
 
 ### core changes

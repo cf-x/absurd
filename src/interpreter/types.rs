@@ -1,5 +1,8 @@
 use super::{env::Env, expr::Expression};
-use crate::ast::{LiteralKind, LiteralType, Token, TokenType};
+use crate::{
+    ast::{LiteralKind, LiteralType, Token, TokenType},
+    errors::raw,
+};
 use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
 
 #[derive(Debug, PartialEq, Clone)]
@@ -7,6 +10,9 @@ pub enum TypeKind {
     Vec {
         // <type>
         kind: Box<TypeKind>,
+    },
+    Tuple {
+        types: Vec<TypeKind>,
     },
     Record {
         // {name: type, name: type, ..}
@@ -45,6 +51,16 @@ impl fmt::Display for TypeKind {
         match self {
             TypeKind::Vec { kind } => {
                 write!(f, "<{}>", kind)
+            }
+            TypeKind::Tuple { types } => {
+                write!(f, "(")?;
+                for (i, typ) in types.iter().enumerate() {
+                    write!(f, "{}", typ.to_string())?;
+                    if i != types.len() - 1 {
+                        write!(f, ", ")?;
+                    }
+                }
+                write!(f, ")")
             }
             TypeKind::Record { fields } => {
                 write!(f, "{{")?;
@@ -180,6 +196,51 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
                 false
             }
         }
+        TokenType::TupleLit => {
+            if let LiteralType::Tuple(ref tuple) = *val {
+                if let Some(LiteralKind::Type(ref t)) = value_type.value {
+                    if let TypeKind::Tuple { types } = *t.clone() {
+                        if tuple.len() != types.len() {
+                            raw(format!(
+                                "expected tuple to have size {}, got {}",
+                                types.len(),
+                                tuple.len()
+                            )
+                            .as_str());
+                            return false;
+                        }
+                        let mut state = true;
+                        for (i, tuple) in tuple.iter().enumerate() {
+                            let token = if let TypeKind::Var { name } = types.get(i).unwrap() {
+                                name
+                            } else {
+                                &Token::null()
+                            };
+                            let s = type_check(
+                                &Token {
+                                    token: string_to_tokentype(&token.lexeme),
+                                    lexeme: token.lexeme.clone(),
+                                    value: None,
+                                    line: token.line,
+                                    pos: token.pos,
+                                },
+                                &tuple,
+                                env,
+                            );
+                            if s == false {
+                                state = s;
+                            }
+                        }
+
+                        return state;
+                    }
+                }
+                false
+            } else {
+                false
+            }
+        }
+
         TokenType::AnyIdent => true,
         TokenType::NumLit
         | TokenType::StrLit
@@ -242,6 +303,7 @@ pub fn literalkind_to_literaltype(kind: LiteralKind) -> LiteralType {
 pub fn typekind_to_literaltype(kind: TypeKind) -> LiteralType {
     match kind.clone() {
         TypeKind::Record { fields } => rec_to_lt(fields),
+        TypeKind::Tuple { types } => tuple_to_lt(types),
         TypeKind::Var { name } => var_to_lt(name),
         TypeKind::Callback { ret, .. } => typekind_to_literaltype(*ret),
         TypeKind::Vec { kind } => typekind_to_literaltype(*kind),
@@ -266,6 +328,14 @@ fn rec_to_lt(fields: Vec<(Token, TypeKind)>) -> LiteralType {
         rec.push((k.lexeme, Expression::Value { id: 0, value: v }));
     }
     LiteralType::Record(rec)
+}
+fn tuple_to_lt(types: Vec<TypeKind>) -> LiteralType {
+    let mut tuple = vec![];
+    for v in types {
+        let v = typekind_to_literaltype(v);
+        tuple.push(v);
+    }
+    LiteralType::Tuple(tuple)
 }
 
 pub fn string_to_tokentype(s: &str) -> TokenType {

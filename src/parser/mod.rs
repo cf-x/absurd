@@ -151,6 +151,26 @@ impl Parser {
         names
     }
 
+    /// parses tuple destruction
+    fn var_tuple_dest(&mut self) -> Vec<Token> {
+        let mut names = vec![];
+        while !self.if_token_consume(LParen) {
+            // allow empty values: (a, _)
+            if self.if_token_consume(Underscore) {
+                names.push(Token::null());
+            } else {
+                let name = self.consume(Ident);
+                names.push(name);
+            }
+            if !self.is_token(Comma) || self.is_token(Colon) {
+                break;
+            }
+            self.advance();
+        }
+        self.consume(RParen);
+        names
+    }
+
     fn var(&mut self) -> Statement {
         self.start("variable statement");
         let mut names = vec![];
@@ -168,6 +188,9 @@ impl Parser {
         } else if self.if_token_consume(LBrace) {
             names = self.var_record_dest();
             destruct = Some(Destruct::Record)
+        } else if self.if_token_consume(LParen) {
+            names = self.var_tuple_dest();
+            destruct = Some(Destruct::Tuple)
         } else {
             // normally parse through names.
             // if name ends with `;`, return null

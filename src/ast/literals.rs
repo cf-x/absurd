@@ -5,6 +5,7 @@ use std::fmt;
 impl LiteralType {
     pub fn type_name(&self) -> String {
         match self {
+            Self::Tuple(_) => "tuple".to_string(),
             Self::Record(_) => "record".to_string(),
             Self::Number(_) => "number".to_string(),
             Self::String(_) => "string".to_string(),
@@ -21,7 +22,7 @@ impl LiteralType {
     pub fn to_token(&self) -> Token {
         match self {
             Self::Record(_) => Token::empty(AnyIdent, "any", None),
-
+            Self::Tuple(_) => Token::empty(AnyIdent, "any", None),
             Self::Number(n) => Token::empty(
                 NumLit,
                 n.to_string().as_str(),
@@ -71,6 +72,16 @@ impl LiteralType {
 impl fmt::Display for LiteralType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Self::Tuple(val) => {
+                let mut s = String::new();
+                for (i, v) in val.iter().enumerate() {
+                    s.push_str(&v.to_string());
+                    if i != val.len() - 1 {
+                        s.push_str(", ");
+                    }
+                }
+                write!(f, "({})", s)
+            }
             Self::Record(val) => {
                 let n: Vec<String> = val
                     .iter()
@@ -86,15 +97,13 @@ impl fmt::Display for LiteralType {
             Self::Null => write!(f, "null"),
             Self::Vec(val) => {
                 let mut s = String::new();
-                s.push('[');
                 for (i, v) in val.iter().enumerate() {
                     s.push_str(&v.to_string());
                     if i != val.len() - 1 {
                         s.push_str(", ");
                     }
                 }
-                s.push(']');
-                write!(f, "{}", s)
+                write!(f, "[{}]", s)
             }
             Self::Void => write!(f, "void"),
             Self::Func(func) => write!(f, "{:?}", func.name),

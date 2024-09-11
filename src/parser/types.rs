@@ -52,8 +52,10 @@ impl Parser {
         match self.peek().token {
             // Record<{i: T, i: T}>
             Record => self.object(),
-            // Vec<i>
+            // Vec<T>
             VecT => self.vec(),
+            // Tuple<(T, T)>
+            Tuple => self.tuple(),
             // |i, i| i
             Pipe => self.callback(),
             // literal types
@@ -191,6 +193,32 @@ impl Parser {
             value: Some(LiteralKind::Type(Box::new(TypeKind::Vec {
                 kind: Box::new(TypeKind::Var { name: typ }),
             }))),
+            line: self.peek().line,
+        }
+    }
+
+    fn tuple(&mut self) -> Token {
+        // Tuple<(T, T)>
+        self.consume(Tuple);
+        self.consume(Ls);
+        self.consume(LParen);
+        let mut types = vec![];
+        while !self.is_token(RParen) {
+            types.push(TypeKind::Var {
+                name: self.consume_type(),
+            });
+            if !self.if_token_consume(Comma) {
+                self.consume(RParen);
+                break;
+            }
+        }
+
+        self.consume(Gr);
+        Token {
+            token: TupleLit,
+            lexeme: "tuple".to_string(),
+            pos: self.peek().pos,
+            value: Some(LiteralKind::Type(Box::new(TypeKind::Tuple { types }))),
             line: self.peek().line,
         }
     }

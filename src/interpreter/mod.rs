@@ -198,7 +198,28 @@ impl Interpreter {
                                                 {
                                                     let i = c
                                                         .get(index)
-                                                        .expect("failed to destructure an array")
+                                                        .expect("failed to destructure a vector")
+                                                        .clone();
+                                                    self.env.borrow_mut().define_var(
+                                                        name.lexeme.clone(),
+                                                        i,
+                                                        VarKind {
+                                                            is_pub: is_pub.clone(),
+                                                            is_mut: *is_mut,
+                                                            is_func: false,
+                                                            value_type: value_type.clone(),
+                                                        },
+                                                    );
+                                                }
+                                            }
+                                        }
+                                        LiteralType::Tuple(t) => {
+                                            if destruct.is_some() {
+                                                if let Destruct::Tuple = destruct.clone().unwrap()
+                                                {
+                                                    let i = t
+                                                        .get(index)
+                                                        .expect("failed to destructure a tuple")
                                                         .clone();
                                                     self.env.borrow_mut().define_var(
                                                         name.lexeme.clone(),

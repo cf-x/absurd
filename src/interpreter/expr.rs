@@ -30,7 +30,7 @@ pub enum Expression {
         body: Box<Expression>,
         else_branch: Option<Box<Expression>>,
     },
-    Object {
+    Record {
         id: usize,
         fields: Vec<(String, Expression)>,
     },
@@ -41,6 +41,10 @@ pub enum Expression {
         kind: AssignKind,
     },
     Vec {
+        id: usize,
+        items: Vec<Expression>,
+    },
+    Tuple {
         id: usize,
         items: Vec<Expression>,
     },
@@ -96,8 +100,9 @@ impl Expression {
 
     pub fn id(&self) -> usize {
         match self {
-            Expression::Object { id, .. } => *id,
+            Expression::Record { id, .. } => *id,
             Expression::Var { id, .. } => *id,
+            Expression::Tuple { id, .. } => *id,
             Expression::Call { id, .. } => *id,
             Expression::Func { id, .. } => *id,
             Expression::Vec { id, .. } => *id,
@@ -135,7 +140,7 @@ impl Expression {
 
                 LiteralType::Null
             }
-            Expression::Object { fields, .. } => LiteralType::Record(fields.clone()),
+            Expression::Record { fields, .. } => LiteralType::Record(fields.clone()),
             Expression::Assign {
                 name, value, kind, ..
             } => {
@@ -290,6 +295,16 @@ impl Expression {
                         }
                         _ => LiteralType::Null,
                     },
+                    LiteralType::Tuple(res) => match args.get(0).unwrap() {
+                        Expression::Value { value, .. } => {
+                            if let LiteralType::Number(n) = value {
+                                res.get(*n as usize).unwrap().clone()
+                            } else {
+                                LiteralType::Null
+                            }
+                        }
+                        _ => LiteralType::Null,
+                    },
                     LiteralType::String(s) => match args.get(0).unwrap().eval(env) {
                         LiteralType::Number(n) => {
                             let mut res = LiteralType::Null;
@@ -412,6 +427,13 @@ impl Expression {
                 func
             }
             Expression::Vec { items, .. } => LiteralType::Vec(
+                items
+                    .iter()
+                    .map(|f| f.eval(Rc::clone(&env)))
+                    .collect::<Vec<LiteralType>>()
+                    .clone(),
+            ),
+            Expression::Tuple { items, .. } => LiteralType::Tuple(
                 items
                     .iter()
                     .map(|f| f.eval(Rc::clone(&env)))
@@ -614,7 +636,7 @@ impl fmt::Display for Expression {
 
                 write!(f, "if {}: {}", cond, body)
             }
-            Expression::Object { fields, .. } => {
+            Expression::Record { fields, .. } => {
                 let mut fields_str = String::new();
                 for (name, value) in fields {
                     fields_str.push_str(&format!("{}: {}, ", name, value));
@@ -639,6 +661,13 @@ impl fmt::Display for Expression {
                     items_str.push_str(&format!("{}, ", item));
                 }
                 write!(f, "[{}]", items_str)
+            }
+            Expression::Tuple { items, .. } => {
+                let mut items_str = String::new();
+                for item in items {
+                    items_str.push_str(&format!("{}, ", item));
+                }
+                write!(f, "({})", items_str)
             }
             Expression::Await { expr, .. } => write!(f, "await {}", expr),
             Expression::Binary {

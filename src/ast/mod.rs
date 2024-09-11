@@ -71,9 +71,8 @@ pub enum TokenType {
     VecT,
     /// Record<T>
     Record,
-    /// Tuple<T; n>
     /// Tuple<(T, T)>
-    //Tuple,
+    Tuple,
 
     // operators and symbols
     /// !
@@ -179,7 +178,7 @@ pub enum TokenType {
     /// vector, [3, 3]
     VecLit,
     /// tuple (1, 2)
-    // TupleLit,
+    TupleLit,
     /// array
     ArrayIdent,
     /// any type
@@ -209,6 +208,7 @@ pub enum LiteralType {
     Null,
     Void,
     Vec(Vec<LiteralType>),
+    Tuple(Vec<LiteralType>),
     Record(Vec<(String, Expression)>),
     Func(FuncImpl),
     DeclrFunc(DeclrFuncType),
@@ -323,7 +323,7 @@ pub enum CallType {
 pub enum Destruct {
     Vector,
     Record,
-    // Tuple
+    Tuple,
 }
 
 #[derive(Debug, PartialEq, Clone)]

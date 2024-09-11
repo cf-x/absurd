@@ -44,6 +44,7 @@ impl Parser {
                 self.advance();
                 self.arr_expr()
             }
+
             LBrace => {
                 self.advance();
                 self.obj_expr()
@@ -52,6 +53,9 @@ impl Parser {
                 if self.prev(1).token == Ident {
                     self.advance();
                     self.func_call()
+                } else if self.prev(1).token == Assign {
+                    self.advance();
+                    self.tuple_expr()
                 } else {
                     self.group_expr()
                 }
@@ -150,7 +154,7 @@ impl Parser {
                 self.throw_error(E0x103, vec![self.peek().lexeme.clone()]);
             }
         }
-        Expression::Object {
+        Expression::Record {
             id: self.id(),
             fields,
         }
@@ -166,6 +170,21 @@ impl Parser {
             }
         }
         Expression::Vec {
+            id: self.id(),
+            items,
+        }
+    }
+
+    fn tuple_expr(&mut self) -> Expression {
+        let mut items = vec![];
+        while !self.if_token_consume(RParen) {
+            let e = self.expr();
+            items.push(e);
+            if !self.if_token_consume(Comma) && !self.is_token(RParen) {
+                self.throw_error(E0x103, vec![self.peek().lexeme.clone()]);
+            }
+        }
+        Expression::Tuple {
             id: self.id(),
             items,
         }

@@ -60,7 +60,7 @@ impl<'a> Scanner<'a> {
                 ("any", AnyIdent),
                 ("Vec", VecT),
                 ("Record", Record),
-                //("Tuple", Tuple),
+                ("Tuple", Tuple),
             ]),
             line: 1,
             pos: 1,
