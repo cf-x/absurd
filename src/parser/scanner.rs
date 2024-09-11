@@ -58,6 +58,9 @@ impl<'a> Scanner<'a> {
                 ("void", VoidIdent),
                 ("array", ArrayIdent),
                 ("any", AnyIdent),
+                ("Vec", VecT),
+                ("Record", Record),
+                //("Tuple", Tuple),
             ]),
             line: 1,
             pos: 1,
@@ -125,7 +128,7 @@ impl<'a> Scanner<'a> {
             '=' => self.mult_char(Assign, &[('=', Eq), ('>', ArrowBig)]),
             '|' => self.dbl_char('|', Pipe, Or),
             '.' => {
-                if self.peek().is_alphanumeric() {
+                if self.peek().is_numeric() {
                     self.numlit('0')
                 } else {
                     self.dbl_char('.', Dot, DblDot)

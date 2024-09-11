@@ -91,34 +91,6 @@ impl Parser {
         }
     }
 
-    fn call(&mut self) -> Expression {
-        if self.is_token(LBracket) && self.prev(1).token == Ident {
-            self.advance();
-            let arr = self.array_call();
-            self.consume(RBracket);
-            return arr;
-        }
-
-        let mut expr = self.primary();
-
-        while let Some(token) = {
-            self.advance();
-            Some(self.prev(1).token)
-        } {
-            match token {
-                Dot => expr = self.obj_call(),
-                LParen => expr = self.func_call(),
-                LBracket => expr = self.array_call(),
-                Ident => expr = self.call(),
-                _ => {
-                    self.retreat();
-                    break;
-                }
-            }
-        }
-        expr
-    }
-
     fn unary(&mut self) -> Expression {
         if self.are_tokens(&[Bang, DblBang, Qstn, Decr, Incr, Min]) {
             self.advance();

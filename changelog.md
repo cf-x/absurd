@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.21.0
+
+### core changes
+
+- updated type namings (`Vec<T>`, `Record<T>`)
+- improved vector destructuring (`[name, ..]`)
+- added record destructuring (`{name, age}`)
+- added operations on vectors
+
+### fixes
+
+- fixed record calling
+
 ## 0.20.0
 
 - added exponents (`5e2`, `5e-2`)

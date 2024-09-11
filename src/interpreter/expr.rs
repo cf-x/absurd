@@ -135,7 +135,7 @@ impl Expression {
 
                 LiteralType::Null
             }
-            Expression::Object { fields, .. } => LiteralType::Obj(fields.clone()),
+            Expression::Object { fields, .. } => LiteralType::Record(fields.clone()),
             Expression::Assign {
                 name, value, kind, ..
             } => {
@@ -302,11 +302,11 @@ impl Expression {
                         }
                         _ => LiteralType::Null,
                     },
-                    LiteralType::Obj(obj) => match args.get(0).unwrap() {
+                    LiteralType::Record(rec) => match args.get(0).unwrap() {
                         Expression::Value { value, .. } => {
                             if let LiteralType::String(s) = value {
                                 let mut res = LiteralType::Null;
-                                for (k, v) in obj {
+                                for (k, v) in rec {
                                     if k == *s {
                                         res = v.eval(Rc::clone(&env));
                                     }
@@ -501,6 +501,62 @@ impl Expression {
             }
             (LiteralType::Number(a), BangEq, LiteralType::Number(b)) => {
                 return LiteralType::Boolean(a != b);
+            }
+            (LiteralType::Number(a), Plus, LiteralType::Vec(v)) => {
+                let nums = v
+                    .iter()
+                    .map(|p| {
+                        if let LiteralType::Number(c) = p {
+                            LiteralType::Number(c.clone() + a)
+                        } else {
+                            LiteralType::Null
+                        }
+                    })
+                    .collect();
+
+                return LiteralType::Vec(nums);
+            }
+            (LiteralType::Number(a), Min, LiteralType::Vec(v)) => {
+                let nums = v
+                    .iter()
+                    .map(|p| {
+                        if let LiteralType::Number(c) = p {
+                            LiteralType::Number(c.clone() - a)
+                        } else {
+                            LiteralType::Null
+                        }
+                    })
+                    .collect();
+
+                return LiteralType::Vec(nums);
+            }
+            (LiteralType::Number(a), Mul, LiteralType::Vec(v)) => {
+                let nums = v
+                    .iter()
+                    .map(|p| {
+                        if let LiteralType::Number(c) = p {
+                            LiteralType::Number(c.clone() * a)
+                        } else {
+                            LiteralType::Null
+                        }
+                    })
+                    .collect();
+
+                return LiteralType::Vec(nums);
+            }
+            (LiteralType::Number(a), Div, LiteralType::Vec(v)) => {
+                let nums = v
+                    .iter()
+                    .map(|p| {
+                        if let LiteralType::Number(c) = p {
+                            LiteralType::Number(c.clone() / a)
+                        } else {
+                            LiteralType::Null
+                        }
+                    })
+                    .collect();
+
+                return LiteralType::Vec(nums);
             }
             (LiteralType::String(a), Eq, LiteralType::String(b)) => {
                 return LiteralType::Boolean(a == b);

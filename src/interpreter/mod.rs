@@ -1,6 +1,7 @@
 pub mod env;
 pub mod expr;
 pub mod types;
+use crate::ast::Destruct;
 use crate::bundler::interpreter_mod;
 use crate::errors::{raw, Error, ErrorCode::*};
 use crate::interpreter::types::type_check;
@@ -143,7 +144,7 @@ impl Interpreter {
                     is_func,
                     is_mut,
                     value_type,
-                    is_arr_dest,
+                    destruct,
                 } => match value {
                     Some(v) => {
                         if is_mut.clone() && !self.project.side_effects {
@@ -192,26 +193,51 @@ impl Interpreter {
                                 for name in names.clone() {
                                     match val.clone() {
                                         LiteralType::Vec(c) => {
-                                            if is_arr_dest.clone() {
-                                                let i = c
-                                                    .get(index)
-                                                    .expect("failed to destructure an array")
-                                                    .clone();
-                                                self.env.borrow_mut().define_var(
-                                                    name.lexeme.clone(),
-                                                    i,
-                                                    VarKind {
-                                                        is_pub: is_pub.clone(),
-                                                        is_mut: *is_mut,
-                                                        is_func: false,
-                                                        value_type: value_type.clone(),
-                                                    },
-                                                );
+                                            if destruct.is_some() {
+                                                if let Destruct::Vector = destruct.clone().unwrap()
+                                                {
+                                                    let i = c
+                                                        .get(index)
+                                                        .expect("failed to destructure an array")
+                                                        .clone();
+                                                    self.env.borrow_mut().define_var(
+                                                        name.lexeme.clone(),
+                                                        i,
+                                                        VarKind {
+                                                            is_pub: is_pub.clone(),
+                                                            is_mut: *is_mut,
+                                                            is_func: false,
+                                                            value_type: value_type.clone(),
+                                                        },
+                                                    );
+                                                }
+                                            }
+                                        }
+                                        LiteralType::Record(o) => {
+                                            if destruct.is_some() {
+                                                if let Destruct::Record = destruct.clone().unwrap()
+                                                {
+                                                    let i = o
+                                                        .get(index)
+                                                        .expect("failed to destructure an array")
+                                                        .clone();
+                                                    let i = i.1.eval(Rc::clone(&self.env));
+                                                    self.env.borrow_mut().define_var(
+                                                        name.lexeme.clone(),
+                                                        i,
+                                                        VarKind {
+                                                            is_pub: is_pub.clone(),
+                                                            is_mut: *is_mut,
+                                                            is_func: false,
+                                                            value_type: value_type.clone(),
+                                                        },
+                                                    );
+                                                }
                                             }
                                         }
                                         _ => {}
                                     }
-                                    if !is_arr_dest.clone() {
+                                    if destruct.is_none() {
                                         self.env.borrow_mut().define_var(
                                             name.lexeme.clone(),
                                             val.clone(),

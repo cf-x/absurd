@@ -50,10 +50,10 @@ impl Parser {
 
     fn primary_type(&mut self) -> Token {
         match self.peek().token {
-            // {i: T, i: T}
-            LBrace => self.object(),
-            // <i>
-            Ls => self.vec(),
+            // Record<{i: T, i: T}>
+            Record => self.object(),
+            // Vec<i>
+            VecT => self.vec(),
             // |i, i| i
             Pipe => self.callback(),
             // literal types
@@ -75,7 +75,10 @@ impl Parser {
     }
 
     fn object(&mut self) -> Token {
+        // Record<{i: T, i: T}>
         let mut fields = vec![];
+        self.consume(Record);
+        self.consume(Ls);
         self.consume(LBrace);
         while !self.if_token_consume(RBrace) {
             let ident = self.consume(Ident);
@@ -87,7 +90,8 @@ impl Parser {
                 break;
             }
         }
-        let value = Some(LiteralKind::Type(Box::new(TypeKind::Object {
+        self.consume(Gr);
+        let value = Some(LiteralKind::Type(Box::new(TypeKind::Record {
             fields: fields.clone(),
         })));
         let s: String = fields
@@ -175,11 +179,13 @@ impl Parser {
     }
 
     fn vec(&mut self) -> Token {
+        // Vec<T>
+        self.consume(VecT);
         self.consume(Ls);
         let typ = self.consume_type();
         self.consume(Gr);
         Token {
-            token: ArrayIdent,
+            token: VecLit,
             lexeme: typ.clone().lexeme,
             pos: self.peek().pos,
             value: Some(LiteralKind::Type(Box::new(TypeKind::Vec {

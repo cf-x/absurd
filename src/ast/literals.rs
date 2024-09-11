@@ -5,7 +5,7 @@ use std::fmt;
 impl LiteralType {
     pub fn type_name(&self) -> String {
         match self {
-            Self::Obj(_) => "object".to_string(),
+            Self::Record(_) => "record".to_string(),
             Self::Number(_) => "number".to_string(),
             Self::String(_) => "string".to_string(),
             Self::Char(_) => "char".to_string(),
@@ -20,7 +20,7 @@ impl LiteralType {
 
     pub fn to_token(&self) -> Token {
         match self {
-            Self::Obj(_) => Token::empty(AnyIdent, "any", None),
+            Self::Record(_) => Token::empty(AnyIdent, "any", None),
 
             Self::Number(n) => Token::empty(
                 NumLit,
@@ -59,7 +59,7 @@ impl LiteralType {
             Self::Boolean(val) => *val,
             Self::Null => false,
             Self::Vec(val) => !val.is_empty(),
-            Self::Obj(obj) => !obj.is_empty(),
+            Self::Record(rec) => !rec.is_empty(),
             _ => false,
         }
     }
@@ -71,7 +71,7 @@ impl LiteralType {
 impl fmt::Display for LiteralType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Obj(val) => {
+            Self::Record(val) => {
                 let n: Vec<String> = val
                     .iter()
                     .map(|(name, value)| format!("{}:{}", name, value.to_string()))

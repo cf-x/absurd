@@ -9,6 +9,73 @@ use crate::interpreter::{env::Env, expr::Expression, types::TypeKind};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TokenType {
+    // primary keywords
+    /// variable (let)
+    Let,
+    /// function
+    Func,
+    /// return
+    Return,
+    /// if
+    If,
+    /// else
+    Else,
+    /// elif
+    Elif,
+    /// while
+    While,
+    /// loop
+    Loop,
+    /// break
+    Break,
+    /// match
+    Match,
+    /// mod
+    Mod,
+    /// use
+    Use,
+    /// as
+    As,
+    /// from
+    From,
+    /// async
+    Async,
+    /// await
+    Await,
+    /// pub
+    Pub,
+    /// mut
+    Mut,
+    /// sh
+    Sh,
+    /// type alias
+    TypeStmt,
+
+    // type keywords
+    /// number
+    NumIdent,
+    /// string
+    StrIdent,
+    /// char
+    CharIdent,
+    /// bool
+    BoolIdent,
+    /// null
+    Null,
+    /// void
+    VoidIdent,
+    /// any
+    AnyIdent,
+    // compound type keywords
+    /// Vec<T>
+    VecT,
+    /// Record<T>
+    Record,
+    /// Tuple<T; n>
+    /// Tuple<(T, T)>
+    //Tuple,
+
+    // operators and symbols
     /// !
     Bang,
     /// !!
@@ -69,16 +136,6 @@ pub enum TokenType {
     Colon,
     /// ::
     DblColon,
-    /// char
-    CharLit,
-    /// string
-    StrLit,
-    /// number
-    NumLit,
-    /// true
-    TrueLit,
-    /// false
-    FalseLit,
     /// <
     Ls,
     /// <=
@@ -107,70 +164,32 @@ pub enum TokenType {
     Pipe,
     /// ||
     Or,
+
+    // literals and utils
+    /// char, 'c'
+    CharLit,
+    /// string, "hi"
+    StrLit,
+    /// number, 5
+    NumLit,
+    /// true
+    TrueLit,
+    /// false
+    FalseLit,
+    /// vector, [3, 3]
+    VecLit,
+    /// tuple (1, 2)
+    // TupleLit,
+    /// array
+    ArrayIdent,
+    /// any type
+    Type,
+    /// callback type
+    FuncIdent,
     /// identifier
     Ident,
     /// end of file
     Eof,
-    /// variable (let)
-    Let,
-    /// if
-    If,
-    /// else
-    Else,
-    /// elif
-    Elif,
-    /// return
-    Return,
-    /// while
-    While,
-    /// loop
-    Loop,
-    /// break
-    Break,
-    /// match
-    Match,
-    /// mod
-    Mod,
-    /// use
-    Use,
-    /// as
-    As,
-    /// from
-    From,
-    /// async
-    Async,
-    /// await
-    Await,
-    /// pub
-    Pub,
-    /// mut
-    Mut,
-    /// function
-    Func,
-    /// type
-    TypeStmt,
-    /// sh
-    Sh,
-    /// number
-    NumIdent,
-    /// string
-    StrIdent,
-    /// char
-    CharIdent,
-    /// bool
-    BoolIdent,
-    /// null
-    Null,
-    /// void
-    VoidIdent,
-    /// array
-    ArrayIdent,
-    // any type
-    Type,
-    // callback type
-    FuncIdent,
-    /// any
-    AnyIdent,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -190,7 +209,7 @@ pub enum LiteralType {
     Null,
     Void,
     Vec(Vec<LiteralType>),
-    Obj(Vec<(String, Expression)>),
+    Record(Vec<(String, Expression)>),
     Func(FuncImpl),
     DeclrFunc(DeclrFuncType),
 }
@@ -301,6 +320,13 @@ pub enum CallType {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub enum Destruct {
+    Vector,
+    Record,
+    // Tuple
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
     Sh {
         cmd: String,
@@ -318,13 +344,13 @@ pub enum Statement {
     },
     Var {
         names: Vec<Token>,
+        destruct: Option<Destruct>,
         value_type: Token,
         value: Option<Expression>,
         is_mut: bool,
         is_pub: bool,
         pub_names: Vec<Token>,
         is_func: bool,
-        is_arr_dest: bool,
     },
     Func {
         name: Token,

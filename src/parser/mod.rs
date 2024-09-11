@@ -1,5 +1,5 @@
 // Asburd Parser, transforms tokens into AST
-use crate::ast::{FuncBody, LiteralKind, LiteralType, Statement, Token, TokenType::*};
+use crate::ast::{Destruct, FuncBody, LiteralKind, LiteralType, Statement, Token, TokenType::*};
 use crate::errors::{Error, ErrorCode::*};
 use crate::interpreter::expr::Expression;
 use coloredpp::Colorize;
@@ -70,18 +70,10 @@ impl Parser {
         }
     }
 
-    fn var(&mut self) -> Statement {
-        self.start("variable statement");
-        let mut names = vec![];
+    /// parses variable publicity and returns variable publicit
+    fn var_is_pub(&mut self, is_mut: bool) -> Vec<Token> {
         let mut pub_names = vec![];
-        let is_mut = self.if_token_consume(Mut);
-        let mut is_pub = false;
-        let mut is_null = false;
-        let mut is_arr_dest = false;
-
-        // checks if variable is immutable and consumes `pub` keyword, if its there
         if !is_mut && self.if_token_consume(Pub) {
-            is_pub = true;
             // if `(` comes, public names will be parsed
             // example: `let pub(name2) name1 ...`
             if self.if_token_consume(LParen) {
@@ -107,33 +99,75 @@ impl Parser {
                 self.consume(RParen);
             }
         }
+        pub_names
+    }
 
-        // if `[` is peeked, variable is destructuring an array,
-        // example: `let [item1, item2]: <number> = [0, 1];`
-        if self.if_token_consume(LBracket) {
-            is_arr_dest = true;
-            while !self.if_token_consume(RBracket) {
-                // allow empty values
-                // example: `let [item1, _]: <number> = [0, 1];`
-                // @todo: `let [item1, ..] ...`, `let [.., item1] ...`
-                if self.if_token_consume(Underscore) {
-                    names.push(Token {
-                        token: Null,
-                        lexeme: "null".to_string(),
-                        value: None,
-                        line: self.peek().line,
-                        pos: self.peek().pos,
-                    });
-                } else {
-                    let name = self.consume(Ident);
-                    names.push(name);
-                }
-                if !self.is_token(Comma) || self.is_token(Colon) {
+    /// parses vector destruction
+    fn var_vec_dest(&mut self) -> Vec<Token> {
+        let mut names = vec![];
+        while !self.if_token_consume(RBracket) {
+            // allow empty values: [a, _, c]
+            if self.if_token_consume(Underscore) {
+                names.push(Token::null());
+            // [a, ..]
+            } else if self.if_token_consume(DblDot) {
+                names.push(Token::null());
+                if !self.is_token(Comma) {
                     break;
                 }
-                self.advance();
+            } else {
+                let name = self.consume(Ident);
+                names.push(name);
             }
-            self.consume(RBracket);
+            if !self.is_token(Comma) || self.is_token(Colon) {
+                break;
+            }
+            self.advance();
+        }
+        self.consume(RBracket);
+        names
+    }
+
+    /// parses record destruction
+    fn var_record_dest(&mut self) -> Vec<Token> {
+        let mut names = vec![];
+        while !self.if_token_consume(RBrace) {
+            // {name, ..}
+            if self.if_token_consume(DblDot) {
+                names.push(Token::null());
+                if !self.is_token(Comma) {
+                    break;
+                }
+            } else {
+                let name = self.consume(Ident);
+                names.push(name);
+            }
+            if !self.is_token(Comma) || self.is_token(Colon) {
+                break;
+            }
+            self.advance();
+        }
+        self.consume(RBrace);
+        names
+    }
+
+    fn var(&mut self) -> Statement {
+        self.start("variable statement");
+        let mut names = vec![];
+        let is_mut = self.if_token_consume(Mut);
+        let mut is_null = false;
+        let mut destruct = None;
+
+        // checks if variable is immutable and consumes `pub` keyword, if its there
+        let mut pub_names = self.var_is_pub(is_mut);
+        let is_pub = !pub_names.is_empty();
+
+        if self.if_token_consume(LBracket) {
+            names = self.var_vec_dest();
+            destruct = Some(Destruct::Vector)
+        } else if self.if_token_consume(LBrace) {
+            names = self.var_record_dest();
+            destruct = Some(Destruct::Record)
         } else {
             // normally parse through names.
             // if name ends with `;`, return null
@@ -170,7 +204,7 @@ impl Parser {
             is_pub,
             pub_names: pub_names.clone(),
             is_func: false,
-            is_arr_dest,
+            destruct: destruct.clone(),
         };
 
         if is_null {
@@ -213,7 +247,7 @@ impl Parser {
                 is_pub,
                 pub_names: pub_names.clone(),
                 is_func: false,
-                is_arr_dest,
+                destruct,
             };
         }
 
@@ -235,7 +269,7 @@ impl Parser {
             is_pub,
             pub_names,
             is_func,
-            is_arr_dest,
+            destruct,
         }
     }
 

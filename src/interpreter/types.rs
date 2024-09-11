@@ -2,14 +2,13 @@ use super::{env::Env, expr::Expression};
 use crate::ast::{LiteralKind, LiteralType, Token, TokenType};
 use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
 
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeKind {
     Vec {
         // <type>
         kind: Box<TypeKind>,
     },
-    Object {
+    Record {
         // {name: type, name: type, ..}
         fields: Vec<(Token, TypeKind)>,
     },
@@ -47,7 +46,7 @@ impl fmt::Display for TypeKind {
             TypeKind::Vec { kind } => {
                 write!(f, "<{}>", kind)
             }
-            TypeKind::Object { fields } => {
+            TypeKind::Record { fields } => {
                 write!(f, "{{")?;
                 for (i, (name, t)) in fields.iter().enumerate() {
                     write!(f, "{}: {}", name.lexeme, t)?;
@@ -81,7 +80,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
         TokenType::FuncIdent => true,
         TokenType::Ident => {
             let d = env.borrow().get_type(&value_type.lexeme);
-            
+
             type_check(&d, val, env)
         }
         TokenType::Type => {
@@ -117,11 +116,11 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
                             return lhs_n;
                         }
                     }
-                    TypeKind::Object { fields } => {
-                        if let LiteralType::Obj(ref obj) = *val {
-                            let obj_map: HashMap<_, _> = obj.iter().cloned().collect();
+                    TypeKind::Record { fields } => {
+                        if let LiteralType::Record(ref rec) = *val {
+                            let rec_map: HashMap<_, _> = rec.iter().cloned().collect();
                             return fields.iter().all(|(name, field_type)| {
-                                if let Some(v) = obj_map.get(&name.lexeme) {
+                                if let Some(v) = rec_map.get(&name.lexeme) {
                                     let field_token = Token {
                                         token: string_to_tokentype(&field_type.to_string()),
                                         lexeme: field_type.to_string(),
@@ -157,7 +156,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
         TokenType::CharIdent => matches!(val, LiteralType::Char(_)),
         TokenType::Null => matches!(val, LiteralType::Null),
         TokenType::VoidIdent => matches!(val, LiteralType::Void),
-        TokenType::ArrayIdent => {
+        TokenType::VecLit => {
             if let LiteralType::Vec(ref array) = *val {
                 if let Some(LiteralKind::Type(ref t)) = value_type.value {
                     if let TypeKind::Vec { .. } = **t {
@@ -186,8 +185,7 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
         | TokenType::StrLit
         | TokenType::TrueLit
         | TokenType::FalseLit
-        | TokenType::CharLit
-       => {
+        | TokenType::CharLit => {
             match *val {
                 LiteralType::Number(ref n) => return check_num(n, value_type),
                 LiteralType::String(ref s) => return check_str(s, value_type),
@@ -243,7 +241,7 @@ pub fn literalkind_to_literaltype(kind: LiteralKind) -> LiteralType {
 
 pub fn typekind_to_literaltype(kind: TypeKind) -> LiteralType {
     match kind.clone() {
-        TypeKind::Object { fields } => obj_to_lt(fields),
+        TypeKind::Record { fields } => rec_to_lt(fields),
         TypeKind::Var { name } => var_to_lt(name),
         TypeKind::Callback { ret, .. } => typekind_to_literaltype(*ret),
         TypeKind::Vec { kind } => typekind_to_literaltype(*kind),
@@ -261,13 +259,13 @@ fn var_to_lt(name: Token) -> LiteralType {
     };
     literalkind_to_literaltype(n)
 }
-fn obj_to_lt(fields: Vec<(Token, TypeKind)>) -> LiteralType {
-    let mut obj = vec![];
+fn rec_to_lt(fields: Vec<(Token, TypeKind)>) -> LiteralType {
+    let mut rec = vec![];
     for (k, v) in fields {
         let v = typekind_to_literaltype(v);
-        obj.push((k.lexeme, Expression::Value { id: 0, value: v }));
+        rec.push((k.lexeme, Expression::Value { id: 0, value: v }));
     }
-    LiteralType::Obj(obj)
+    LiteralType::Record(rec)
 }
 
 pub fn string_to_tokentype(s: &str) -> TokenType {
