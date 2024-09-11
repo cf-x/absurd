@@ -269,13 +269,53 @@ impl Expression {
                     Some(v) => v.clone().value,
                     None => match env.borrow().values.borrow().get(name.lexeme.as_str()) {
                         Some(v) => v.clone().value,
-                        None => LiteralType::Null,
+                        None => match env.borrow().enums.borrow().get(name.lexeme.as_str()) {
+                            Some(_) => LiteralType::Enum {
+                                parent: name.clone(),
+                                name: Token::null(),
+                                value: None,
+                            },
+                            None => LiteralType::Null,
+                        },
                     },
                 }
             }
-            Expression::Call { name, args, .. } => {
+            Expression::Call {
+                name,
+                args,
+                call_type,
+                ..
+            } => {
                 let call: LiteralType = name.eval(Rc::clone(&env));
+
                 match call {
+                    LiteralType::Null | LiteralType::Enum { .. } => {
+                        if let CallType::Enum = call_type {
+                            let parent = if let Expression::Var { name, .. } = *name.clone() {
+                                name
+                            } else {
+                                Token::null()
+                            };
+                            let name = if let Expression::Var { name, .. } = args.get(0).unwrap() {
+                                name.clone()
+                            } else {
+                                Token::null()
+                            };
+                            let value = if let Some(e) = args.get(1) {
+                                Some(Box::new(e.eval(Rc::clone(&env))))
+                            } else {
+                                None
+                            };
+
+                            return LiteralType::Enum {
+                                parent,
+                                name,
+                                value,
+                            };
+                        }
+
+                        LiteralType::Null
+                    }
                     LiteralType::Func(func) => run_func(func, args, env),
                     LiteralType::DeclrFunc(func) => {
                         let evals = args

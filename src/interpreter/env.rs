@@ -7,6 +7,7 @@ use std::{borrow::Borrow, cell::RefCell, collections::HashMap, process::exit, rc
 
 type EnvValueType = Rc<RefCell<HashMap<String, ValueType>>>;
 type EnvTypeValueType = Rc<RefCell<HashMap<String, Token>>>;
+type EnvEnumValueType = Rc<RefCell<HashMap<String, Vec<(Token, Option<Token>)>>>>;
 type ModEnvValueType = Rc<RefCell<HashMap<String, Vec<(String, ValueType)>>>>;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -14,6 +15,7 @@ pub enum ValueKind {
     Var(VarKind),
     Func(FuncKind),
     Type(Token),
+    Enum(Vec<(Token, Option<Token>)>),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -44,6 +46,7 @@ pub struct Env {
     pub pub_vals: EnvValueType,
     pub mod_vals: ModEnvValueType,
     pub type_values: EnvTypeValueType,
+    pub enums: EnvEnumValueType,
     pub mods: Vec<Env>,
     pub locals: Rc<RefCell<HashMap<usize, usize>>>,
     pub enclosing: Option<Rc<RefCell<Env>>>,
@@ -57,9 +60,10 @@ impl Env {
     pub fn new(locals: HashMap<usize, usize>) -> Self {
         Self {
             values: get_empty_rc(),
-            type_values: get_empty_tc(),
             pub_vals: get_empty_rc(),
             mod_vals: get_empty_md(),
+            type_values: get_empty_tc(),
+            enums: get_empty_ec(),
             mods: Vec::new(),
             locals: Rc::new(RefCell::new(locals)),
             enclosing: None,
@@ -69,9 +73,10 @@ impl Env {
     pub fn enclose(&self) -> Env {
         Self {
             values: get_empty_rc(),
-            type_values: get_empty_tc(),
             pub_vals: get_empty_rc(),
             mod_vals: get_empty_md(),
+            type_values: get_empty_tc(),
+            enums: get_empty_ec(),
             mods: self.mods.clone(),
             locals: Rc::clone(&self.locals),
             enclosing: Some(Rc::new(RefCell::new(self.clone()))),
@@ -84,17 +89,7 @@ impl Env {
         }
     }
 
-    pub fn define_type(&self, k: String, v: Token) {
-        self.type_values.borrow_mut().insert(k, v);
-    }
-
-    pub fn get_type(&self, k: &str) -> Token {
-        self.type_values
-            .borrow_mut()
-            .get(k)
-            .unwrap_or(&Token::null())
-            .clone()
-    }
+    // variable value definitions
 
     pub fn define_var(&self, k: String, v: LiteralType, f: VarKind) {
         self.values.borrow_mut().insert(
@@ -106,42 +101,12 @@ impl Env {
         );
     }
 
-    pub fn define_func(&self, k: String, v: LiteralType, f: FuncKind) {
-        self.values.borrow_mut().insert(
-            k,
-            ValueType {
-                value: v,
-                kind: ValueKind::Func(f),
-            },
-        );
-    }
-
-    pub fn define_pub_type(&self, k: String, v: Token) {
-        self.pub_vals.borrow_mut().insert(
-            k,
-            ValueType {
-                value: LiteralType::Void,
-                kind: ValueKind::Type(v),
-            },
-        );
-    }
-
     pub fn define_pub_var(&self, k: String, v: LiteralType, f: VarKind) {
         self.pub_vals.borrow_mut().insert(
             k,
             ValueType {
                 value: v,
                 kind: ValueKind::Var(f),
-            },
-        );
-    }
-
-    pub fn define_pub_func(&self, k: String, v: LiteralType, f: FuncKind) {
-        self.pub_vals.borrow_mut().insert(
-            k,
-            ValueType {
-                value: v,
-                kind: ValueKind::Func(f),
             },
         );
     }
@@ -158,6 +123,28 @@ impl Env {
         ));
     }
 
+    // function value definitions
+
+    pub fn define_func(&self, k: String, v: LiteralType, f: FuncKind) {
+        self.values.borrow_mut().insert(
+            k,
+            ValueType {
+                value: v,
+                kind: ValueKind::Func(f),
+            },
+        );
+    }
+
+    pub fn define_pub_func(&self, k: String, v: LiteralType, f: FuncKind) {
+        self.pub_vals.borrow_mut().insert(
+            k,
+            ValueType {
+                value: v,
+                kind: ValueKind::Func(f),
+            },
+        );
+    }
+
     pub fn define_mod_func(&self, source: String, f: LiteralType, k: String, v: FuncKind) {
         let mut mod_vals = self.mod_vals.borrow_mut();
         let entry = mod_vals.entry(source).or_insert_with(Vec::new);
@@ -168,6 +155,22 @@ impl Env {
                 kind: ValueKind::Func(v),
             },
         ));
+    }
+
+    // type value definitions
+
+    pub fn define_type(&self, k: String, v: Token) {
+        self.type_values.borrow_mut().insert(k, v);
+    }
+
+    pub fn define_pub_type(&self, k: String, v: Token) {
+        self.pub_vals.borrow_mut().insert(
+            k,
+            ValueType {
+                value: LiteralType::Void,
+                kind: ValueKind::Type(v),
+            },
+        );
     }
 
     pub fn define_mod_type(&self, source: String, f: LiteralType, k: String, v: Token) {
@@ -181,6 +184,54 @@ impl Env {
             },
         ));
     }
+
+    pub fn get_type(&self, k: &str) -> Token {
+        self.type_values
+            .borrow_mut()
+            .get(k)
+            .unwrap_or(&Token::null())
+            .clone()
+    }
+
+    // enum value definitions
+
+    pub fn define_enum(&self, k: String, v: Vec<(Token, Option<Token>)>) {
+        self.enums.borrow_mut().insert(k, v);
+    }
+
+    pub fn define_pub_enum(&self, k: String, v: Vec<(Token, Option<Token>)>) {
+        self.pub_vals.borrow_mut().insert(
+            k,
+            ValueType {
+                value: LiteralType::Void,
+                kind: ValueKind::Enum(v),
+            },
+        );
+    }
+
+    pub fn define_mod_enum(
+        &self,
+        source: String,
+        f: LiteralType,
+        k: String,
+        v: Vec<(Token, Option<Token>)>,
+    ) {
+        let mut mod_vals = self.mod_vals.borrow_mut();
+        let entry = mod_vals.entry(source).or_insert_with(Vec::new);
+        entry.push((
+            k,
+            ValueType {
+                value: f,
+                kind: ValueKind::Enum(v),
+            },
+        ));
+    }
+
+    pub fn get_enum(&self, k: &str) -> Vec<(Token, Option<Token>)> {
+        self.enums.borrow_mut().get(k).unwrap_or(&vec![]).clone()
+    }
+
+    // global
 
     pub fn get(&self, name: String, id: usize) -> Option<ValueType> {
         let d = self.locals.borrow_mut().get(&id).cloned();
@@ -263,6 +314,10 @@ fn get_empty_rc() -> EnvValueType {
 }
 
 fn get_empty_tc() -> EnvTypeValueType {
+    Rc::new(RefCell::new(HashMap::new()))
+}
+
+fn get_empty_ec() -> EnvEnumValueType {
     Rc::new(RefCell::new(HashMap::new()))
 }
 

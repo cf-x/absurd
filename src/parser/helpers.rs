@@ -78,6 +78,16 @@ impl Parser {
             .map_or(false, |c| c.is_uppercase())
     }
 
+    #[inline]
+    /// checks if token is uppercase
+    pub fn is_uppercase(&self, token: Token) -> bool {
+        token
+            .lexeme
+            .chars()
+            .next()
+            .map_or(false, |c| c.is_uppercase())
+    }
+
     /// takes multiple tokens and consumes whichever matches first
     pub fn consume_some(&mut self, ts: &[TokenType]) -> Token {
         for t in ts {

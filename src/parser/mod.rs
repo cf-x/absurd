@@ -1,6 +1,6 @@
 // Asburd Parser, transforms tokens into AST
 use crate::ast::{Destruct, FuncBody, LiteralKind, LiteralType, Statement, Token, TokenType::*};
-use crate::errors::{Error, ErrorCode::*};
+use crate::errors::{raw, Error, ErrorCode::*};
 use crate::interpreter::expr::Expression;
 use coloredpp::Colorize;
 mod call;
@@ -66,6 +66,7 @@ impl Parser {
             Use => self.uses(),
             LBrace => self.block_stmt(),
             TypeStmt => self.types(),
+            Enum => self.enums(),
             _ => self.exprs(),
         }
     }
@@ -441,6 +442,42 @@ impl Parser {
         self.consume(Semi);
         self.log("break statement");
         Statement::Break {}
+    }
+
+    fn enums(&mut self) -> Statement {
+        let name = self.consume(Ident);
+        if !self.is_uppercase(name.clone()) {
+            raw("enum name must start with uppercase alphabet");
+        }
+
+        let is_pub = if self.if_token_consume(Pub) {
+            true
+        } else {
+            false
+        };
+        self.consume(LBrace);
+        let mut items = vec![];
+        while !self.if_token_consume(RBrace) {
+            let name = self.consume(Ident);
+            if !self.is_uppercase(name.clone()) {
+                raw("enum name must start with uppercase alphabet");
+            }
+            if self.if_token_consume(LParen) {
+                let typ = self.consume_type();
+                self.consume(RParen);
+                items.push((name.clone(), Some(typ)))
+            }
+            items.push((name, None));
+            if !self.if_token_consume(Comma) && !self.is_token(RBrace) {
+                break;
+            }
+        }
+
+        Statement::Enum {
+            name,
+            is_pub,
+            items,
+        }
     }
 
     fn matchs(&mut self) -> Statement {

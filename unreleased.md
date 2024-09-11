@@ -10,8 +10,6 @@ List of the features that will be added soon
 - if let
 - inline use (`std::literal::vec::push()`, `::push()`)
 - better use statement (ident names, full std loading)
-- enums
-- asynch / await
 - package manager
 - advanced diagnostics and benchmarking
 - advanced testing
@@ -22,6 +20,7 @@ List of the features that will be added soon
 
 List of the features that may or may not be added
 
+- async / await
 - macros
 - struct, impl
 - trait, methods

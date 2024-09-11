@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.22.0
+
+### core changes
+
+- added enums (`enum Name {A, B, C}`)
+- updated patter matching
+
+### internal changes
+
+- updated env interface
+
 ## 0.21.1
 
 - added tuple data type (`Tuple<(T, T)>`, `(1, 2)`, `tuple[0]`)

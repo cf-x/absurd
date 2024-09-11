@@ -5,6 +5,7 @@ use std::fmt;
 impl LiteralType {
     pub fn type_name(&self) -> String {
         match self {
+            Self::Enum { .. } => "enum".to_string(),
             Self::Tuple(_) => "tuple".to_string(),
             Self::Record(_) => "record".to_string(),
             Self::Number(_) => "number".to_string(),
@@ -21,8 +22,6 @@ impl LiteralType {
 
     pub fn to_token(&self) -> Token {
         match self {
-            Self::Record(_) => Token::empty(AnyIdent, "any", None),
-            Self::Tuple(_) => Token::empty(AnyIdent, "any", None),
             Self::Number(n) => Token::empty(
                 NumLit,
                 n.to_string().as_str(),
@@ -44,11 +43,9 @@ impl LiteralType {
                 b.to_string().as_str(),
                 Some(LiteralKind::Bool { value: *b }),
             ),
-            Self::Vec(_) => Token::empty(AnyIdent, "any", None),
-            Self::Func(_) => Token::empty(AnyIdent, "any", None),
             Self::Void => Token::empty(VoidIdent, "void", None),
-            Self::DeclrFunc(_) => Token::empty(AnyIdent, "any", None),
             Self::Null => Token::null(),
+            _ => Token::empty(AnyIdent, "any", None),
         }
     }
 
@@ -60,6 +57,7 @@ impl LiteralType {
             Self::Boolean(val) => *val,
             Self::Null => false,
             Self::Vec(val) => !val.is_empty(),
+            Self::Tuple(val) => !val.is_empty(),
             Self::Record(rec) => !rec.is_empty(),
             _ => false,
         }
@@ -72,6 +70,7 @@ impl LiteralType {
 impl fmt::Display for LiteralType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Self::Enum { name, .. } => write!(f, "{}", name.lexeme),
             Self::Tuple(val) => {
                 let mut s = String::new();
                 for (i, v) in val.iter().enumerate() {

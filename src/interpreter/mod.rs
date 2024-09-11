@@ -76,6 +76,30 @@ impl Interpreter {
     pub fn interpret(&mut self, stmts: Vec<&Statement>) -> Rc<RefCell<Env>> {
         for stmt in stmts {
             match stmt {
+                Enum {
+                    name,
+                    is_pub,
+                    items,
+                } => {
+                    if is_pub.clone() {
+                        if self.is_mod {
+                            self.env.borrow_mut().define_mod_enum(
+                                self.mod_src.clone().unwrap(),
+                                LiteralType::Void,
+                                name.clone().lexeme,
+                                items.clone(),
+                            );
+                        } else {
+                            self.env
+                                .borrow_mut()
+                                .define_pub_enum(name.clone().lexeme, items.clone());
+                        }
+                    } else {
+                        self.env
+                            .borrow_mut()
+                            .define_enum(name.clone().lexeme, items.clone());
+                    }
+                }
                 Type {
                     name,
                     value,
@@ -215,8 +239,7 @@ impl Interpreter {
                                         }
                                         LiteralType::Tuple(t) => {
                                             if destruct.is_some() {
-                                                if let Destruct::Tuple = destruct.clone().unwrap()
-                                                {
+                                                if let Destruct::Tuple = destruct.clone().unwrap() {
                                                     let i = t
                                                         .get(index)
                                                         .expect("failed to destructure a tuple")
@@ -467,6 +490,14 @@ impl Interpreter {
                             if v.type_name() == val.type_name() {
                                 match body.clone() {
                                     FuncBody::Statements(s) => {
+                                        if let LiteralType::Enum { name, value, .. } = v.clone() {
+                                            if self.dos(name, value, val.clone()) {
+                                                self.interpret(s.iter().map(|x| x).collect());
+                                                exec = true;
+                                                break;
+                                            }
+                                        }
+
                                         if v.clone() == val.clone() {
                                             self.interpret(s.iter().map(|x| x).collect());
                                             exec = true;
@@ -474,6 +505,16 @@ impl Interpreter {
                                         }
                                     }
                                     FuncBody::Expression(e) => {
+                                        if let LiteralType::Enum { name, value, .. } = v.clone() {
+                                            if self.dos(name, value, val.clone()) {
+                                                self.interpret(vec![&Statement::Expression {
+                                                    expr: *e,
+                                                }]);
+                                                exec = true;
+                                                break;
+                                            }
+                                        }
+
                                         if v.clone() == val.clone() {
                                             self.interpret(vec![&Statement::Expression {
                                                 expr: *e,
@@ -585,6 +626,27 @@ impl Interpreter {
             }
         }
         Rc::clone(&self.env)
+    }
+
+    fn dos(&self, name: Token, value: Option<Box<LiteralType>>, val: LiteralType) -> bool {
+        let lex = if let LiteralType::Enum { parent, .. } = val.clone() {
+            parent
+        } else {
+            Token::null()
+        };
+
+        let d = self.env.borrow().get_enum(&lex.lexeme);
+        let mut dos = false;
+        for (v, _) in d.clone() {
+            if name.lexeme == v.lexeme {
+                if value.is_some() {
+                    // @todo check the values
+                }
+
+                dos = true;
+            }
+        }
+        dos
     }
 
     fn create_func(&self, stmt: &Statement) -> FuncImpl {

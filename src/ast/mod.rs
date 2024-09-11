@@ -28,6 +28,8 @@ pub enum TokenType {
     Loop,
     /// break
     Break,
+    /// enum
+    Enum,
     /// match
     Match,
     /// mod
@@ -212,6 +214,11 @@ pub enum LiteralType {
     Record(Vec<(String, Expression)>),
     Func(FuncImpl),
     DeclrFunc(DeclrFuncType),
+    Enum {
+        parent: Token,
+        name: Token,
+        value: Option<Box<LiteralType>>,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -316,7 +323,8 @@ impl Token {
 pub enum CallType {
     Func,
     Struct,
-    Array,
+    Vector,
+    Enum,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -328,6 +336,11 @@ pub enum Destruct {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
+    Enum {
+        name: Token,
+        is_pub: bool,
+        items: Vec<(Token, Option<Token>)>,
+    },
     Sh {
         cmd: String,
     },

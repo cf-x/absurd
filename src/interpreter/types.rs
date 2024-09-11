@@ -8,18 +8,19 @@ use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeKind {
     Vec {
-        // <type>
+        // Vec<type>
         kind: Box<TypeKind>,
     },
     Tuple {
+        // Tuple<(type)>
         types: Vec<TypeKind>,
     },
     Record {
-        // {name: type, name: type, ..}
+        // Record<{name: type, name: type, ..}>
         fields: Vec<(Token, TypeKind)>,
     },
     Var {
-        // identifier for calling types
+        // identifier for calling type aliases
         name: Token,
     },
     Either {
@@ -94,6 +95,32 @@ impl fmt::Display for TypeKind {
 pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>) -> bool {
     match value_type.token {
         TokenType::FuncIdent => true,
+        TokenType::Enum => {
+            let d = env.borrow().get_enum(&value_type.lexeme);
+
+            if let LiteralType::Enum {
+                parent,
+                name,
+                value,
+            } = val
+            {
+                if parent.lexeme != value_type.lexeme {
+                    return false;
+                }
+
+                for (v, _) in d {
+                    if name.lexeme == v.lexeme {
+                        if value.is_some() {
+                            // @todo check the values
+                        }
+
+                        return true;
+                    }
+                }
+            };
+
+            false
+        }
         TokenType::Ident => {
             let d = env.borrow().get_type(&value_type.lexeme);
 

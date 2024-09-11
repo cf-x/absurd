@@ -9,7 +9,7 @@ impl Parser {
     pub fn call(&mut self) -> Expression {
         if self.is_token(LBracket) && self.prev(1).token == Ident {
             self.advance();
-            let arr = self.array_call();
+            let arr = self.vector_call();
             self.consume(RBracket);
             return arr;
         }
@@ -20,9 +20,10 @@ impl Parser {
             Some(self.prev(1).token)
         } {
             match token {
+                DblColon => expr = self.enum_call(),
                 Dot => expr = self.obj_call(),
                 LParen => expr = self.func_call(),
-                LBracket => expr = self.array_call(),
+                LBracket => expr = self.vector_call(),
                 Ident => expr = self.call(),
                 _ => {
                     self.retreat();
@@ -33,7 +34,26 @@ impl Parser {
         expr
     }
 
-    pub fn array_call(&mut self) -> Expression {
+    pub fn enum_call(&mut self) -> Expression {
+        let name = self.prev(2).clone();
+        let e = self.consume(Ident);
+        let args = vec![Expression::Var {
+            id: self.id(),
+            name: e,
+        }];
+
+        Expression::Call {
+            id: self.id(),
+            name: Box::new(Expression::Var {
+                id: self.id(),
+                name,
+            }),
+            args,
+            call_type: CallType::Enum,
+        }
+    }
+
+    pub fn vector_call(&mut self) -> Expression {
         let name = self.prev(2).clone();
         let e = self.expr();
         let args = vec![e];
@@ -45,7 +65,7 @@ impl Parser {
                 name,
             }),
             args,
-            call_type: CallType::Array,
+            call_type: CallType::Vector,
         }
     }
 

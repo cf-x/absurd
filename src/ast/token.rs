@@ -3,6 +3,7 @@ use super::TokenType;
 impl TokenType {
     pub fn to_string(&self) -> String {
         let s = match self {
+            Self::Enum => "enum",
             Self::Tuple => "Tuple",
             Self::TupleLit => "tuple literal",
             Self::VecT => "Vec",

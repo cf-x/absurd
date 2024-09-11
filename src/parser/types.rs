@@ -130,6 +130,17 @@ impl Parser {
         let value = Some(LiteralKind::Type(Box::new(TypeKind::Var {
             name: token.clone(),
         })));
+
+        if self.is_uppercase(token.clone()) {
+            return Token {
+                token: Enum,
+                lexeme: token.lexeme,
+                value: None,
+                line: token.line,
+                pos: token.pos,
+            };
+        }
+
         Token {
             token: Ident,
             lexeme: token.lexeme,
