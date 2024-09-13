@@ -7,7 +7,6 @@ List of the features that will be added soon
 - Unit, Matrix, Queue, Heap, Hashmap types
 - inline use (`std::literal::vec::push()`, `::push()`)
 - better use statement (ident names, full std loading)
-- package manager
 - advanced diagnostics and benchmarking
 - advanced testing
 - generics

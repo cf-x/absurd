@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.24.0
+
+- added package manager (beta) (`absurd add name/repo`, `absurd add name/repo new_name`)
+- added `add` and `remove` commands (`absurd remove package_name`)
+
 ## 0.23.0
 
 ### core changes

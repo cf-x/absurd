@@ -77,8 +77,7 @@ fn parse_args(project: &mut Project) -> Args {
     if args.len() < 2 {
         raw("missing required argument <file>");
     }
-
-    for arg in &args {
+    for (i, arg) in &args.iter().enumerate().collect::<Vec<(usize, &String)>>() {
         match arg.as_str() {
             "--help" | "-h" => {
                 print_help();
@@ -91,6 +90,14 @@ fn parse_args(project: &mut Project) -> Args {
             "update" => {
                 update();
                 exit(0);
+            }
+            "add" => {
+                add_mod(args.clone().get(i + 1), args.clone().get(i + 2));
+                exit(1);
+            }
+            "remove" => {
+                remove_mod(args.clone().get(i + 1));
+                exit(1);
             }
             "--side-effects" | "-s" => project.side_effects = false,
             "--log" | "-l" => project.log = true,
@@ -184,19 +191,93 @@ fn update() {
     }
 }
 
-fn print_version() {
-    let abs = VERSION;
+fn add_mod(first: Option<&String>, second: Option<&String>) {
+    let name = if let Some(n) = first {
+        n.clone()
+    } else {
+        raw("expected a module name");
+        exit(1);
+    };
 
-    let colors = vec![
-        "#6800ff", "#8200ff", "#b500ff", "#ed00ff", "#ff00d9", "#ff00aa",
-    ];
-
-    let mut result = String::new();
-    for (i, c) in abs.chars().enumerate() {
-        let color = &colors[i % colors.len()];
-
-        result.push_str(&format!("{}{}", c.to_string().fg_hex(color).bold(), ""));
+    if let Some(alias) = second {
+        println!("adding: {} as {}", name, alias);
+        return;
     }
 
-    println!("\n    {}: {}\n", "version".cyan(), result);
+    let dir_name = if second.is_some() {
+        second.unwrap()
+    } else {
+        name.split('/').last().unwrap_or("mods")
+    };
+    println!("{}", format!("cloning module {}...", name).yellow());
+    let output = match Command::new("git")
+        .arg("clone")
+        .arg("--depth")
+        .arg("1")
+        .arg(format!("https://github.com/{}.git", name))
+        .arg(format!("./mods/{}", dir_name))
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+    {
+        Ok(c) => c,
+        Err(e) => {
+            raw(format!("module error: {}", e).as_str());
+            exit(1);
+        }
+    };
+    println!(
+        "{}",
+        format!("module {} successfully cloned", dir_name).green()
+    );
+    /* @todo:
+        - add metadata to the project.toml
+        - add package to the environment (lib.abs)
+    */
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        raw(format!("git error: {}", stderr).as_str());
+        exit(1);
+    }
+
+    println!("{}", "module successfully installed".green());
+}
+
+fn remove_mod(first: Option<&String>) {
+    let name = if let Some(n) = first {
+        n.clone()
+    } else {
+        raw("expected a module name");
+        exit(1);
+    };
+
+    let output = match Command::new("rm")
+        .arg("-rf")
+        .arg(format!("./mods/{}", name))
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .output()
+    {
+        Ok(c) => c,
+        Err(e) => {
+            raw(format!("module error: {}", e).as_str());
+            exit(1);
+        }
+    };
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        raw(format!("rm error: {}", stderr).as_str());
+        exit(1);
+    }
+
+    println!(
+        "{}",
+        format!("module {} successfully removed", name).green()
+    );
+}
+
+fn print_version() {
+    let abs = VERSION.fg_hex_gradient("#6800ff", "#ff00aa").bold();
+    println!("\n    {}: {}\n", "version".cyan(), abs);
 }
