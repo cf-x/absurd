@@ -647,7 +647,6 @@ impl Interpreter {
                         self.load_std(src.trim_matches('"').to_string().clone(), names.clone());
                     } else {
                         let mod_vals = self.env.borrow().mod_vals.borrow().clone();
-
                         let vals = match mod_vals.get(src) {
                             Some(c) => c,
                             None => {

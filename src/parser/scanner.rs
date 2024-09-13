@@ -28,6 +28,7 @@ impl<'a> Scanner<'a> {
             err,
             tokens: vec![],
             kwds: HashMap::from([
+                ("label", Label),
                 ("enum", Enum),
                 ("sh", Sh),
                 ("let", Let),

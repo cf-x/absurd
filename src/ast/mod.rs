@@ -56,6 +56,8 @@ pub enum TokenType {
     Sh,
     /// type alias
     TypeStmt,
+    /// label
+    Label,
 
     // type keywords
     /// number

@@ -68,8 +68,15 @@ impl Parser {
             LBrace => self.block_stmt(),
             TypeStmt => self.types(),
             Enum => self.enums(),
+            Label => self.label(),
             _ => self.exprs(),
         }
+    }
+
+    fn label(&mut self) -> Statement {
+        self.if_token_consume(Ident);
+        self.consume(Colon);
+        self.stmt()
     }
 
     /// parses variable publicity and returns variable publicit
@@ -182,7 +189,6 @@ impl Parser {
 
         // checks if variable is immutable and consumes `pub` keyword, if its there
         let mut pub_names = self.var_is_pub(is_mut);
-        let is_pub = !pub_names.is_empty();
 
         if self.if_token_consume(LBracket) {
             names = self.var_vec_dest();
@@ -217,7 +223,7 @@ impl Parser {
         if pub_names.is_empty() {
             pub_names = names.clone();
         }
-
+        let is_pub = !pub_names.is_empty();
         let null_var = Statement::Var {
             names: names.clone(),
             value_type: Token::null(),
@@ -590,7 +596,19 @@ impl Parser {
                 self.if_token_consume(Comma);
             }
         }
-        let src = self.consume(StrLit).lexeme;
+        let src = if self.is_token(Ident) {
+            let mut lex = self.consume(Ident).lexeme;
+            if lex == "std" {
+                while self.if_token_consume(DblColon) {
+                    let n = self.consume(Ident);
+                    lex.push_str("::");
+                    lex.push_str(n.lexeme.as_str());
+                }
+            }
+            format!("\"{}\"", lex)
+        } else {
+            self.consume(StrLit).lexeme
+        };
         self.consume(Semi);
         self.log("use statement");
         Statement::Use { src, names, all }

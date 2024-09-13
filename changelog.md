@@ -2,8 +2,17 @@
 
 ## 0.24.0
 
+### core changes
+
 - added package manager (beta) (`absurd add name/repo`, `absurd add name/repo new_name`)
 - added `add` and `remove` commands (`absurd remove package_name`)
+- added labels (`label name: statement`)
+- added ident support for use statements (`use * from name`)
+- added std importing using identifier (`use * from std::core::test`)
+
+### fixes
+
+- fixed variable publicity
 
 ## 0.23.0
 
