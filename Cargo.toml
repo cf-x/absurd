@@ -2,13 +2,13 @@
 name = "absurd"
 description = "Absurd programming language"
 license = "MIT"
-version = "0.22.0"
+version = "0.23.0"
 edition = "2021"
 
 [profile.release]
 lto = true
 
 [dependencies]
-coloredpp = "0.2.0"
+coloredpp = "0.3.0"
 toml = "0.8.19"
 unicode-xid = "0.2.5"

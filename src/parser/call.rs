@@ -1,5 +1,6 @@
 use super::Parser;
 use crate::ast::CallType;
+use crate::ast::LiteralKind;
 use crate::ast::LiteralType;
 use crate::ast::TokenType::*;
 use crate::errors::ErrorCode::E0x103;
@@ -24,6 +25,7 @@ impl Parser {
                 Dot => expr = self.obj_call(),
                 LParen => expr = self.func_call(),
                 LBracket => expr = self.vector_call(),
+                DblDot => expr = self.range(),
                 Ident => expr = self.call(),
                 _ => {
                     self.retreat();
@@ -66,6 +68,28 @@ impl Parser {
             }),
             args,
             call_type: CallType::Vector,
+        }
+    }
+
+    pub fn range(&mut self) -> Expression {
+        let lhs = if let Some(LiteralKind::Number { value, .. }) = self.prev(2).clone().value {
+            value as usize
+        } else {
+            0
+        };
+        let rhs = if let Expression::Value { value, .. } = self.expr() {
+            if let LiteralType::Number(x) = value {
+                x as usize + 1
+            } else {
+                0
+            }
+        } else {
+            0
+        };
+        Expression::Range {
+            id: self.id(),
+            lhs,
+            rhs,
         }
     }
 

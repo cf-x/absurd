@@ -90,6 +90,11 @@ pub enum Expression {
         id: usize,
         expr: Box<Expression>,
     },
+    Range {
+        id: usize,
+        lhs: usize,
+        rhs: usize,
+    },
 }
 
 impl Eq for Expression {}
@@ -100,6 +105,7 @@ impl Expression {
 
     pub fn id(&self) -> usize {
         match self {
+            Expression::Range { id, .. } => *id,
             Expression::Record { id, .. } => *id,
             Expression::Var { id, .. } => *id,
             Expression::Tuple { id, .. } => *id,
@@ -125,6 +131,11 @@ impl Expression {
 
     pub fn eval(&self, env: Rc<RefCell<Env>>) -> LiteralType {
         match self {
+            Expression::Range { lhs, rhs, .. } => {
+                let range = lhs.clone()..rhs.clone();
+                let vec: Vec<LiteralType> = range.map(|x| LiteralType::Number(x as f32)).collect();
+                LiteralType::Vec(vec)
+            }
             Expression::If {
                 cond,
                 body,
@@ -658,6 +669,9 @@ impl Expression {
 impl fmt::Display for Expression {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Expression::Range { lhs, rhs, .. } => {
+                write!(f, "{}..{}", lhs, rhs)
+            }
             Expression::If {
                 cond,
                 body,

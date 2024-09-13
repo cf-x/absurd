@@ -4,10 +4,7 @@
 
 List of the features that will be added soon
 
-- for loop
-- ranges (`0..5`)
 - Unit, Matrix, Queue, Heap, Hashmap types
-- if let
 - inline use (`std::literal::vec::push()`, `::push()`)
 - better use statement (ident names, full std loading)
 - package manager
@@ -28,3 +25,4 @@ List of the features that may or may not be added
 - constants
 - named arguments (`add(b: 5, a: 2)`)
 - concurrency
+- if let

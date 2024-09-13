@@ -40,6 +40,12 @@ impl Resolver {
     /// statement resolver
     fn resolve_stmt(&mut self, stmt: &Statement, env: &Rc<RefCell<Env>>) {
         match stmt {
+            Statement::For {
+                iterator,
+                index,
+                body,
+                expr,
+            } => self.fors(iterator, index, body, expr, env),
             Statement::If {
                 body,
                 else_branch,
@@ -64,7 +70,24 @@ impl Resolver {
         }
     }
 
-    // everything below is self explanatory
+    fn fors(
+        &mut self,
+        iterator: &Token,
+        index: &Option<Token>,
+        body: &Vec<Statement>,
+        expr: &Expression,
+        env: &Rc<RefCell<Env>>,
+    ) {
+        self.declare(iterator);
+        self.define(iterator);
+        if let Some(i) = index {
+            self.declare(i);
+            self.define(i);
+        }
+        self.expr(expr, env);
+        self.resolve_many(body, env);
+    }
+
     fn uses(&mut self, names: &Vec<(Token, Option<Token>)>) {
         for (old, new) in names {
             if let Some(new_name) = new {
@@ -245,12 +268,12 @@ impl Resolver {
             Expression::Func { body, params, .. } => self.callback(body, params, env),
             Expression::Await { expr, .. } => self.expr(expr, env),
             Expression::Unary { left, .. } => self.expr(left, env),
-            Expression::Value { .. } => {}
             Expression::Binary { left, right, .. } => {
                 self.expr(left, env);
                 self.expr(right, env);
             }
             Expression::Grouping { expression, .. } => self.expr(expression, env),
+            _ => {}
         }
     }
 

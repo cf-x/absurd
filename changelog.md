@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.23.0
+
+### core changes
+
+- added for loops (`for item in vec {}`, `for item, index in vec {}`)
+- added range expression (`0..5`)
+
+### internal changes
+
+- updated `coloredpp` (`0.2.0` -> `0.3.0`)
+
 ## 0.22.1
 
 - added escaping in string and chars (`\n`, `\t`, ...)

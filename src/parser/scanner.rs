@@ -35,6 +35,8 @@ impl<'a> Scanner<'a> {
                 ("else", Else),
                 ("elif", Elif),
                 ("return", Return),
+                ("for", For),
+                ("in", In),
                 ("while", While),
                 ("loop", Loop),
                 ("break", Break),
@@ -239,12 +241,12 @@ impl<'a> Scanner<'a> {
                                 if let Some(ch) = char::from_u32(code_point) {
                                     value.push(ch);
                                 } else {
-                                    value.push_str("\\u{"); 
+                                    value.push_str("\\u{");
                                     value.push_str(&unicode_buffer);
                                     value.push('}');
                                 }
                             } else {
-                                value.push_str("\\u{"); 
+                                value.push_str("\\u{");
                                 value.push_str(&unicode_buffer);
                                 value.push('}');
                             }
@@ -262,16 +264,16 @@ impl<'a> Scanner<'a> {
                         '"' => value.push('"'),
                         'r' => value.push('\r'),
                         'u' => {
-                            unicode_escape = true; 
+                            unicode_escape = true;
                         }
-                        _ => value.push('\\'), 
+                        _ => value.push('\\'),
                     }
                     in_escape = false;
                 }
             } else if self.peek() == '\\' {
-                in_escape = true; 
+                in_escape = true;
             } else {
-                value.push(self.peek()); 
+                value.push(self.peek());
             }
             self.advance();
         }

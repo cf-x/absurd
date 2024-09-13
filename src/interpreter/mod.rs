@@ -76,6 +76,76 @@ impl Interpreter {
     pub fn interpret(&mut self, stmts: Vec<&Statement>) -> Rc<RefCell<Env>> {
         for stmt in stmts {
             match stmt {
+                For {
+                    iterator,
+                    index,
+                    body,
+                    expr,
+                } => {
+                    if !self.is_mod {
+                        let values =
+                            if let LiteralType::Vec(items) = expr.eval(Rc::clone(&self.env)) {
+                                items.clone()
+                            } else {
+                                vec![]
+                            };
+
+                        for (id, iter) in values.iter().enumerate() {
+                            if let Some(token) = index {
+                                self.env.borrow_mut().define_var(
+                                    token.clone().lexeme,
+                                    LiteralType::Number(id as f32),
+                                    VarKind {
+                                        is_pub: false,
+                                        is_mut: false,
+                                        is_func: false,
+                                        value_type: token.clone(),
+                                    },
+                                );
+                            }
+
+                            self.env.borrow_mut().define_var(
+                                iterator.clone().lexeme,
+                                iter.clone(),
+                                VarKind {
+                                    is_pub: false,
+                                    is_mut: false,
+                                    is_func: false,
+                                    value_type: iterator.clone(),
+                                },
+                            );
+
+                            self.interpret(body.iter().map(|x| x).collect());
+                            if self.specs.borrow().get("break").is_some() {
+                                self.specs.borrow_mut().remove("break");
+                                break;
+                            }
+                        }
+                        if let Some(token) = index {
+                            self.env.borrow_mut().define_var(
+                                token.clone().lexeme,
+                                LiteralType::Null,
+                                VarKind {
+                                    is_pub: false,
+                                    is_mut: false,
+                                    is_func: false,
+                                    value_type: token.clone(),
+                                },
+                            );
+                        }
+                        self.env.borrow_mut().define_var(
+                            iterator.clone().lexeme,
+                            LiteralType::Null,
+                            VarKind {
+                                is_pub: false,
+                                is_mut: false,
+                                is_func: false,
+                                value_type: iterator.clone(),
+                            },
+                        );
+                    }
+                }
+
                 Enum {
                     name,
                     is_pub,
@@ -775,7 +845,7 @@ pub fn run_func(func: FuncImpl, args: &[Expression], env: Rc<RefCell<Env>>) -> L
             error.throw(E0x405, 0, (0, 0), vec![]);
         }
     }
-    // @todo pass is_mod
+
     let mut int = Interpreter::new_with_env(Rc::clone(&func_env), false, "", None);
     match func.body {
         FuncBody::Statements(body) => {

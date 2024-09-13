@@ -22,6 +22,8 @@ pub enum TokenType {
     Else,
     /// elif
     Elif,
+    /// for
+    For,
     /// while
     While,
     /// loop
@@ -38,6 +40,8 @@ pub enum TokenType {
     Use,
     /// as
     As,
+    /// in
+    In,
     /// from
     From,
     /// async
@@ -381,6 +385,12 @@ pub enum Statement {
     },
     Return {
         expr: Expression,
+    },
+    For {
+        iterator: Token,
+        index: Option<Token>,
+        expr: Expression,
+        body: Vec<Statement>,
     },
     While {
         cond: Expression,

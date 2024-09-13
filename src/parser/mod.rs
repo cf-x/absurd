@@ -57,6 +57,7 @@ impl Parser {
             Func => self.func(),
             Return => self.returns(),
             If => self.ifs(),
+            For => self.fors(),
             While => self.whiles(),
             Loop => self.loops(),
             Break => self.breaks(),
@@ -404,6 +405,26 @@ impl Parser {
             body,
             else_if_branches,
             else_branch,
+        }
+    }
+
+    fn fors(&mut self) -> Statement {
+        self.start("for statement");
+        let iterator = self.consume(Ident);
+        let index = if self.if_token_consume(Comma) {
+            Some(self.consume(Ident))
+        } else {
+            None
+        };
+        self.consume(In);
+        let expr = self.expr();
+        let body = self.block_stmts();
+        self.log("for statement");
+        Statement::For {
+            iterator,
+            index,
+            expr,
+            body,
         }
     }
 
