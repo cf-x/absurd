@@ -10,7 +10,7 @@ mod bundler;
 mod errors;
 mod manifest;
 
-pub const VERSION: &str = "0.22.0";
+pub const VERSION: &str = "0.22.1";
 
 fn main() {
     let mut project = Project::new();

@@ -151,8 +151,8 @@ impl<'a> Scanner<'a> {
             // literals and identifiers
             '\'' => self.charlit(),
             '"' => self.strlit(),
-            c if c.is_ascii_digit() => self.numlit(c),
-            c if UnicodeXID::is_xid_start(c) || c == '_' => self.ident(),
+            _ if c.is_ascii_digit() => self.numlit(c),
+            _ if UnicodeXID::is_xid_start(c) || c == '_' => self.ident(),
             _ => self.push(Ident, None),
         };
     }
@@ -220,41 +220,151 @@ impl<'a> Scanner<'a> {
     }
 
     /// handles 'c'haracters
-    /// @todo handle escape characters and UNICODE code characters
     fn charlit(&mut self) {
-        let value = if self.peek() != '\'' && !self.is_eof() {
-            self.advance()
-        } else {
-            self.err
-                .throw(E0x101, self.line, (self.pos - 1, self.pos), vec![]);
-            return;
-        };
+        let mut value = String::new();
+        let mut in_escape = false;
+        let mut unicode_escape = false;
+        let mut unicode_buffer = String::new();
+
+        while self.peek() != '\'' && !self.is_eof() {
+            if in_escape {
+                if unicode_escape {
+                    match self.peek() {
+                        '{' => {
+                            unicode_buffer.clear();
+                            unicode_escape = false;
+                        }
+                        '}' => {
+                            if let Ok(code_point) = u32::from_str_radix(&unicode_buffer, 16) {
+                                if let Some(ch) = char::from_u32(code_point) {
+                                    value.push(ch);
+                                } else {
+                                    value.push_str("\\u{"); 
+                                    value.push_str(&unicode_buffer);
+                                    value.push('}');
+                                }
+                            } else {
+                                value.push_str("\\u{"); 
+                                value.push_str(&unicode_buffer);
+                                value.push('}');
+                            }
+                            unicode_escape = false;
+                        }
+                        _ => {
+                            unicode_buffer.push(self.peek());
+                        }
+                    }
+                } else {
+                    match self.peek() {
+                        'n' => value.push('\n'),
+                        't' => value.push('\t'),
+                        '\\' => value.push('\\'),
+                        '"' => value.push('"'),
+                        'r' => value.push('\r'),
+                        'u' => {
+                            unicode_escape = true; 
+                        }
+                        _ => value.push('\\'), 
+                    }
+                    in_escape = false;
+                }
+            } else if self.peek() == '\\' {
+                in_escape = true; 
+            } else {
+                value.push(self.peek()); 
+            }
+            self.advance();
+        }
+
         if self.peek() != '\'' {
             self.err
                 .throw(E0x101, self.line, (self.pos - 1, self.pos), vec![]);
             return;
         }
         self.advance();
-        self.push(CharLit, Some(LiteralKind::Char { value }));
+
+        if value.len() != 1 {
+            self.err
+                .throw(E0x101, self.line, (self.pos - 1, self.pos), vec![]);
+            return;
+        }
+
+        // Convert single-character string to char
+        self.push(
+            CharLit,
+            Some(LiteralKind::Char {
+                value: value.chars().next().unwrap(),
+            }),
+        );
     }
 
     /// handles "strings"
-    /// @todo handle escaping and parsing
     fn strlit(&mut self) {
+        let mut value = String::new();
+        let mut in_escape = false;
+        let mut unicode_escape = false;
+        let mut unicode_buffer = String::new();
+
         while self.peek() != '"' && !self.is_eof() {
             if self.peek() == '\n' {
                 self.line += 1;
                 self.pos = 1;
+            } else if in_escape {
+                if unicode_escape {
+                    match self.peek() {
+                        '(' => {
+                            unicode_buffer.clear();
+                            unicode_escape = false;
+                        }
+                        ')' => {
+                            if let Ok(code_point) = u32::from_str_radix(&unicode_buffer, 16) {
+                                if let Some(ch) = char::from_u32(code_point) {
+                                    value.push(ch);
+                                } else {
+                                    value.push_str("\\u(");
+                                    value.push_str(&unicode_buffer);
+                                    value.push(')');
+                                }
+                            } else {
+                                value.push_str("\\u(");
+                                value.push_str(&unicode_buffer);
+                                value.push(')');
+                            }
+                            unicode_escape = false;
+                        }
+                        _ => {
+                            unicode_buffer.push(self.peek());
+                        }
+                    }
+                } else {
+                    match self.peek() {
+                        'n' => value.push('\n'),
+                        't' => value.push('\t'),
+                        '\\' => value.push('\\'),
+                        '"' => value.push('"'),
+                        'r' => value.push('\r'),
+                        'u' => {
+                            unicode_escape = true;
+                        }
+                        _ => value.push('\\'),
+                    }
+                    in_escape = false;
+                }
+            } else if self.peek() == '\\' {
+                in_escape = true;
+            } else {
+                value.push(self.peek());
             }
             self.advance();
         }
+
         if self.is_eof() {
             self.err
                 .throw(E0x102, self.line, (self.pos - 1, self.pos), vec![]);
             return;
         }
+
         self.advance();
-        let value: String = self.src[self.start + 1..self.crnt - 1].to_string();
         self.push(StrLit, Some(LiteralKind::String { value }));
     }
 

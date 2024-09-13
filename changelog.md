@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.22.1
+
+- added escaping in string and chars (`\n`, `\t`, ...)
+
 ## 0.22.0
 
 ### core changes
