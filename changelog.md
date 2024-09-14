@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.25.0
+
+### internal changes
+
+- updated env handling
+- stabilizations and improvements
+
+### fixes
+
+- fixed destructured variable publicity
+
 ## 0.24.0
 
 ### core changes

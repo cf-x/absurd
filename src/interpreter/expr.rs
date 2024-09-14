@@ -276,21 +276,24 @@ impl Expression {
                 }
             }
             Expression::Var { name, .. } => {
-                match env.borrow().get(name.lexeme.clone(), self.id()) {
-                    Some(v) => v.clone().value,
-                    None => match env.borrow().values.borrow().get(name.lexeme.as_str()) {
-                        Some(v) => v.clone().value,
-                        None => match env.borrow().enums.borrow().get(name.lexeme.as_str()) {
-                            Some(_) => LiteralType::Enum {
-                                parent: name.clone(),
-                                name: Token::null(),
-                                value: None,
-                            },
-                            None => LiteralType::Null,
-                        },
-                    },
+                let lexeme = name.lexeme.as_str();
+                let env_borrow = env.borrow();
+
+                if let Some(v) = env_borrow.get(name.lexeme.clone(), self.id()) {
+                    v.value.clone()
+                } else if let Some(v) = env_borrow.values.borrow().get(lexeme) {
+                    v.value.clone()
+                } else if env_borrow.enums.borrow().contains_key(lexeme) {
+                    LiteralType::Enum {
+                        parent: name.clone(),
+                        name: Token::null(),
+                        value: None,
+                    }
+                } else {
+                    LiteralType::Null
                 }
             }
+
             Expression::Call {
                 name,
                 args,
@@ -298,7 +301,6 @@ impl Expression {
                 ..
             } => {
                 let call: LiteralType = name.eval(Rc::clone(&env));
-
                 match call {
                     LiteralType::Null | LiteralType::Enum { .. } => {
                         if let CallType::Enum = call_type {

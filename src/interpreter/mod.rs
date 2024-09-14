@@ -1,19 +1,16 @@
 pub mod env;
 pub mod expr;
 pub mod types;
-use crate::ast::Destruct;
+use crate::ast::{
+    Destruct, FuncBody, FuncImpl, LiteralType,
+    Statement::{self, *},
+    Token, TokenType,
+};
 use crate::bundler::interpreter_mod;
 use crate::errors::{raw, Error, ErrorCode::*};
 use crate::interpreter::types::type_check;
 use crate::manifest::Project;
-use crate::{
-    ast::{
-        FuncBody, FuncImpl, LiteralType,
-        Statement::{self, *},
-        Token,
-    },
-    std::StdFunc,
-};
+use crate::std::StdFunc;
 use env::{Env, FuncKind, ValueKind, VarKind};
 use expr::Expression;
 use std::cell::RefCell;
@@ -26,27 +23,34 @@ use std::rc::Rc;
 
 #[derive(Debug)]
 pub struct Interpreter {
+    /// interpreter envrironment
     pub env: Rc<RefCell<Env>>,
-    pub specs: Rc<RefCell<HashMap<String, LiteralType>>>,
-    pub is_mod: bool,
-    mod_src: Option<String>,
-    error: Error,
+    /// project settings, will be moved to the env
     pub project: Project,
+    /// specials like "return" and "breal"
+    specs: Rc<RefCell<HashMap<String, LiteralType>>>,
+    /// if interpreter is a module
+    is_mod: bool,
+    /// module source
+    mod_src: Option<String>,
+    /// error handler, will be moved to the env
+    error: Error,
 }
 
 impl Interpreter {
+    /// initialize the Interpreter
     pub fn new(project: Project, error: Error) -> Self {
-        let env = Rc::new(RefCell::new(Env::new(HashMap::new())));
         let int = Self {
-            env: Rc::clone(&env),
+            env: Rc::new(RefCell::new(Env::new(HashMap::new()))),
+            project: project.clone(),
             specs: Rc::new(RefCell::new(HashMap::new())),
             is_mod: false,
             mod_src: None,
             error,
-            project: project.clone(),
         };
+        // load std::core::io
         if !project.clone().disable_std && project.clone().load_std {
-            let mut std_core_io = StdFunc::new(env, int.project.test);
+            let mut std_core_io = StdFunc::new(Rc::clone(&int.env), int.project.test);
             std_core_io.load_core_io();
         }
         int
@@ -66,6 +70,7 @@ impl Interpreter {
             error: Error::new(src, Project::new()),
             project: Project::new(),
         };
+        // load std::core::io if interpreter runs in the module
         if is_mod {
             let mut std_core_io = StdFunc::new(env, false);
             std_core_io.load_core_io();
@@ -73,163 +78,14 @@ impl Interpreter {
         int
     }
 
+    /// iterates of statements and executes each statement
     pub fn interpret(&mut self, stmts: Vec<&Statement>) -> Rc<RefCell<Env>> {
         for stmt in stmts {
             match stmt {
-                For {
-                    iterator,
-                    index,
-                    body,
-                    expr,
-                } => {
-                    if !self.is_mod {
-                        let values =
-                            if let LiteralType::Vec(items) = expr.eval(Rc::clone(&self.env)) {
-                                items.clone()
-                            } else {
-                                vec![]
-                            };
-
-                        for (id, iter) in values.iter().enumerate() {
-                            if let Some(token) = index {
-                                self.env.borrow_mut().define_var(
-                                    token.clone().lexeme,
-                                    LiteralType::Number(id as f32),
-                                    VarKind {
-                                        is_pub: false,
-                                        is_mut: false,
-                                        is_func: false,
-                                        value_type: token.clone(),
-                                    },
-                                );
-                            }
-
-                            self.env.borrow_mut().define_var(
-                                iterator.clone().lexeme,
-                                iter.clone(),
-                                VarKind {
-                                    is_pub: false,
-                                    is_mut: false,
-                                    is_func: false,
-                                    value_type: iterator.clone(),
-                                },
-                            );
-
-                            self.interpret(body.iter().map(|x| x).collect());
-                            if self.specs.borrow().get("break").is_some() {
-                                self.specs.borrow_mut().remove("break");
-                                break;
-                            }
-                        }
-                        if let Some(token) = index {
-                            self.env.borrow_mut().define_var(
-                                token.clone().lexeme,
-                                LiteralType::Null,
-                                VarKind {
-                                    is_pub: false,
-                                    is_mut: false,
-                                    is_func: false,
-                                    value_type: token.clone(),
-                                },
-                            );
-                        }
-                        self.env.borrow_mut().define_var(
-                            iterator.clone().lexeme,
-                            LiteralType::Null,
-                            VarKind {
-                                is_pub: false,
-                                is_mut: false,
-                                is_func: false,
-                                value_type: iterator.clone(),
-                            },
-                        );
-                    }
-                }
-
-                Enum {
-                    name,
-                    is_pub,
-                    items,
-                } => {
-                    if is_pub.clone() {
-                        if self.is_mod {
-                            self.env.borrow_mut().define_mod_enum(
-                                self.mod_src.clone().unwrap(),
-                                LiteralType::Void,
-                                name.clone().lexeme,
-                                items.clone(),
-                            );
-                        } else {
-                            self.env
-                                .borrow_mut()
-                                .define_pub_enum(name.clone().lexeme, items.clone());
-                        }
-                    } else {
-                        self.env
-                            .borrow_mut()
-                            .define_enum(name.clone().lexeme, items.clone());
-                    }
-                }
-                Type {
-                    name,
-                    value,
-                    is_pub,
-                } => {
-                    if is_pub.clone() {
-                        if self.is_mod {
-                            self.env.borrow_mut().define_mod_type(
-                                self.mod_src.clone().unwrap(),
-                                LiteralType::Void,
-                                name.clone().lexeme,
-                                value.clone(),
-                            );
-                        } else {
-                            self.env
-                                .borrow_mut()
-                                .define_pub_type(name.clone().lexeme, value.clone());
-                        }
-                    } else {
-                        self.env
-                            .borrow_mut()
-                            .define_type(name.clone().lexeme, value.clone());
-                    }
-                }
-                Sh { cmd } => {
-                    let cmd = cmd.trim_matches('"');
-                    let output = match Command::new("sh")
-                        .arg("-c")
-                        .arg(cmd)
-                        .stdout(Stdio::piped())
-                        .stderr(Stdio::piped())
-                        .output()
-                    {
-                        Ok(c) => c,
-                        Err(e) => {
-                            raw(format!("sh error: {}", e).as_str());
-                            exit(1)
-                        }
-                    };
-
-                    if output.status.success() {
-                        let stdout = String::from_utf8_lossy(&output.stdout);
-                        println!("{}", stdout);
-                    } else {
-                        let stderr = String::from_utf8_lossy(&output.stderr);
-                        raw(format!("sh error: {}", stderr).as_str());
-                    }
-                }
                 Statement::Expression { expr } => {
                     expr.eval(Rc::clone(&self.env));
                 }
-                Block { stmts } => {
-                    if !self.is_mod {
-                        let new_env = self.env.borrow().enclose();
-                        let prev_env = Rc::clone(&self.env);
-                        self.env = Rc::new(RefCell::new(new_env));
-                        self.interpret(stmts.iter().map(|x| x).collect());
-                        self.env = prev_env;
-                    }
-                }
+                Block { stmts } => self.block(stmts.clone()),
                 Var {
                     names,
                     value,
@@ -239,184 +95,17 @@ impl Interpreter {
                     is_mut,
                     value_type,
                     destruct,
-                } => match value {
-                    Some(v) => {
-                        if is_mut.clone() && !self.project.side_effects {
-                            self.error
-                                .throw(E0x415, names[0].line, names[0].pos, vec![]);
-                        } else if is_pub.clone() && !self.project.side_effects {
-                            self.error
-                                .throw(E0x415, names[0].line, names[0].pos, vec![]);
-                        }
-                        // type interference
-                        let vl = value.clone().unwrap().eval(Rc::clone(&self.env));
-                        if !type_check(value_type, &vl, &self.env) {
-                            self.error.throw(
-                                E0x301,
-                                names[0].line,
-                                names[0].pos,
-                                vec![value_type.clone().lexeme, vl.to_string()],
-                            );
-                        }
-                        //
-                        if !self.is_mod {
-                            if is_func.clone() {
-                                if names.len() != 1 {
-                                    self.error
-                                        .throw(E0x401, names[0].line, names[0].pos, vec![]);
-                                }
-                                let call = self.create_func(stmt);
-                                let func = LiteralType::Func(call.clone());
-                                let params = call
-                                    .params
-                                    .iter()
-                                    .map(|(a, b)| (a.clone().lexeme, b.clone().lexeme))
-                                    .collect();
-                                self.env.borrow_mut().define_func(
-                                    names[0].lexeme.clone(),
-                                    func,
-                                    FuncKind {
-                                        params,
-                                        is_async: call.is_async,
-                                        is_pub: is_pub.clone(),
-                                    },
-                                );
-                            } else {
-                                let val = v.eval(Rc::clone(&self.env));
-                                let mut index = 0;
-                                for name in names.clone() {
-                                    match val.clone() {
-                                        LiteralType::Vec(c) => {
-                                            if destruct.is_some() {
-                                                if let Destruct::Vector = destruct.clone().unwrap()
-                                                {
-                                                    let i = c
-                                                        .get(index)
-                                                        .expect("failed to destructure a vector")
-                                                        .clone();
-                                                    self.env.borrow_mut().define_var(
-                                                        name.lexeme.clone(),
-                                                        i,
-                                                        VarKind {
-                                                            is_pub: is_pub.clone(),
-                                                            is_mut: *is_mut,
-                                                            is_func: false,
-                                                            value_type: value_type.clone(),
-                                                        },
-                                                    );
-                                                }
-                                            }
-                                        }
-                                        LiteralType::Tuple(t) => {
-                                            if destruct.is_some() {
-                                                if let Destruct::Tuple = destruct.clone().unwrap() {
-                                                    let i = t
-                                                        .get(index)
-                                                        .expect("failed to destructure a tuple")
-                                                        .clone();
-                                                    self.env.borrow_mut().define_var(
-                                                        name.lexeme.clone(),
-                                                        i,
-                                                        VarKind {
-                                                            is_pub: is_pub.clone(),
-                                                            is_mut: *is_mut,
-                                                            is_func: false,
-                                                            value_type: value_type.clone(),
-                                                        },
-                                                    );
-                                                }
-                                            }
-                                        }
-                                        LiteralType::Record(o) => {
-                                            if destruct.is_some() {
-                                                if let Destruct::Record = destruct.clone().unwrap()
-                                                {
-                                                    let i = o
-                                                        .get(index)
-                                                        .expect("failed to destructure an array")
-                                                        .clone();
-                                                    let i = i.1.eval(Rc::clone(&self.env));
-                                                    self.env.borrow_mut().define_var(
-                                                        name.lexeme.clone(),
-                                                        i,
-                                                        VarKind {
-                                                            is_pub: is_pub.clone(),
-                                                            is_mut: *is_mut,
-                                                            is_func: false,
-                                                            value_type: value_type.clone(),
-                                                        },
-                                                    );
-                                                }
-                                            }
-                                        }
-                                        _ => {}
-                                    }
-                                    if destruct.is_none() {
-                                        self.env.borrow_mut().define_var(
-                                            name.lexeme.clone(),
-                                            val.clone(),
-                                            VarKind {
-                                                is_pub: is_pub.clone(),
-                                                is_mut: *is_mut,
-                                                is_func: false,
-                                                value_type: value_type.clone(),
-                                            },
-                                        );
-                                    }
-                                    index += 1;
-                                }
-                                if is_pub.clone() {
-                                    for name in pub_names {
-                                        self.env.borrow_mut().define_pub_var(
-                                            name.lexeme.clone(),
-                                            val.clone(),
-                                            VarKind {
-                                                is_pub: true,
-                                                is_mut: *is_mut,
-                                                is_func: false,
-                                                value_type: value_type.clone(),
-                                            },
-                                        );
-                                    }
-                                }
-                            }
-                        } else if is_pub.clone() {
-                            let val = v.eval(Rc::clone(&self.env));
-                            for name in pub_names {
-                                self.env.borrow_mut().define_mod_var(
-                                    self.mod_src.clone().unwrap(),
-                                    val.clone(),
-                                    name.lexeme.clone(),
-                                    VarKind {
-                                        is_pub: true,
-                                        is_mut: *is_mut,
-                                        is_func: false,
-                                        value_type: value_type.clone(),
-                                    },
-                                );
-                            }
-                        }
-                    }
-                    None => {
-                        if is_pub.clone() {
-                            self.error
-                                .throw(E0x402, names[0].line, names[0].pos, vec![]);
-                        }
-                        let val = LiteralType::Null;
-                        for name in names {
-                            self.env.borrow_mut().define_var(
-                                name.lexeme.clone(),
-                                val.clone(),
-                                VarKind {
-                                    is_pub: false,
-                                    is_mut: *is_mut,
-                                    is_func: false,
-                                    value_type: value_type.clone(),
-                                },
-                            );
-                        }
-                    }
-                },
+                } => self.variable(
+                    names,
+                    value.clone(),
+                    *is_pub,
+                    pub_names,
+                    *is_func,
+                    *is_mut,
+                    value_type,
+                    destruct,
+                    stmt,
+                ),
                 Func {
                     name,
                     is_pub,
@@ -424,124 +113,26 @@ impl Interpreter {
                     is_async,
                     body,
                     ..
-                } => {
-                    if let FuncBody::Statements(body) = body {
-                        for stmt in body {
-                            if let Statement::Return { expr } = stmt {
-                                (*expr).eval(Rc::clone(&self.env));
-                            }
-                        }
-                    }
-                    if is_pub.clone() && !self.project.side_effects {
-                        self.error.throw(E0x415, name.line, name.pos, vec![]);
-                    }
+                } => self.func(name, *is_pub, params, *is_async, body, stmt),
 
-                    let call = self.create_func(stmt);
-                    let func = LiteralType::Func(call);
-                    let params: Vec<(String, String)> = params
-                        .iter()
-                        .map(|(a, b)| (a.clone().lexeme, b.clone().lexeme))
-                        .collect();
-                    if is_pub.clone() {
-                        if self.is_mod {
-                            self.env.borrow_mut().define_mod_func(
-                                self.mod_src.clone().unwrap(),
-                                func.clone(),
-                                name.lexeme.clone(),
-                                FuncKind {
-                                    params: params.clone(),
-                                    is_async: *is_async,
-                                    is_pub: true,
-                                },
-                            );
-                        } else {
-                            self.env.borrow_mut().define_pub_func(
-                                name.lexeme.clone(),
-                                func.clone(),
-                                FuncKind {
-                                    params,
-                                    is_async: *is_async,
-                                    is_pub: true,
-                                },
-                            );
-                        }
-                    } else if !self.is_mod {
-                        self.env.borrow_mut().define_func(
-                            name.lexeme.clone(),
-                            func,
-                            FuncKind {
-                                params,
-                                is_async: *is_async,
-                                is_pub: false,
-                            },
-                        );
-                    }
+                Return { expr } => {
+                    let value = expr.eval(Rc::clone(&self.env));
+                    self.specs.borrow_mut().insert("return".to_string(), value);
                 }
                 If {
                     cond,
                     body,
                     else_branch,
                     else_if_branches,
-                } => {
-                    if !self.is_mod {
-                        let val = cond.eval(Rc::clone(&self.env));
-                        if val.is_truthy() {
-                            self.interpret(body.iter().map(|x| x).collect());
-                        } else {
-                            let mut executed = false;
-                            for (cond, body) in else_if_branches {
-                                let val = cond.eval(Rc::clone(&self.env));
-                                if val.is_truthy() {
-                                    executed = true;
-                                    self.interpret(body.iter().map(|x| x).collect());
-                                    break;
-                                }
-                            }
-                            if let Some(body) = else_branch {
-                                if !executed {
-                                    self.interpret(body.iter().map(|x| x).collect());
-                                }
-                            }
-                        }
-                    }
-                }
-                Return { expr } => {
-                    let value = expr.eval(Rc::clone(&self.env));
-                    self.specs.borrow_mut().insert("return".to_string(), value);
-                }
-                While { cond, body } => {
-                    if !self.is_mod {
-                        while cond.eval(Rc::clone(&self.env)).is_truthy() {
-                            self.interpret(body.iter().map(|x| x).collect());
-                            if self.specs.borrow().get("break").is_some() {
-                                self.specs.borrow_mut().remove("break");
-                                break;
-                            }
-                        }
-                    }
-                }
-                Loop { iter, body } => {
-                    if !self.is_mod {
-                        match iter {
-                            Some(i) => {
-                                for _ in 0..i.clone() {
-                                    self.interpret(body.iter().map(|x| x).collect());
-                                    if self.specs.borrow().get("break").is_some() {
-                                        self.specs.borrow_mut().remove("break");
-                                        break;
-                                    }
-                                }
-                            }
-                            None => loop {
-                                self.interpret(body.iter().map(|x| x).collect());
-                                if self.specs.borrow().get("break").is_some() {
-                                    self.specs.borrow_mut().remove("break");
-                                    break;
-                                }
-                            },
-                        }
-                    }
-                }
+                } => self.ifs(cond, body.clone(), else_branch, else_if_branches),
+                Loop { iter, body } => self.loops(iter.clone(), body.clone()),
+                While { cond, body } => self.whiles(cond, body.clone()),
+                For {
+                    iterator,
+                    index,
+                    body,
+                    expr,
+                } => self.fors(iterator, index, body, expr),
                 Break {} => {
                     self.specs
                         .borrow_mut()
@@ -551,150 +142,478 @@ impl Interpreter {
                     cond,
                     cases,
                     def_case,
-                } => {
-                    if !self.is_mod {
-                        let mut exec = false;
-                        let val = cond.eval(Rc::clone(&self.env));
-                        for (expr, body) in cases {
-                            let v = expr.eval(Rc::clone(&self.env));
-                            if v.type_name() == val.type_name() {
-                                match body.clone() {
-                                    FuncBody::Statements(s) => {
-                                        if let LiteralType::Enum { name, value, .. } = v.clone() {
-                                            if self.dos(name, value, val.clone()) {
-                                                self.interpret(s.iter().map(|x| x).collect());
-                                                exec = true;
-                                                break;
-                                            }
-                                        }
+                } => self.matchs(cond, cases.clone(), def_case),
+                Enum {
+                    name,
+                    is_pub,
+                    items,
+                } => self.enums(name, *is_pub, items),
+                Type {
+                    name,
+                    value,
+                    is_pub,
+                } => self.types(name, value, *is_pub),
+                Mod { src, name } => self.mods(src, name.clone()),
+                Use { src, names, all } => self.uses(src, names.clone(), *all),
+                Sh { cmd } => self.sh(cmd),
+            }
+        }
+        Rc::clone(&self.env)
+    }
 
-                                        if v.clone() == val.clone() {
-                                            self.interpret(s.iter().map(|x| x).collect());
-                                            exec = true;
-                                            break;
-                                        }
-                                    }
-                                    FuncBody::Expression(e) => {
-                                        if let LiteralType::Enum { name, value, .. } = v.clone() {
-                                            if self.dos(name, value, val.clone()) {
-                                                self.interpret(vec![&Statement::Expression {
-                                                    expr: *e,
-                                                }]);
-                                                exec = true;
-                                                break;
-                                            }
-                                        }
+    fn block(&mut self, stmts: Vec<Statement>) {
+        // don't execute block statements in the module
+        if !self.is_mod {
+            let new_env = self.env.borrow_mut().enclose();
+            let prev_env = Rc::clone(&self.env);
+            self.env = Rc::new(RefCell::new(new_env));
+            self.interpret(stmts.iter().map(|x| x).collect());
+            self.env = prev_env;
+        }
+    }
 
-                                        if v.clone() == val.clone() {
-                                            self.interpret(vec![&Statement::Expression {
-                                                expr: *e,
-                                            }]);
-                                            exec = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            } else {
-                                raw("invad type in match statement")
-                            }
-                        }
-                        if !exec {
-                            match def_case.clone() {
-                                FuncBody::Statements(s) => {
-                                    self.interpret(s.iter().map(|x| x).collect());
-                                }
-                                FuncBody::Expression(e) => {
-                                    self.interpret(vec![&Statement::Expression { expr: *e }]);
-                                }
-                            }
-                        }
-                    }
-                }
-                Mod { src, name } => {
-                    if !self.project.side_effects {
-                        self.error.throw(E0x415, 0, (0, 0), vec![]);
-                    }
-                    let mut path = current_dir().expect("failed to get current directory");
-                    path.push(src.trim_matches('"'));
-                    let mut file = match File::open(path) {
-                        Ok(f) => f,
-                        Err(f) => {
-                            raw(format!("failed to opan a file: {}", f).as_str());
-                            exit(0);
-                        }
-                    };
-                    let mut contents = String::new();
-                    file.read_to_string(&mut contents)
-                        .expect("failed to read a file");
-                    let name = if name.is_some() {
-                        format!("\"{}\"", name.clone().unwrap())
-                    } else {
-                        src.to_string()
-                    };
-                    interpreter_mod(
-                        contents.as_str(),
-                        Some(name),
-                        Rc::clone(&self.env),
-                        self.project.clone(),
+    fn variable(
+        &mut self,
+        names: &Vec<Token>,
+        value: Option<Expression>,
+        is_pub: bool,
+        pub_names: &Vec<Token>,
+        is_func: bool,
+        is_mut: bool,
+        value_type: &Token,
+        destruct: &Option<Destruct>,
+        stmt: &Statement,
+    ) {
+        if value.is_some() {
+            // disable mutability in side effects
+            if is_mut.clone() && !self.project.side_effects {
+                self.error
+                    .throw(E0x415, names[0].line, names[0].pos, vec![]);
+            } else
+            // disable publicity in side effects
+            if is_pub.clone() && !self.project.side_effects {
+                self.error
+                    .throw(E0x415, names[0].line, names[0].pos, vec![]);
+            }
+
+            let vl = value.clone().unwrap().eval(Rc::clone(&self.env));
+            // @todo replace value_type with option<Token>
+            // don't type check during type inference
+            if value_type.token != TokenType::Null {
+                if !type_check(&value_type, &vl, &self.env) {
+                    self.error.throw(
+                        E0x301,
+                        names[0].line,
+                        names[0].pos,
+                        vec![value_type.clone().lexeme, vl.to_string()],
                     );
                 }
-                Use { src, names, all } => {
-                    if !self.project.side_effects {
-                        self.error.throw(E0x415, 0, (0, 0), vec![]);
-                    }
+            }
 
-                    if src.clone().contains("::") {
-                        self.load_std(src.trim_matches('"').to_string().clone(), names.clone());
-                    } else {
-                        let mod_vals = self.env.borrow().mod_vals.borrow().clone();
-                        let vals = match mod_vals.get(src) {
-                            Some(c) => c,
-                            None => {
-                                self.error.throw(E0x416, 0, (0, 0), vec![src.clone()]);
-                                exit(1);
-                            }
-                        };
+            // hande variables in modules
+            if self.is_mod && is_pub {
+                // define variables in the module
+                let val = value.as_ref().unwrap().eval(Rc::clone(&self.env));
+                pub_names.iter().for_each(|name| {
+                    self.env.borrow_mut().define_mod_var(
+                        self.mod_src.clone().unwrap(),
+                        val.clone(),
+                        name.lexeme.clone(),
+                        VarKind {
+                            is_pub: true,
+                            is_mut,
+                            is_func: false,
+                            value_type: value_type.clone(),
+                        },
+                    )
+                });
+            }
 
-                        self.env.borrow_mut().mod_vals.borrow_mut().remove(src);
+            // handle callbacks in the normal env
+            if !self.is_mod && is_func {
+                // callbacks must have one name
+                if names.len() != 1 {
+                    self.error
+                        .throw(E0x401, names[0].line, names[0].pos, vec![]);
+                }
 
-                        if *all {
-                            for val in vals {
-                                let (name, v) = val;
+                // callbacks can't mutate
+                if is_mut {
+                    raw("functions can't be mutable");
+                }
 
-                                if let LiteralType::Void = v.value {
-                                    if let ValueKind::Type(t) = v.kind.clone() {
-                                        self.env
-                                            .borrow_mut()
-                                            .type_values
-                                            .borrow_mut()
-                                            .insert(name.clone(), t);
-                                    }
+                // create and define the function
+                let call = self.create_func(stmt);
+                let func = LiteralType::Func(call.clone());
+                let params = call
+                    .params
+                    .iter()
+                    .map(|(a, b)| (a.clone().lexeme, b.clone().lexeme))
+                    .collect();
+                self.env.borrow_mut().define_func(
+                    names[0].lexeme.clone(),
+                    func,
+                    FuncKind {
+                        params,
+                        is_async: call.is_async,
+                        is_pub: is_pub.clone(),
+                    },
+                );
+            }
+
+            // hande normal variable
+            if !self.is_mod {
+                let val = value.unwrap().eval(Rc::clone(&self.env));
+
+                // handle the name based on the value type for destructuring
+                for (index, name) in names.clone().iter().enumerate() {
+                    match val.clone() {
+                        LiteralType::Vec(entries) => {
+                            if destruct.is_some() && destruct.clone().unwrap() == Destruct::Vector {
+                                // get the nth entry of the vector for the each name
+                                let entry = entries
+                                    .get(index)
+                                    .expect("failed to destructure a vector")
+                                    .clone();
+
+                                // hadnel publicty
+                                if is_pub {
+                                    // @todo destructure pub(names) as well
+                                    self.env.borrow_mut().define_pub_var(
+                                        name.lexeme.clone(),
+                                        entry,
+                                        VarKind {
+                                            is_pub: is_pub.clone(),
+                                            is_mut,
+                                            is_func: false,
+                                            value_type: value_type.clone(),
+                                        },
+                                    );
                                 } else {
-                                    self.env
-                                        .borrow_mut()
-                                        .values
-                                        .borrow_mut()
-                                        .insert(name.clone(), v.clone());
-                                }
-                            }
-                        } else {
-                            for (name, alias) in names {
-                                if let Some((_, v)) = vals.iter().find(|(n, _)| n == &name.lexeme) {
-                                    let new_name =
-                                        alias.as_ref().map_or(&name.lexeme, |t| &t.lexeme);
-                                    self.env
-                                        .borrow_mut()
-                                        .values
-                                        .borrow_mut()
-                                        .insert(new_name.clone(), v.clone());
+                                    self.env.borrow_mut().define_var(
+                                        name.lexeme.clone(),
+                                        entry,
+                                        VarKind {
+                                            is_pub: is_pub.clone(),
+                                            is_mut,
+                                            is_func: false,
+                                            value_type: value_type.clone(),
+                                        },
+                                    );
                                 }
                             }
                         }
+                        LiteralType::Tuple(entries) => {
+                            if destruct.is_some() && Destruct::Tuple == destruct.clone().unwrap() {
+                                // get the nth entry of the vector for each name
+                                let entry = entries
+                                    .get(index)
+                                    .expect("failed to destructure a tuple")
+                                    .clone();
+
+                                // handle publicty
+                                if is_pub {
+                                    self.env.borrow_mut().define_pub_var(
+                                        name.lexeme.clone(),
+                                        entry,
+                                        VarKind {
+                                            is_pub: is_pub.clone(),
+                                            is_mut,
+                                            is_func: false,
+                                            value_type: value_type.clone(),
+                                        },
+                                    );
+                                } else {
+                                    self.env.borrow_mut().define_var(
+                                        name.lexeme.clone(),
+                                        entry,
+                                        VarKind {
+                                            is_pub: is_pub.clone(),
+                                            is_mut,
+                                            is_func: false,
+                                            value_type: value_type.clone(),
+                                        },
+                                    );
+                                }
+                            }
+                        }
+                        LiteralType::Record(entries) => {
+                            if destruct.is_some() {
+                                if let Destruct::Record = destruct.clone().unwrap() {
+                                    // get the nth entry of the vector for each name
+                                    // @todo get the entry based on the name
+                                    let entry = entries
+                                        .get(index)
+                                        .expect("failed to destructure an array")
+                                        .clone();
+                                    let entry = entry.1.eval(Rc::clone(&self.env));
+                                    // handle publicty
+                                    if is_pub {
+                                        self.env.borrow_mut().define_pub_var(
+                                            name.lexeme.clone(),
+                                            entry,
+                                            VarKind {
+                                                is_pub: is_pub.clone(),
+                                                is_mut,
+                                                is_func: false,
+                                                value_type: value_type.clone(),
+                                            },
+                                        );
+                                    } else {
+                                        self.env.borrow_mut().define_var(
+                                            name.lexeme.clone(),
+                                            entry,
+                                            VarKind {
+                                                is_pub: is_pub.clone(),
+                                                is_mut,
+                                                is_func: false,
+                                                value_type: value_type.clone(),
+                                            },
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+
+                    // normal definition
+                    if destruct.is_none() {
+                        self.env.borrow_mut().define_var(
+                            name.lexeme.clone(),
+                            val.clone(),
+                            VarKind {
+                                is_pub: is_pub.clone(),
+                                is_mut,
+                                is_func: false,
+                                value_type: value_type.clone(),
+                            },
+                        );
+                    }
+                }
+
+                // public definition
+                if is_pub {
+                    for name in pub_names {
+                        self.env.borrow_mut().define_pub_var(
+                            name.lexeme.clone(),
+                            val.clone(),
+                            VarKind {
+                                is_pub: true,
+                                is_mut,
+                                is_func: false,
+                                value_type: value_type.clone(),
+                            },
+                        );
+                    }
+                }
+            }
+        } else {
+            // handle empty variables
+
+            // can't publish empty variables
+            if is_pub.clone() {
+                self.error
+                    .throw(E0x402, names[0].line, names[0].pos, vec![]);
+            }
+
+            // define every name in the variable
+            names.iter().for_each(|name| {
+                self.env.borrow_mut().define_var(
+                    name.lexeme.clone(),
+                    LiteralType::Null,
+                    VarKind {
+                        is_pub: false,
+                        is_mut,
+                        is_func: false,
+                        value_type: value_type.clone(),
+                    },
+                )
+            });
+        }
+    }
+
+    fn fors(
+        &mut self,
+        iterator: &Token,
+        index: &Option<Token>,
+        body: &Vec<Statement>,
+        expr: &Expression,
+    ) {
+        if !self.is_mod {
+            let values = if let LiteralType::Vec(items) = expr.eval(Rc::clone(&self.env)) {
+                items.clone()
+            } else {
+                vec![]
+            };
+
+            for (id, iter) in values.iter().enumerate() {
+                if let Some(token) = index {
+                    self.env.borrow_mut().define_var(
+                        token.clone().lexeme,
+                        LiteralType::Number(id as f32),
+                        VarKind {
+                            is_pub: false,
+                            is_mut: false,
+                            is_func: false,
+                            value_type: token.clone(),
+                        },
+                    );
+                }
+
+                self.env.borrow_mut().define_var(
+                    iterator.clone().lexeme,
+                    iter.clone(),
+                    VarKind {
+                        is_pub: false,
+                        is_mut: false,
+                        is_func: false,
+                        value_type: iterator.clone(),
+                    },
+                );
+
+                self.interpret(body.iter().map(|x| x).collect());
+                if self.specs.borrow_mut().get("break").is_some() {
+                    self.specs.borrow_mut().remove("break");
+                    break;
+                }
+            }
+            if let Some(token) = index {
+                self.env.borrow_mut().remove(token.clone().lexeme);
+            }
+            self.env.borrow_mut().remove(iterator.clone().lexeme);
+        }
+    }
+    fn enums(&mut self, name: &Token, is_pub: bool, items: &Vec<(Token, Option<Token>)>) {
+        if is_pub {
+            if self.is_mod {
+                self.env.borrow_mut().define_mod_enum(
+                    self.mod_src.clone().unwrap(),
+                    LiteralType::Void,
+                    name.clone().lexeme,
+                    items.clone(),
+                );
+            } else {
+                self.env
+                    .borrow_mut()
+                    .define_pub_enum(name.clone().lexeme, items.clone());
+            }
+        } else {
+            self.env
+                .borrow_mut()
+                .define_enum(name.clone().lexeme, items.clone());
+        }
+    }
+
+    fn types(&mut self, name: &Token, value: &Token, is_pub: bool) {
+        if is_pub.clone() {
+            if self.is_mod {
+                self.env.borrow_mut().define_mod_type(
+                    self.mod_src.clone().unwrap(),
+                    LiteralType::Void,
+                    name.clone().lexeme,
+                    value.clone(),
+                );
+            } else {
+                self.env
+                    .borrow_mut()
+                    .define_pub_type(name.clone().lexeme, value.clone());
+            }
+        } else {
+            self.env
+                .borrow_mut()
+                .define_type(name.clone().lexeme, value.clone());
+        }
+    }
+
+    fn sh(&mut self, cmd: &String) {
+        let cmd = cmd.trim_matches('"');
+        let output = match Command::new("sh")
+            .arg("-c")
+            .arg(cmd)
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output()
+        {
+            Ok(c) => c,
+            Err(e) => {
+                raw(format!("sh error: {}", e).as_str());
+                exit(1)
+            }
+        };
+
+        if output.status.success() {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            println!("{}", stdout);
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            raw(format!("sh error: {}", stderr).as_str());
+        }
+    }
+
+    fn ifs(
+        &mut self,
+        cond: &Expression,
+        body: Vec<Statement>,
+        else_branch: &Option<Vec<Statement>>,
+        else_if_branches: &Vec<(Expression, Vec<Statement>)>,
+    ) {
+        if !self.is_mod {
+            let val = cond.eval(Rc::clone(&self.env));
+            if val.is_truthy() {
+                self.interpret(body.iter().map(|x| x).collect());
+            } else {
+                let mut executed = false;
+                for (cond, body) in else_if_branches {
+                    let val = cond.eval(Rc::clone(&self.env));
+                    if val.is_truthy() {
+                        executed = true;
+                        self.interpret(body.iter().map(|x| x).collect());
+                        break;
+                    }
+                }
+                if let Some(body) = else_branch {
+                    if !executed {
+                        self.interpret(body.iter().map(|x| x).collect());
                     }
                 }
             }
         }
-        Rc::clone(&self.env)
+    }
+
+    fn whiles(&mut self, cond: &Expression, body: Vec<Statement>) {
+        if !self.is_mod {
+            while cond.eval(Rc::clone(&self.env)).is_truthy() {
+                self.interpret(body.iter().map(|x| x).collect());
+                if self.specs.borrow_mut().get("break").is_some() {
+                    self.specs.borrow_mut().remove("break");
+                    break;
+                }
+            }
+        }
+    }
+
+    fn loops(&mut self, iter: Option<usize>, body: Vec<Statement>) {
+        if !self.is_mod {
+            match iter {
+                Some(i) => {
+                    for _ in 0..i.clone() {
+                        self.interpret(body.iter().map(|x| x).collect());
+                        if self.specs.borrow_mut().get("break").is_some() {
+                            self.specs.borrow_mut().remove("break");
+                            break;
+                        }
+                    }
+                }
+                None => loop {
+                    self.interpret(body.iter().map(|x| x).collect());
+                    if self.specs.borrow_mut().get("break").is_some() {
+                        self.specs.borrow_mut().remove("break");
+                        break;
+                    }
+                },
+            }
+        }
     }
 
     fn dos(&self, name: Token, value: Option<Box<LiteralType>>, val: LiteralType) -> bool {
@@ -704,7 +623,7 @@ impl Interpreter {
             Token::null()
         };
 
-        let d = self.env.borrow().get_enum(&lex.lexeme);
+        let d = self.env.borrow_mut().get_enum(&lex.lexeme);
         let mut dos = false;
         for (v, _) in d.clone() {
             if name.lexeme == v.lexeme {
@@ -788,6 +707,210 @@ impl Interpreter {
             exit(1);
         }
     }
+
+    fn matchs(
+        &mut self,
+        cond: &Expression,
+        cases: Vec<(Expression, FuncBody)>,
+        def_case: &FuncBody,
+    ) {
+        if !self.is_mod {
+            let mut exec = false;
+            let val = cond.eval(Rc::clone(&self.env));
+            for (expr, body) in cases {
+                let v = expr.eval(Rc::clone(&self.env));
+                if v.type_name() == val.type_name() {
+                    match body.clone() {
+                        FuncBody::Statements(s) => {
+                            if let LiteralType::Enum { name, value, .. } = v.clone() {
+                                if self.dos(name, value, val.clone()) {
+                                    self.interpret(s.iter().map(|x| x).collect());
+                                    exec = true;
+                                    break;
+                                }
+                            }
+
+                            if v.clone() == val.clone() {
+                                self.interpret(s.iter().map(|x| x).collect());
+                                exec = true;
+                                break;
+                            }
+                        }
+                        FuncBody::Expression(e) => {
+                            if let LiteralType::Enum { name, value, .. } = v.clone() {
+                                if self.dos(name, value, val.clone()) {
+                                    self.interpret(vec![&Statement::Expression { expr: *e }]);
+                                    exec = true;
+                                    break;
+                                }
+                            }
+
+                            if v.clone() == val.clone() {
+                                self.interpret(vec![&Statement::Expression { expr: *e }]);
+                                exec = true;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    raw("invad type in match statement")
+                }
+            }
+            if !exec {
+                match def_case.clone() {
+                    FuncBody::Statements(s) => {
+                        self.interpret(s.iter().map(|x| x).collect());
+                    }
+                    FuncBody::Expression(e) => {
+                        self.interpret(vec![&Statement::Expression { expr: *e }]);
+                    }
+                }
+            }
+        }
+    }
+
+    fn mods(&mut self, src: &String, name: Option<String>) {
+        if !self.project.side_effects {
+            self.error.throw(E0x415, 0, (0, 0), vec![]);
+        }
+        let mut path = current_dir().expect("failed to get current directory");
+        path.push(src.trim_matches('"'));
+        let mut file = match File::open(path) {
+            Ok(f) => f,
+            Err(f) => {
+                raw(format!("failed to opan a file: {}", f).as_str());
+                exit(0);
+            }
+        };
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)
+            .expect("failed to read a file");
+        let name = if name.is_some() {
+            format!("\"{}\"", name.clone().unwrap())
+        } else {
+            src.to_string()
+        };
+        interpreter_mod(
+            contents.as_str(),
+            Some(name),
+            Rc::clone(&self.env),
+            self.project.clone(),
+        );
+    }
+
+    fn uses(&mut self, src: &String, names: Vec<(Token, Option<Token>)>, all: bool) {
+        if !self.project.side_effects {
+            self.error.throw(E0x415, 0, (0, 0), vec![]);
+        }
+
+        if src.clone().contains("::") {
+            self.load_std(src.trim_matches('"').to_string().clone(), names.clone());
+        } else {
+            let mod_vals = self.env.borrow_mut().mod_vals.borrow_mut().clone();
+            let vals = match mod_vals.get(src) {
+                Some(c) => c,
+                None => {
+                    self.error.throw(E0x416, 0, (0, 0), vec![src.clone()]);
+                    exit(1);
+                }
+            };
+
+            self.env.borrow_mut().mod_vals.borrow_mut().remove(src);
+
+            if all {
+                for val in vals {
+                    let (name, v) = val;
+
+                    if let LiteralType::Void = v.value {
+                        if let ValueKind::Type(t) = v.kind.clone() {
+                            self.env
+                                .borrow_mut()
+                                .type_values
+                                .borrow_mut()
+                                .insert(name.clone(), t);
+                        }
+                    } else {
+                        self.env
+                            .borrow_mut()
+                            .values
+                            .borrow_mut()
+                            .insert(name.clone(), v.clone());
+                    }
+                }
+            } else {
+                for (name, alias) in names {
+                    if let Some((_, v)) = vals.iter().find(|(n, _)| n == &name.lexeme) {
+                        let new_name = alias.as_ref().map_or(&name.lexeme, |t| &t.lexeme);
+                        self.env
+                            .borrow_mut()
+                            .values
+                            .borrow_mut()
+                            .insert(new_name.clone(), v.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    fn func(
+        &mut self,
+        name: &Token,
+        is_pub: bool,
+        params: &[(Token, Token)],
+        is_async: bool,
+        body: &FuncBody,
+        stmt: &Statement,
+    ) {
+        if let FuncBody::Statements(statements) = body {
+            for statement in statements {
+                if let Statement::Return { expr } = statement {
+                    expr.eval(Rc::clone(&self.env));
+                }
+            }
+        }
+
+        if is_pub && !self.project.side_effects {
+            self.error.throw(E0x415, name.line, name.pos, vec![]);
+        }
+
+        let call = self.create_func(stmt);
+        let func = LiteralType::Func(call);
+
+        let params: Vec<(String, String)> = params
+            .iter()
+            .map(|(a, b)| (a.lexeme.clone(), b.lexeme.clone()))
+            .collect();
+
+        if is_pub {
+            let func_kind = FuncKind {
+                params,
+                is_async,
+                is_pub: true,
+            };
+            if self.is_mod {
+                self.env.borrow_mut().define_mod_func(
+                    self.mod_src.clone().unwrap(),
+                    func.clone(),
+                    name.lexeme.clone(),
+                    func_kind,
+                );
+            } else {
+                self.env
+                    .borrow_mut()
+                    .define_pub_func(name.lexeme.clone(), func.clone(), func_kind);
+            }
+        } else if !self.is_mod {
+            self.env.borrow_mut().define_func(
+                name.lexeme.clone(),
+                func,
+                FuncKind {
+                    params,
+                    is_async,
+                    is_pub: false,
+                },
+            );
+        }
+    }
 }
 
 pub fn run_func(func: FuncImpl, args: &[Expression], env: Rc<RefCell<Env>>) -> LiteralType {
@@ -795,9 +918,9 @@ pub fn run_func(func: FuncImpl, args: &[Expression], env: Rc<RefCell<Env>>) -> L
     if args.len() != func.params.len() {
         error.throw(E0x405, 0, (0, 0), vec![]);
     }
+
     let mut arg_values = vec![];
-    let mut i = 0;
-    for arg in args {
+    for (i, arg) in args.iter().enumerate() {
         let arg_lit = arg.eval(Rc::clone(&env));
         if !type_check(&func.params.iter().nth(i).unwrap().1, &arg_lit, &env) {
             error.throw(
@@ -811,7 +934,6 @@ pub fn run_func(func: FuncImpl, args: &[Expression], env: Rc<RefCell<Env>>) -> L
             );
         }
         arg_values.push(arg_lit);
-        i += 1;
     }
     let func_env = func.env.borrow_mut().enclose();
     let func_env = Rc::new(RefCell::new(func_env));
@@ -851,7 +973,7 @@ pub fn run_func(func: FuncImpl, args: &[Expression], env: Rc<RefCell<Env>>) -> L
             for stmt in body.clone() {
                 int.interpret(vec![&stmt]);
                 let mut val = {
-                    let specs = int.specs.borrow();
+                    let specs = int.specs.borrow_mut();
                     specs.get("return").cloned()
                 };
                 if let Statement::Expression { expr } = body.first().unwrap() {

@@ -232,6 +232,9 @@ impl Env {
     }
 
     // global
+    pub fn remove(&self, name: String) {
+        self.values.borrow_mut().remove(&name);
+    }
 
     pub fn get(&self, name: String, id: usize) -> Option<ValueType> {
         let d = self.locals.borrow_mut().get(&id).cloned();
@@ -239,30 +242,26 @@ impl Env {
     }
 
     pub fn get_int(&self, name: &str, d: Option<usize>) -> Option<ValueType> {
-        if d.is_none() {
-            match &self.enclosing {
-                Some(env) => env.borrow_mut().get_int(name, d),
-                None => match self.values.borrow_mut().get(name).cloned() {
-                    Some(v) => Some(v),
-                    None => self.pub_vals.borrow_mut().get(name).cloned(),
-                },
-            }
-        } else {
-            let d = match d {
-                Some(d) => d,
-                None => {
-                    self.err().throw(E0x501, 0, (0, 0), vec![]);
-                    exit(1)
-                }
-            };
-            if d <= 0 {
-                self.values.borrow_mut().get(name).cloned()
-            } else {
-                match &self.enclosing {
-                    Some(env) => env.borrow_mut().get_int(name, Some(d - 1)),
-                    None => {
-                        self.err().throw(E0x502, 0, (0, 0), vec![]);
-                        exit(1);
+        match d {
+            None => match &self.enclosing {
+                Some(env) => env.borrow_mut().get_int(name, None),
+                None => self
+                    .values
+                    .borrow_mut()
+                    .get(name)
+                    .cloned()
+                    .or_else(|| self.pub_vals.borrow_mut().get(name).cloned()),
+            },
+            Some(depth) => {
+                if depth == 0 {
+                    self.values.borrow_mut().get(name).cloned()
+                } else {
+                    match &self.enclosing {
+                        Some(env) => env.borrow_mut().get_int(name, Some(depth - 1)),
+                        None => {
+                            self.err().throw(E0x502, 0, (0, 0), vec![]);
+                            exit(1);
+                        }
                     }
                 }
             }

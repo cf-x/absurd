@@ -49,6 +49,19 @@ impl LiteralType {
         }
     }
 
+    #[allow(dead_code)]
+    pub fn to_type_token(&self) -> Token {
+        match self {
+            Self::Number(_) => Token::empty(NumIdent, "number", None),
+            Self::String(_) => Token::empty(StrIdent, "string", None),
+            Self::Char(_) => Token::empty(CharIdent, "char", None),
+            Self::Boolean(_) => Token::empty(BoolIdent, "bool", None),
+            Self::Void => Token::empty(VoidIdent, "void", None),
+            Self::Null => Token::null(),
+            _ => Token::empty(AnyIdent, "any", None),
+        }
+    }
+
     pub fn is_truthy(&self) -> bool {
         match self {
             Self::Number(val) => *val != 0.0,

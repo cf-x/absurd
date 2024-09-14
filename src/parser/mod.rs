@@ -351,7 +351,7 @@ impl Parser {
             return Statement::Func {
                 name,
                 value_type,
-                body: FuncBody::Statements(vec![Statement::Return { expr: body }]),
+                body: FuncBody::Expression(Box::new(body)),
                 params,
                 is_async,
                 is_pub,
