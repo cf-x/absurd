@@ -19,6 +19,7 @@
 - fixed statement modality
 - fixed scoping
 - fixed assignment
+- fixed enum matching
 
 ## 0.24.0
 

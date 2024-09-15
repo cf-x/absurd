@@ -103,12 +103,7 @@ impl Interpreter {
                 If { .. } => self.ifs(stmt),
                 Loop { iter, body } => self.loops(iter.clone(), body.clone()),
                 While { cond, body } => self.whiles(cond, body.clone()),
-                For {
-                    iterator,
-                    index,
-                    body,
-                    expr,
-                } => self.fors(iterator, index, body, expr),
+                For { .. } => self.fors(stmt),
                 Break {} => {
                     self.specs
                         .borrow_mut()
@@ -485,72 +480,220 @@ impl Interpreter {
         }
     }
 
-    fn fors(
-        &mut self,
-        iterator: &Token,
-        index: &Option<Token>,
-        body: &Vec<Statement>,
-        expr: &Expression,
-    ) {
+    fn loops(&mut self, iter: Option<usize>, body: Vec<Statement>) {
         if !self.is_mod {
-            let values = if let LiteralType::Vec(items) = expr.eval(Rc::clone(&self.env)) {
-                items.clone()
-            } else {
-                vec![]
-            };
-
-            for (id, iter) in values.iter().enumerate() {
-                if let Some(token) = index {
-                    self.env.borrow_mut().define_var(
-                        token.clone().lexeme,
-                        LiteralType::Number(id as f32),
-                        VarKind {
-                            is_pub: false,
-                            is_mut: false,
-                            is_func: false,
-                            value_type: token.clone(),
-                        },
-                    );
+            match iter {
+                // explicit iterations
+                Some(i) => {
+                    for _ in 0..i.clone() {
+                        self.interpret(body.iter().map(|x| x).collect(), 1);
+                        if self.specs.borrow_mut().get("break").is_some() {
+                            self.specs.borrow_mut().remove("break");
+                            break;
+                        }
+                    }
                 }
+                // infinite loop
+                None => loop {
+                    self.interpret(body.iter().map(|x| x).collect(), 1);
+                    if self.specs.borrow_mut().get("break").is_some() {
+                        self.specs.borrow_mut().remove("break");
+                        break;
+                    }
+                },
+            }
+        }
+    }
 
-                self.env.borrow_mut().define_var(
-                    iterator.clone().lexeme,
-                    iter.clone(),
-                    VarKind {
-                        is_pub: false,
-                        is_mut: false,
-                        is_func: false,
-                        value_type: iterator.clone(),
-                    },
-                );
-
+    fn whiles(&mut self, cond: &Expression, body: Vec<Statement>) {
+        if !self.is_mod {
+            // execute code while the condition is truthy
+            while cond.eval(Rc::clone(&self.env)).is_truthy() {
                 self.interpret(body.iter().map(|x| x).collect(), 1);
                 if self.specs.borrow_mut().get("break").is_some() {
                     self.specs.borrow_mut().remove("break");
                     break;
                 }
             }
-            if let Some(token) = index {
-                self.env.borrow_mut().remove(token.clone().lexeme);
-            }
-            self.env.borrow_mut().remove(iterator.clone().lexeme);
         }
     }
-    fn enums(&mut self, name: &Token, is_pub: bool, items: &Vec<(Token, Option<Token>)>) {
-        if is_pub {
-            if self.is_mod && self.order == 0 {
-                self.env.borrow_mut().define_mod_enum(
-                    self.mod_src.clone().unwrap(),
-                    LiteralType::Void,
-                    name.clone().lexeme,
-                    items.clone(),
-                );
-            } else {
-                self.env
-                    .borrow_mut()
-                    .define_pub_enum(name.clone().lexeme, items.clone());
+
+    fn fors(&mut self, stmt: &Statement) {
+        if let Statement::For {
+            iterator,
+            index,
+            expr,
+            body,
+        } = stmt
+        {
+            if !self.is_mod {
+                // transform expression into the literal
+                // iterations over vectors are supported yet
+                // @todo: tupple, record
+                let values = if let LiteralType::Vec(items) = expr.eval(Rc::clone(&self.env)) {
+                    items.clone()
+                } else {
+                    vec![]
+                };
+
+                // iterate between values and define arguments
+                for (id, iter) in values.iter().enumerate() {
+                    if let Some(token) = index {
+                        self.env.borrow_mut().define_var(
+                            token.clone().lexeme,
+                            LiteralType::Number(id as f32),
+                            VarKind {
+                                is_pub: false,
+                                is_mut: false,
+                                is_func: false,
+                                value_type: token.clone(),
+                            },
+                        );
+                    }
+
+                    self.env.borrow_mut().define_var(
+                        iterator.clone().lexeme,
+                        iter.clone(),
+                        VarKind {
+                            is_pub: false,
+                            is_mut: false,
+                            is_func: false,
+                            value_type: iterator.clone(),
+                        },
+                    );
+
+                    self.interpret(body.iter().map(|x| x).collect(), 1);
+                    if self.specs.borrow_mut().get("break").is_some() {
+                        self.specs.borrow_mut().remove("break");
+                        break;
+                    }
+                }
+                // destroy arguments after the iteration is over
+                if let Some(token) = index {
+                    self.env.borrow_mut().remove(token.clone().lexeme);
+                }
+                self.env.borrow_mut().remove(iterator.clone().lexeme);
             }
-        } else {
+        }
+    }
+
+    fn matchs(
+        &mut self,
+        cond: &Expression,
+        cases: Vec<(Expression, FuncBody)>,
+        def_case: &FuncBody,
+    ) {
+        if !self.is_mod {
+            // if case has been executed
+            let mut exec = false;
+            let condition = cond.eval(Rc::clone(&self.env));
+
+            // number, string, char matching:
+            // - require def case
+            // - check if case_cond equals condition
+
+            // bool matching:
+            // - require true and false cases
+            // - if one of them or none of them are there, require def_case
+
+            // null, void, any matching:
+            // - require def case
+            // - don't allow any other case
+
+            // vector, tuple, record, .., other matching:
+            // - don't allow pattern matching
+            match condition.clone() {
+                LiteralType::Enum { name, .. } => {
+                    // enum collections aren't allowed
+                    if name.token == TokenType::Null {
+                        raw("please specify the enum name, you are trying to match");
+                    }
+
+                    for (expr, body) in cases {
+                        let body = match body {
+                            FuncBody::Expression(ref expr) => {
+                                vec![Statement::Expression {
+                                    expr: *expr.clone(),
+                                }]
+                            }
+
+                            FuncBody::Statements(ref stmts) => stmts.clone(),
+                        };
+                        let body = body.iter().collect();
+                        // check if expression is enum
+                        if let LiteralType::Enum { .. } = expr.eval(Rc::clone(&self.env)) {
+                            // execute the body if case matches
+                            if self
+                                .enum_equality(expr.eval(Rc::clone(&self.env)), condition.clone())
+                            {
+                                self.interpret(body, 1);
+                                exec = true;
+                                break;
+                            }
+                        } else {
+                            raw(format!(
+                                "expected enum in the match condition, but received {}",
+                                expr.eval(Rc::clone(&self.env)).type_name()
+                            )
+                            .as_str())
+                        }
+                    }
+                }
+                _ => raw(format!("pattern matching for '{:?}' isn't allowed", condition).as_str()),
+            }
+
+            if !exec {
+                match def_case.clone() {
+                    FuncBody::Statements(s) => {
+                        self.interpret(s.iter().map(|x| x).collect(), 1);
+                    }
+                    FuncBody::Expression(e) => {
+                        self.interpret(vec![&Statement::Expression { expr: *e }], 1);
+                    }
+                }
+            }
+        }
+    }
+
+    fn enum_equality(&mut self, lhs: LiteralType, rhs: LiteralType) -> bool {
+        if let LiteralType::Enum {
+            parent: lhs_par,
+            name: lhs_name,
+            ..
+        } = lhs
+        {
+            if let LiteralType::Enum {
+                parent: rhs_par,
+                name: rhs_name,
+                ..
+            } = rhs
+            {
+                if lhs_par.lexeme == rhs_par.lexeme && lhs_name.lexeme == rhs_name.lexeme {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    fn enums(&mut self, name: &Token, is_pub: bool, items: &Vec<(Token, Option<Token>)>) {
+        // handle public enums in the module
+        if is_pub && self.is_mod && self.order == 0 {
+            self.env.borrow_mut().define_mod_enum(
+                self.mod_src.clone().unwrap(),
+                LiteralType::Void,
+                name.clone().lexeme,
+                items.clone(),
+            );
+        } else
+        // handle public enums
+        if is_pub {
+            self.env
+                .borrow_mut()
+                .define_pub_enum(name.clone().lexeme, items.clone());
+        } else
+        // handle normal enums
+        {
             self.env
                 .borrow_mut()
                 .define_enum(name.clone().lexeme, items.clone());
@@ -558,20 +701,23 @@ impl Interpreter {
     }
 
     fn types(&mut self, name: &Token, value: &Token, is_pub: bool) {
-        if is_pub.clone() {
-            if self.is_mod && self.order == 0 {
-                self.env.borrow_mut().define_mod_type(
-                    self.mod_src.clone().unwrap(),
-                    LiteralType::Void,
-                    name.clone().lexeme,
-                    value.clone(),
-                );
-            } else {
-                self.env
-                    .borrow_mut()
-                    .define_pub_type(name.clone().lexeme, value.clone());
-            }
-        } else {
+        // handle public types in modules
+        if is_pub && self.is_mod && self.order == 0 {
+            self.env.borrow_mut().define_mod_type(
+                self.mod_src.clone().unwrap(),
+                LiteralType::Void,
+                name.clone().lexeme,
+                value.clone(),
+            );
+        } else
+        // handle public types
+        if is_pub {
+            self.env
+                .borrow_mut()
+                .define_pub_type(name.clone().lexeme, value.clone());
+        } else
+        // handle normal types
+        {
             self.env
                 .borrow_mut()
                 .define_type(name.clone().lexeme, value.clone());
@@ -601,62 +747,6 @@ impl Interpreter {
             let stderr = String::from_utf8_lossy(&output.stderr);
             raw(format!("sh error: {}", stderr).as_str());
         }
-    }
-
-    fn whiles(&mut self, cond: &Expression, body: Vec<Statement>) {
-        if !self.is_mod {
-            while cond.eval(Rc::clone(&self.env)).is_truthy() {
-                self.interpret(body.iter().map(|x| x).collect(), 1);
-                if self.specs.borrow_mut().get("break").is_some() {
-                    self.specs.borrow_mut().remove("break");
-                    break;
-                }
-            }
-        }
-    }
-
-    fn loops(&mut self, iter: Option<usize>, body: Vec<Statement>) {
-        if !self.is_mod {
-            match iter {
-                Some(i) => {
-                    for _ in 0..i.clone() {
-                        self.interpret(body.iter().map(|x| x).collect(), 1);
-                        if self.specs.borrow_mut().get("break").is_some() {
-                            self.specs.borrow_mut().remove("break");
-                            break;
-                        }
-                    }
-                }
-                None => loop {
-                    self.interpret(body.iter().map(|x| x).collect(), 1);
-                    if self.specs.borrow_mut().get("break").is_some() {
-                        self.specs.borrow_mut().remove("break");
-                        break;
-                    }
-                },
-            }
-        }
-    }
-
-    fn dos(&self, name: Token, value: Option<Box<LiteralType>>, val: LiteralType) -> bool {
-        let lex = if let LiteralType::Enum { parent, .. } = val.clone() {
-            parent
-        } else {
-            Token::null()
-        };
-
-        let d = self.env.borrow_mut().get_enum(&lex.lexeme);
-        let mut dos = false;
-        for (v, _) in d.clone() {
-            if name.lexeme == v.lexeme {
-                if value.is_some() {
-                    // @todo check the values
-                }
-
-                dos = true;
-            }
-        }
-        dos
     }
 
     /// creates FuncImpl from function statement
@@ -730,67 +820,6 @@ impl Interpreter {
         } else {
             self.error.throw(E0x404, 0, (0, 0), vec![]);
             exit(1);
-        }
-    }
-
-    fn matchs(
-        &mut self,
-        cond: &Expression,
-        cases: Vec<(Expression, FuncBody)>,
-        def_case: &FuncBody,
-    ) {
-        if !self.is_mod {
-            let mut exec = false;
-            let val = cond.eval(Rc::clone(&self.env));
-            for (expr, body) in cases {
-                let v = expr.eval(Rc::clone(&self.env));
-                if v.type_name() == val.type_name() {
-                    match body.clone() {
-                        FuncBody::Statements(s) => {
-                            if let LiteralType::Enum { name, value, .. } = v.clone() {
-                                if self.dos(name, value, val.clone()) {
-                                    self.interpret(s.iter().map(|x| x).collect(), 1);
-                                    exec = true;
-                                    break;
-                                }
-                            }
-
-                            if v.clone() == val.clone() {
-                                self.interpret(s.iter().map(|x| x).collect(), 1);
-                                exec = true;
-                                break;
-                            }
-                        }
-                        FuncBody::Expression(e) => {
-                            if let LiteralType::Enum { name, value, .. } = v.clone() {
-                                if self.dos(name, value, val.clone()) {
-                                    self.interpret(vec![&Statement::Expression { expr: *e }], 1);
-                                    exec = true;
-                                    break;
-                                }
-                            }
-
-                            if v.clone() == val.clone() {
-                                self.interpret(vec![&Statement::Expression { expr: *e }], 1);
-                                exec = true;
-                                break;
-                            }
-                        }
-                    }
-                } else {
-                    raw("invad type in match statement")
-                }
-            }
-            if !exec {
-                match def_case.clone() {
-                    FuncBody::Statements(s) => {
-                        self.interpret(s.iter().map(|x| x).collect(), 1);
-                    }
-                    FuncBody::Expression(e) => {
-                        self.interpret(vec![&Statement::Expression { expr: *e }], 1);
-                    }
-                }
-            }
         }
     }
 

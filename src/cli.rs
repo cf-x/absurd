@@ -26,7 +26,7 @@ pub fn cli_new(project: &mut Project) {
         )
         .arg(
             "remove",
-            "add [name]",
+            "remove [name]",
             "remove the package from the project",
         );
     program.parse();
