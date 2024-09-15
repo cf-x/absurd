@@ -73,7 +73,7 @@ pub fn interpreter_raw(src: &str, project: Project, log: bool) {
     }
 
     int.env.borrow_mut().resolve(locals);
-    int.interpret(stmts.iter().collect());
+    int.interpret(stmts.iter().collect(), 0);
     if log {
         let interpreter_duration = start.unwrap().elapsed();
         let text = format!("{:?}", interpreter_duration);
@@ -91,10 +91,10 @@ pub fn interpreter_mod(
     project: Project,
 ) -> Rc<RefCell<Env>> {
     let err = Error::new(src, project.clone());
-    let mut int = Interpreter::new_with_env(env, true, src, mod_src);
+    let mut int = Interpreter::new_with_env(env, true, src, mod_src, 0);
     let stmts = parser(src, err.clone(), false);
     let mut resolver = Resolver::new(err);
     let locals = resolver.resolve(&stmts, &mut int.env);
     int.env.borrow_mut().resolve(locals);
-    int.interpret(stmts.iter().collect())
+    int.interpret(stmts.iter().collect(), 0)
 }

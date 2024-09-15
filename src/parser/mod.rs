@@ -189,7 +189,7 @@ impl Parser {
 
         // checks if variable is immutable and consumes `pub` keyword, if its there
         let mut pub_names = self.var_is_pub(is_mut);
-
+        let mut is_pub = !pub_names.is_empty();
         if self.if_token_consume(LBracket) {
             names = self.var_vec_dest();
             destruct = Some(Destruct::Vector)
@@ -222,8 +222,9 @@ impl Parser {
         // publish by their local names
         if pub_names.is_empty() {
             pub_names = names.clone();
+            is_pub = false;
         }
-        let is_pub = !pub_names.is_empty();
+        
         let null_var = Statement::Var {
             names: names.clone(),
             value_type: Token::null(),

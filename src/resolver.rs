@@ -78,14 +78,20 @@ impl Resolver {
         expr: &Expression,
         env: &Rc<RefCell<Env>>,
     ) {
+        
+        self.expr(expr, env);
+        let encl_loop = self.is_crnt_loop;
+        self.is_crnt_loop = true;
+        self.scope_start();
         self.declare(iterator);
         self.define(iterator);
         if let Some(i) = index {
             self.declare(i);
             self.define(i);
         }
-        self.expr(expr, env);
         self.resolve_many(body, env);
+        self.scope_end();
+        self.is_crnt_loop = encl_loop;
     }
 
     fn uses(&mut self, names: &Vec<(Token, Option<Token>)>) {
@@ -114,7 +120,9 @@ impl Resolver {
         let encl_loop = self.is_crnt_loop;
         self.expr(cond, env);
         self.is_crnt_loop = true;
+        self.scope_start();
         self.resolve_many(body, env);
+        self.scope_end();
         self.is_crnt_loop = encl_loop;
     }
 

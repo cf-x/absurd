@@ -1,134 +1,78 @@
+use abs_cli::CLI;
+use coloredpp::Colorize;
 use std::{
-    env,
     fs::File,
     io::{stdin, Read, Write},
     process::{exit, Command, Stdio},
 };
 
-use coloredpp::Colorize;
-
 use crate::{bundler::interpreter_raw, errors::raw, manifest::Project, VERSION};
+pub fn cli_new(project: &mut Project) {
+    let mut program = CLI::new();
+    program
+        .name("Absurd")
+        .version(VERSION)
+        .description("The Absurd Programming Language")
+        .option("-s, --side-effects", "disable side-effects")
+        .option("-l, --log", "enable logging mode")
+        .option("-t, --test", "enable testing mode")
+        .arg("run", "run [file]", "interpret the file")
+        .arg("update", "update", "update to the latest version")
+        .arg("ci", "ci", "enter source from the CLI")
+        .arg(
+            "add",
+            "add [repo]/[name] <new_name>",
+            "add a new package to the project",
+        )
+        .arg(
+            "remove",
+            "add [name]",
+            "remove the package from the project",
+        );
+    program.parse();
 
-struct Args {
-    file: Option<String>,
-    code_input: Option<String>,
-}
-
-fn print_help() {
-    println!("\n");
-    println!(
-        "{} {} {} {}",
-        "usage:".bright_yellow(),
-        "absurd".bright_red(),
-        "<file>".bright_blue(),
-        "[OPTIONS]".bright_green()
-    );
-    println!();
-    println!("{}", "Options:".bright_yellow());
-    println!(
-        "  {}           {}",
-        "--help, -h".bright_blue(),
-        "print this message"
-    );
-    println!(
-        "  {}        {}",
-        "--version, -v".bright_blue(),
-        "print current version"
-    );
-    println!(
-        "  {}   {}",
-        "--side-effects, -s".bright_blue(),
-        "disable side-effects"
-    );
-    println!(
-        "  {}            {}",
-        "--log, -l".bright_blue(),
-        "enable logging mode"
-    );
-    println!(
-        "  {}           {}",
-        "--test, -t".bright_blue(),
-        "enable testing mode"
-    );
-    println!();
-    println!("{}", "Arguments:".bright_yellow());
-    println!(
-        "  {}               {}",
-        "<file>".bright_blue(),
-        "file to interpret"
-    );
-    println!(
-        "  {}               {}",
-        "update".bright_blue(),
-        "update to latest version"
-    );
-    println!(
-        "  {}                   {}",
-        "ci".bright_blue(),
-        "enter code directly in the CLI"
-    );
-    println!("");
-    println!("{} \n", "happy coding ッ".bright_green())
-}
-
-fn parse_args(project: &mut Project) -> Args {
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() < 2 {
-        raw("missing required argument <file>");
+    if program.get("--test").is_some() {
+        project.test = true
     }
-    for (i, arg) in &args.iter().enumerate().collect::<Vec<(usize, &String)>>() {
-        match arg.as_str() {
-            "--help" | "-h" => {
-                print_help();
-                exit(0);
-            }
-            "--version" | "-v" => {
-                print_version();
-                exit(0);
-            }
-            "update" => {
-                update();
-                exit(0);
-            }
-            "add" => {
-                add_mod(args.clone().get(i + 1), args.clone().get(i + 2));
-                exit(1);
-            }
-            "remove" => {
-                remove_mod(args.clone().get(i + 1));
-                exit(1);
-            }
-            "--side-effects" | "-s" => project.side_effects = false,
-            "--log" | "-l" => project.log = true,
-            "--test" | "-t" => project.test = true,
-            "ci" => {
-                println!("Enter your code (end with Ctrl+D):");
-                let mut code_input = String::new();
-                stdin()
-                    .read_to_string(&mut code_input)
-                    .expect("Failed to read input");
-                println!("");
-                return Args {
-                    file: None,
-                    code_input: Some(code_input),
-                };
-            }
-            _ => {}
-        }
+    if program.get("--side-effects").is_some() {
+        project.side_effects = false
+    }
+    if program.get("--log").is_some() {
+        project.log = true
+    }
+    if program.get("update").is_some() {
+        update();
+        exit(0);
     }
 
-    Args {
-        file: Some(args[1].clone()),
-        code_input: None,
+    let run = program.get("run");
+    if run.is_some() {
+        run_file(
+            run.unwrap().get(0).expect("expected a file").clone(),
+            project.clone(),
+        );
+        exit(1);
     }
-}
 
-pub fn cli(project: &mut Project) {
-    let args = parse_args(project);
-    if let Some(file) = args.file {
-        run_file(file, project.clone());
-    } else if let Some(code_input) = args.code_input {
+    let add = program.get("add");
+    if add.is_some() {
+        add_mod(add.unwrap().get(0), add.unwrap().get(1));
+        exit(1);
+    }
+
+    let remove = program.get("add");
+    if remove.is_some() {
+        remove_mod(remove.unwrap().get(0));
+        exit(1);
+    }
+
+    if program.get("ci").is_some() {
+        println!("Enter your code (end with Ctrl+D):");
+        let mut code_input = String::new();
+        stdin()
+            .read_to_string(&mut code_input)
+            .expect("Failed to read input");
+        println!("");
         run_code(code_input, project.clone());
     }
 }
@@ -275,9 +219,4 @@ fn remove_mod(first: Option<&String>) {
         "{}",
         format!("module {} successfully removed", name).green()
     );
-}
-
-fn print_version() {
-    let abs = VERSION.fg_hex_gradient("#6800ff", "#ff00aa").bold();
-    println!("\n    {}: {}\n", "version".cyan(), abs);
 }

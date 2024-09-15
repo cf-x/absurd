@@ -2,14 +2,23 @@
 
 ## 0.25.0
 
+### changes
+
+- moved `absurd <file>` to `absurd run <file>`
+
 ### internal changes
 
 - updated env handling
 - stabilizations and improvements
+- added `abs-cli` crate for cli parsing
 
 ### fixes
 
 - fixed destructured variable publicity
+- fixed short functions
+- fixed statement modality
+- fixed scoping
+- fixed assignment
 
 ## 0.24.0
 
