@@ -302,7 +302,7 @@ impl Expression {
             } => {
                 let call: LiteralType = name.eval(Rc::clone(&env));
                 match call {
-                    LiteralType::Null | LiteralType::Enum { .. } => {
+                    LiteralType::Enum { .. } => {
                         if let CallType::Enum = call_type {
                             let parent = if let Expression::Var { name, .. } = *name.clone() {
                                 name
@@ -314,8 +314,9 @@ impl Expression {
                             } else {
                                 Token::null()
                             };
-                            let value = if let Some(e) = args.get(1) {
-                                Some(Box::new(e.eval(Rc::clone(&env))))
+
+                            let value = if let Some(v) = args.get(1) {
+                                Some(Box::new(v.eval(env)))
                             } else {
                                 None
                             };

@@ -49,19 +49,6 @@ impl LiteralType {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn to_type_token(&self) -> Token {
-        match self {
-            Self::Number(_) => Token::empty(NumIdent, "number", None),
-            Self::String(_) => Token::empty(StrIdent, "string", None),
-            Self::Char(_) => Token::empty(CharIdent, "char", None),
-            Self::Boolean(_) => Token::empty(BoolIdent, "bool", None),
-            Self::Void => Token::empty(VoidIdent, "void", None),
-            Self::Null => Token::null(),
-            _ => Token::empty(AnyIdent, "any", None),
-        }
-    }
-
     pub fn is_truthy(&self) -> bool {
         match self {
             Self::Number(val) => *val != 0.0,
@@ -83,7 +70,18 @@ impl LiteralType {
 impl fmt::Display for LiteralType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Enum { name, .. } => write!(f, "{}", name.lexeme),
+            Self::Enum {
+                name,
+                value,
+                parent,
+            } => {
+                if let Some(val) = value.clone() {
+                    write!(f, "{}", *val)
+                } else {
+                    write!(f, "{}::{}", parent.lexeme, name.lexeme)
+                }
+            }
+
             Self::Tuple(val) => {
                 let mut s = String::new();
                 for (i, v) in val.iter().enumerate() {

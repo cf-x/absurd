@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.26.0
+
+### changes
+
+- added enum values (`enum Enum {A(number)}`,`Enum::A(5.0)`)
+
 ## 0.25.0
 
 ### changes

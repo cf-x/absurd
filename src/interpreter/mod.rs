@@ -620,8 +620,9 @@ impl Interpreter {
                             FuncBody::Statements(ref stmts) => stmts.clone(),
                         };
                         let body = body.iter().collect();
+                        let expr_lit = expr.eval(Rc::clone(&self.env));
                         // check if expression is enum
-                        if let LiteralType::Enum { .. } = expr.eval(Rc::clone(&self.env)) {
+                        if let LiteralType::Enum { .. } =  expr_lit {
                             // execute the body if case matches
                             if self
                                 .enum_equality(expr.eval(Rc::clone(&self.env)), condition.clone())

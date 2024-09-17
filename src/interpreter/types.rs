@@ -108,12 +108,16 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
                     return false;
                 }
 
-                for (v, _) in d {
+                for (v, l) in d {
                     if name.lexeme == v.lexeme {
                         if value.is_some() {
-                            // @todo check the values
-                        }
+                            let tkn = l.clone().unwrap_or(Token::null());
+                            let vl = *value.clone().unwrap_or(Box::new(LiteralType::Null));
 
+                            if !type_check(&tkn, &vl, env) {
+                                raw("invalid enum type");
+                            }
+                        }
                         return true;
                     }
                 }

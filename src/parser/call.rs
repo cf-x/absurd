@@ -39,10 +39,15 @@ impl Parser {
     pub fn enum_call(&mut self) -> Expression {
         let name = self.prev(2).clone();
         let e = self.consume(Ident);
-        let args = vec![Expression::Var {
+        let mut args = vec![Expression::Var {
             id: self.id(),
             name: e,
         }];
+        if self.if_token_consume(LParen) {
+            let expr = self.expr();
+            self.consume(RParen);
+            args.push(expr);
+        };
 
         Expression::Call {
             id: self.id(),
