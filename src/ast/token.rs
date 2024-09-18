@@ -3,6 +3,9 @@ use super::TokenType;
 impl TokenType {
     pub fn to_string(&self) -> String {
         let s = match self {
+            Self::Extends => "extends",
+            Self::Strict => "strict",
+            Self::RecordStmt => "record",
             Self::Label => "label",
             Self::In => "in",
             Self::For => "for",

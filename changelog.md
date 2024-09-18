@@ -5,6 +5,7 @@
 ### changes
 
 - added enum values (`enum Enum {A(number)}`,`Enum::A(5.0)`)
+- added records (`record {x: number}`)
 
 ## 0.25.0
 

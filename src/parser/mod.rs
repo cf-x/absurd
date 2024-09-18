@@ -1,5 +1,7 @@
 // Asburd Parser, transforms tokens into AST
-use crate::ast::{Destruct, FuncBody, LiteralKind, LiteralType, Statement, Token, TokenType::*};
+use crate::ast::{
+    Destruct, FuncBody, LiteralKind, LiteralType, RecordField, Statement, Token, TokenType::*,
+};
 use crate::errors::{raw, Error, ErrorCode::*};
 use crate::interpreter::expr::Expression;
 use coloredpp::Colorize;
@@ -67,6 +69,7 @@ impl Parser {
             Use => self.uses(),
             LBrace => self.block_stmt(),
             TypeStmt => self.types(),
+            RecordStmt => self.record(),
             Enum => self.enums(),
             Label => self.label(),
             _ => self.exprs(),
@@ -224,7 +227,7 @@ impl Parser {
             pub_names = names.clone();
             is_pub = false;
         }
-        
+
         let null_var = Statement::Var {
             names: names.clone(),
             value_type: Token::null(),
@@ -627,6 +630,60 @@ impl Parser {
             name,
             value,
             is_pub,
+        }
+    }
+
+    fn record(&mut self) -> Statement {
+        let name = self.consume(Ident);
+
+        let mut extends = vec![];
+        if self.if_token_consume(Extends) {
+            while !self.if_token_consume(Comma) {
+                extends.push(self.consume(Ident));
+            }
+        }
+
+        let mut fields = vec![];
+        self.consume(LBrace);
+
+        while !self.if_token_consume(RBrace) {
+            let name = self.consume(Ident);
+            let mut is_strict = false;
+            let mut is_optional = false;
+
+            if self.if_token_consume(Qstn) {
+                is_optional = true;
+            } else if self.if_token_consume(Bang) {
+                is_strict = true;
+            }
+
+            self.consume(Colon);
+            let value = self.consume_type();
+            let mut default_value = None;
+
+            if self.if_token_consume(Eq) {
+                default_value = Some(self.expr())
+            }
+
+            if !self.if_token_consume(Comma) {
+                self.consume(RBrace);
+                break;
+            }
+
+            fields.push(RecordField {
+                name,
+                is_strict,
+                is_optional,
+                value,
+                default_value,
+            });
+        }
+
+        Statement::Record {
+            name,
+            extends,
+            is_strict: false,
+            fields,
         }
     }
 

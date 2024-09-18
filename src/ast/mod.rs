@@ -58,6 +58,12 @@ pub enum TokenType {
     TypeStmt,
     /// label
     Label,
+    /// record
+    RecordStmt,
+    /// extends
+    Extends,
+    /// strict
+    Strict,
 
     // type keywords
     /// number
@@ -341,7 +347,22 @@ pub enum Destruct {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+pub struct RecordField {
+    pub name: Token,
+    pub value: Token,
+    pub is_strict: bool,
+    pub is_optional: bool,
+    pub default_value: Option<Expression>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
+    Record {
+        name: Token,
+        extends: Vec<Token>,
+        is_strict: bool,
+        fields: Vec<RecordField>,
+    },
     Enum {
         name: Token,
         is_pub: bool,

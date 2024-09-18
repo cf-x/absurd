@@ -2,7 +2,7 @@ pub mod env;
 pub mod expr;
 pub mod types;
 use crate::ast::{
-    Destruct, FuncBody, FuncImpl, LiteralType,
+    Destruct, FuncBody, FuncImpl, LiteralKind, LiteralType,
     Statement::{self, *},
     Token, TokenType,
 };
@@ -20,6 +20,7 @@ use std::fs::File;
 use std::io::Read;
 use std::process::{exit, Command, Stdio};
 use std::rc::Rc;
+use types::TypeKind;
 
 #[derive(Debug)]
 pub struct Interpreter {
@@ -124,6 +125,7 @@ impl Interpreter {
                     value,
                     is_pub,
                 } => self.types(name, value, *is_pub),
+                Statement::Record { .. } => self.record(stmt),
                 Mod { src, name } => self.mods(src, name.clone()),
                 Use { src, names, all } => self.uses(src, names.clone(), *all),
                 Sh { cmd } => self.sh(cmd),
@@ -622,7 +624,7 @@ impl Interpreter {
                         let body = body.iter().collect();
                         let expr_lit = expr.eval(Rc::clone(&self.env));
                         // check if expression is enum
-                        if let LiteralType::Enum { .. } =  expr_lit {
+                        if let LiteralType::Enum { .. } = expr_lit {
                             // execute the body if case matches
                             if self
                                 .enum_equality(expr.eval(Rc::clone(&self.env)), condition.clone())
@@ -719,6 +721,42 @@ impl Interpreter {
         } else
         // handle normal types
         {
+            self.env
+                .borrow_mut()
+                .define_type(name.clone().lexeme, value.clone());
+        }
+    }
+
+    fn record(&mut self, stmt: &Statement) {
+        if let Statement::Record {
+            name,
+            extends: _,
+            is_strict: _,
+            fields,
+        } = stmt
+        {
+            let fields: Vec<(Token, TypeKind)> = fields
+                .iter()
+                .map(|f| (f.name.clone(), f.value.clone().token_to_typekind()))
+                .collect();
+
+            let value = Some(LiteralKind::Type(Box::new(TypeKind::Record {
+                fields: fields.clone(),
+            })));
+
+            let s: String = fields
+                .iter()
+                .map(|(i, v)| format!("{}: {}, ", i.lexeme.clone(), v.clone()))
+                .collect();
+
+            let value = Token {
+                token: TokenType::Type,
+                lexeme: format!("{{ {}}}", s),
+                value,
+                line: 0,
+                pos: (0, 0),
+            };
+
             self.env
                 .borrow_mut()
                 .define_type(name.clone().lexeme, value.clone());
