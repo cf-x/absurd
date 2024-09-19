@@ -730,15 +730,28 @@ impl Interpreter {
     fn record(&mut self, stmt: &Statement) {
         if let Statement::Record {
             name,
-            extends: _,
+            extends,
             is_strict: _,
             fields,
         } = stmt
         {
-            let fields: Vec<(Token, TypeKind)> = fields
+            let mut fields: Vec<(Token, TypeKind)> = fields
                 .iter()
                 .map(|f| (f.name.clone(), f.value.clone().token_to_typekind()))
                 .collect();
+
+            if !extends.is_empty() {
+                for extend in extends {
+                    let d = self.env.borrow().get_type(&extend.lexeme);
+                    if let Some(LiteralKind::Type(t)) = d.value {
+                        if let TypeKind::Record { fields: fs } = *t {
+                            fs.iter().for_each(|f| fields.push(f.clone()));
+                        } else {
+                            raw("invalid record extension");
+                        }
+                    }
+                }
+            }
 
             let value = Some(LiteralKind::Type(Box::new(TypeKind::Record {
                 fields: fields.clone(),

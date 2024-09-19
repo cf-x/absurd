@@ -638,8 +638,15 @@ impl Parser {
 
         let mut extends = vec![];
         if self.if_token_consume(Extends) {
-            while !self.if_token_consume(Comma) {
-                extends.push(self.consume(Ident));
+            extends.push(self.consume(Ident));
+
+            if self.if_token_consume(Comma) {
+                while !self.if_token_consume(Comma) {
+                    extends.push(self.consume(Ident));
+                    if !self.if_token_consume(Comma) {
+                        break;
+                    }
+                }
             }
         }
 
@@ -650,7 +657,6 @@ impl Parser {
             let name = self.consume(Ident);
             let mut is_strict = false;
             let mut is_optional = false;
-
             if self.if_token_consume(Qstn) {
                 is_optional = true;
             } else if self.if_token_consume(Bang) {
@@ -665,11 +671,6 @@ impl Parser {
                 default_value = Some(self.expr())
             }
 
-            if !self.if_token_consume(Comma) {
-                self.consume(RBrace);
-                break;
-            }
-
             fields.push(RecordField {
                 name,
                 is_strict,
@@ -677,6 +678,11 @@ impl Parser {
                 value,
                 default_value,
             });
+
+            if !self.if_token_consume(Comma) {
+                self.consume(RBrace);
+                break;
+            }
         }
 
         Statement::Record {

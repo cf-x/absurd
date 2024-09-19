@@ -127,7 +127,6 @@ pub fn type_check(value_type: &Token, val: &LiteralType, env: &Rc<RefCell<Env>>)
         }
         TokenType::Ident => {
             let d = env.borrow().get_type(&value_type.lexeme);
-
             type_check(&d, val, env)
         }
         TokenType::Type => {

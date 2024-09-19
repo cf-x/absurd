@@ -7,6 +7,10 @@
 - added enum values (`enum Enum {A(number)}`,`Enum::A(5.0)`)
 - added records (`record {x: number}`)
 
+### fixes
+
+- fixed record typechecking for field order
+
 ## 0.25.0
 
 ### changes
