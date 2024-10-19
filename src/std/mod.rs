@@ -162,7 +162,7 @@ impl Interpreter {
                 "literal",
                 vec![
                     (
-                        "number",
+                        "num",
                         HashMap::from([
                             (
                                 "sqr",
@@ -770,7 +770,7 @@ impl Interpreter {
                                 .as_str()),
                             },
                             "literal" => match parts[2] {
-                                "number" => std.load_literal_number(),
+                                "num" => std.load_literal_number(),
                                 "string" => std.load_literal_string(),
                                 "vector" => std.load_literal_vector(),
                                 _ => raw(format!(

@@ -1,6 +1,6 @@
 // parses expressions
 use super::Parser;
-use crate::ast::{FuncBody, Statement, Token, TokenType::*};
+use crate::ast::{Statement, Token, TokenType::*};
 use crate::errors::ErrorCode::{E0x103, E0x107};
 use crate::interpreter::expr::{AssignKind, Expression};
 
@@ -248,24 +248,24 @@ impl Parser {
             };
         }
         if self.if_token_consume(Colon) {
-            let body = self.expr();
+            let expr = self.expr();
             return Expression::Func {
                 id: self.id(),
                 name,
                 value_type,
-                body: FuncBody::Expression(Box::new(body)),
+                body: Box::new(Statement::Expression { expr }),
                 params,
                 is_async,
                 is_pub,
             };
         }
         self.consume(LBrace);
-        let body = self.block_stmts();
+        let body = self.block_stmt();
         Expression::Func {
             id: self.id(),
             name,
             value_type,
-            body: FuncBody::Statements(body),
+            body: Box::new(body),
             params,
             is_async,
             is_pub,

@@ -1,7 +1,6 @@
 use crate::{
     ast::{LiteralType, Token},
     errors::{Error, ErrorCode::*},
-    manifest::Project,
 };
 use std::{borrow::Borrow, cell::RefCell, collections::HashMap, process::exit, rc::Rc};
 
@@ -50,13 +49,10 @@ pub struct Env {
     pub mods: Vec<Env>,
     pub locals: Rc<RefCell<HashMap<usize, usize>>>,
     pub enclosing: Option<Rc<RefCell<Env>>>,
+    err: Error,
 }
 
 impl Env {
-    fn err(&self) -> Error {
-        Error::new("", Project::new())
-    }
-
     pub fn new(locals: HashMap<usize, usize>) -> Self {
         Self {
             values: get_empty_rc(),
@@ -67,6 +63,7 @@ impl Env {
             mods: Vec::new(),
             locals: Rc::new(RefCell::new(locals)),
             enclosing: None,
+            err: Error::new(""),
         }
     }
 
@@ -80,6 +77,7 @@ impl Env {
             mods: self.mods.clone(),
             locals: Rc::clone(&self.locals),
             enclosing: Some(Rc::new(RefCell::new(self.clone()))),
+            err: Error::new(""),
         }
     }
 
@@ -259,7 +257,7 @@ impl Env {
                     match &self.enclosing {
                         Some(env) => env.borrow_mut().get_int(name, Some(depth - 1)),
                         None => {
-                            self.err().throw(E0x502, 0, (0, 0), vec![]);
+                            self.err.throw(E0x502, 0, (0, 0), vec![]);
                             exit(1);
                         }
                     }
@@ -288,7 +286,7 @@ impl Env {
             let d = match d {
                 Some(d) => d,
                 None => {
-                    self.err().throw(E0x501, 0, (0, 0), vec![]);
+                    self.err.throw(E0x501, 0, (0, 0), vec![]);
                     exit(1)
                 }
             };
@@ -299,7 +297,7 @@ impl Env {
                 match &self.enclosing {
                     Some(env) => env.borrow_mut().set_int(name, value, Some(d - 1)),
                     None => {
-                        self.err().throw(E0x502, 0, (0, 0), vec![]);
+                        self.err.throw(E0x502, 0, (0, 0), vec![]);
                         exit(1);
                     }
                 }

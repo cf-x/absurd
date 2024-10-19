@@ -26,8 +26,6 @@ pub enum TokenType {
     For,
     /// while
     While,
-    /// loop
-    Loop,
     /// break
     Break,
     /// enum
@@ -288,7 +286,7 @@ pub enum LiteralKind {
 pub struct FuncImpl {
     pub name: String,
     pub value_type: Token,
-    pub body: FuncBody,
+    pub body: Box<Statement>,
     pub params: Vec<(Token, Token)>,
     pub is_async: bool,
     pub is_pub: bool,
@@ -395,16 +393,15 @@ pub enum Statement {
     Func {
         name: Token,
         value_type: Token,
-        body: FuncBody,
+        body: Box<Statement>,
         params: Vec<(Token, Token)>,
         is_async: bool,
         is_pub: bool,
     },
     If {
         cond: Expression,
-        body: Vec<Statement>,
-        else_if_branches: Vec<(Expression, Vec<Statement>)>,
-        else_branch: Option<Vec<Statement>>,
+        body: Box<Statement>,
+        else_branch: Option<Box<Statement>>,
     },
     Return {
         expr: Expression,
@@ -413,21 +410,17 @@ pub enum Statement {
         iterator: Token,
         index: Option<Token>,
         expr: Expression,
-        body: Vec<Statement>,
+        body: Box<Statement>,
     },
     While {
         cond: Expression,
-        body: Vec<Statement>,
-    },
-    Loop {
-        iter: Option<usize>,
-        body: Vec<Statement>,
+        body: Box<Statement>,
     },
     Break {},
     Match {
         cond: Expression,
-        cases: Vec<(Expression, FuncBody)>,
-        def_case: FuncBody,
+        cases: Vec<(Expression, Statement)>,
+        def_case: Box<Statement>,
     },
     Mod {
         src: String,
@@ -438,10 +431,4 @@ pub enum Statement {
         names: Vec<(Token, Option<Token>)>,
         all: bool,
     },
-}
-
-#[derive(Debug, PartialEq, Clone)]
-pub enum FuncBody {
-    Statements(Vec<Statement>),
-    Expression(Box<Expression>),
 }

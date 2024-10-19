@@ -1,10 +1,7 @@
 // Asburd Parser, transforms tokens into AST
-use crate::ast::{
-    Destruct, FuncBody, LiteralKind, LiteralType, RecordField, Statement, Token, TokenType::*,
-};
+use crate::ast::{Destruct, LiteralType, RecordField, Statement, Token, TokenType::*};
 use crate::errors::{raw, Error, ErrorCode::*};
 use crate::interpreter::expr::Expression;
-use coloredpp::Colorize;
 mod call;
 pub mod expr;
 mod helpers;
@@ -16,16 +13,14 @@ pub struct Parser {
     tokens: Vec<Token>,
     err: Error,
     crnt: usize,
-    log: bool,
     id: usize,
 }
 
 impl Parser {
-    pub fn new(tokens: Vec<Token>, err: Error, log: bool) -> Self {
+    pub fn new(tokens: Vec<Token>, err: Error) -> Self {
         Self {
             tokens,
             err,
-            log,
             crnt: 0,
             id: 0,
         }
@@ -34,18 +29,10 @@ impl Parser {
     /// parser entry function
     pub fn parse(&mut self) -> Vec<Statement> {
         let mut stmts = vec![];
-        if self.log {
-            println!("  {}", "parsing statements...".yellow())
-        }
+
         // parse statements until the end of file (source)
         while !self.check(Eof) {
             stmts.push(self.stmt());
-        }
-        if self.log {
-            println!(
-                "  {}",
-                format!("completed parsing {} statements", stmts.len()).green()
-            )
         }
         // returns collection of statements
         stmts
@@ -61,7 +48,6 @@ impl Parser {
             If => self.ifs(),
             For => self.fors(),
             While => self.whiles(),
-            Loop => self.loops(),
             Break => self.breaks(),
             Match => self.matchs(),
             Sh => self.shs(),
@@ -184,7 +170,6 @@ impl Parser {
     }
 
     fn var(&mut self) -> Statement {
-        self.start("variable statement");
         let mut names = vec![];
         let is_mut = self.if_token_consume(Mut);
         let mut is_null = false;
@@ -244,7 +229,6 @@ impl Parser {
 
         if is_null {
             self.advance();
-            self.log("variable statement");
             return null_var;
         }
 
@@ -259,7 +243,6 @@ impl Parser {
         if self.if_token_consume(Colon) {
             value_type = self.consume_type();
             if value_type.token == Null && self.peek().token != Assign {
-                self.log("variable statement");
                 self.consume(Semi);
                 return null_var;
             }
@@ -269,7 +252,6 @@ impl Parser {
 
         // consume type after `:`
         if self.if_token_consume(Semi) {
-            self.log("variable statement");
             // differes from normal `null_var` with dynamic `value_type`
             return Statement::Var {
                 names: names.clone(),
@@ -294,8 +276,6 @@ impl Parser {
             value_type = value.to_literal().to_token();
         }
         self.consume(Semi);
-
-        self.log("variable statement");
         Statement::Var {
             names,
             value_type,
@@ -309,7 +289,6 @@ impl Parser {
     }
 
     fn func(&mut self) -> Statement {
-        self.start("function statement");
         let mut params = vec![];
         let mut is_async = false;
         let mut is_pub = false;
@@ -349,13 +328,12 @@ impl Parser {
 
         // parse as a short function
         if self.if_token_consume(Assign) {
-            let body = self.expr();
+            let expr = self.expr();
             self.consume(Semi);
-            self.log("function statement");
             return Statement::Func {
                 name,
                 value_type,
-                body: FuncBody::Expression(Box::new(body)),
+                body: Box::new(Statement::Expression { expr }),
                 params,
                 is_async,
                 is_pub,
@@ -364,12 +342,11 @@ impl Parser {
 
         // standard block parsing
         self.consume(LBrace);
-        let body = self.block_stmts();
-        self.log("function statement");
+        let body = self.block_stmt();
         Statement::Func {
             name,
             value_type,
-            body: FuncBody::Statements(body),
+            body: Box::new(body),
             params,
             is_async,
             is_pub,
@@ -377,7 +354,6 @@ impl Parser {
     }
 
     fn returns(&mut self) -> Statement {
-        self.start("return statement");
         let expr = if self.is_token(Semi) {
             Expression::Value {
                 id: self.id(),
@@ -387,14 +363,18 @@ impl Parser {
             self.expr()
         };
         self.consume(Semi);
-        self.log("return statement");
         Statement::Return { expr }
     }
 
     fn ifs(&mut self) -> Statement {
-        self.start("if statement");
         let cond = self.expr();
-        let body = self.block_stmts();
+
+        let body = if self.if_token_consume(LBrace) {
+            self.block_stmt()
+        } else {
+            self.consume(Colon);
+            self.stmt()
+        };
         let mut else_if_branches = vec![];
         // parse elifs
         while self.if_token_consume(Elif) {
@@ -405,21 +385,18 @@ impl Parser {
 
         // parse else, if avaiable
         let else_branch = if self.if_token_consume(Else) {
-            Some(self.block_stmts())
+            Some(Box::new(self.stmt()))
         } else {
             None
         };
-        self.log("if statement");
         Statement::If {
             cond,
-            body,
-            else_if_branches,
+            body: Box::new(body),
             else_branch,
         }
     }
 
     fn fors(&mut self) -> Statement {
-        self.start("for statement");
         let iterator = self.consume(Ident);
         let index = if self.if_token_consume(Comma) {
             Some(self.consume(Ident))
@@ -428,50 +405,27 @@ impl Parser {
         };
         self.consume(In);
         let expr = self.expr();
-        let body = self.block_stmts();
-        self.log("for statement");
+        let body = self.block_stmt();
         Statement::For {
             iterator,
             index,
             expr,
-            body,
+            body: Box::new(body),
         }
     }
 
     fn whiles(&mut self) -> Statement {
-        self.start("while statement");
         // everything is obvious, I guess.
         let cond = self.expr();
-        let body = self.block_stmts();
-        self.log("while statement");
-        Statement::While { cond, body }
-    }
-
-    fn loops(&mut self) -> Statement {
-        self.start("loop statement");
-        // checks if iterator index is there
-        let iter = if self.is_token(NumLit) {
-            let num = match self.consume(NumLit).value {
-                Some(LiteralKind::Number { value, .. }) => value,
-                _ => self.throw_error(E0x104, vec![self.peek().lexeme]),
-            };
-            if num < 0.0 {
-                Some(1)
-            } else {
-                Some(num as usize)
-            }
-        } else {
-            None
-        };
-        let body = self.block_stmts();
-        self.log("loop statement");
-        Statement::Loop { iter, body }
+        let body = self.block_stmt();
+        Statement::While {
+            cond,
+            body: Box::new(body),
+        }
     }
 
     fn breaks(&mut self) -> Statement {
-        self.start("break statement");
         self.consume(Semi);
-        self.log("break statement");
         Statement::Break {}
     }
 
@@ -512,7 +466,6 @@ impl Parser {
     }
 
     fn matchs(&mut self) -> Statement {
-        self.start("match statement");
         let cond = self.expr();
         self.consume(LBrace);
         let mut cases = vec![];
@@ -523,49 +476,44 @@ impl Parser {
             self.consume(ArrowBig);
             // consume block
             if self.if_token_advance(LBrace) {
-                let body = self.block_stmts();
-                cases.push((expr, FuncBody::Statements(body)))
+                let body = self.block_stmt();
+                cases.push((expr, body))
             } else {
                 // consume expression
-                let body = self.expr();
+                let expr = self.expr();
                 self.consume(Comma);
-                cases.push((expr, FuncBody::Expression(Box::new(body))))
+                cases.push((expr.clone(), Statement::Expression { expr }))
             }
         }
 
-        let mut def_case = FuncBody::Statements(vec![]);
+        let mut def_case = Statement::Break {};
         // default branch `_ => {}`
         if self.if_token_consume(Underscore) {
             self.consume(ArrowBig);
             if self.if_token_consume(LBrace) {
-                let body = self.block_stmts();
-                def_case = FuncBody::Statements(body)
+                def_case = self.block_stmt();
             } else {
-                let body = self.expr();
-                def_case = FuncBody::Expression(Box::new(body))
+                let expr = self.expr();
+                def_case = Statement::Expression { expr };
             }
         }
         let stmt = Statement::Match {
             cond,
             cases,
-            def_case,
+            def_case: Box::new(def_case),
         };
         self.consume(RBrace);
-        self.log("match statement");
         stmt
     }
 
     // very simple syntax
     fn shs(&mut self) -> Statement {
-        self.start("sh statement");
         let cmd = self.consume(StrLit).lexeme;
         self.consume(Semi);
-        self.log("sh statement");
         Statement::Sh { cmd }
     }
 
     fn mods(&mut self) -> Statement {
-        self.start("mod statement");
         let src = self.consume(StrLit).lexeme;
         let name = if self.if_token_consume(As) {
             Some(self.consume(Ident).lexeme)
@@ -573,12 +521,10 @@ impl Parser {
             None
         };
         self.consume(Semi);
-        self.log("mod statement");
         Statement::Mod { src, name }
     }
 
     fn uses(&mut self) -> Statement {
-        self.start("use statement");
         let mut names = vec![];
         let mut all = false;
         // `use * from ""`, imports everything
@@ -614,18 +560,15 @@ impl Parser {
             self.consume(StrLit).lexeme
         };
         self.consume(Semi);
-        self.log("use statement");
         Statement::Use { src, names, all }
     }
 
     fn types(&mut self) -> Statement {
-        self.start("type statement");
         let is_pub = self.if_token_consume(Pub);
         let name = self.consume(Ident);
         self.consume(Assign);
         let value = self.consume_type();
         self.consume(Semi);
-        self.log("type statement");
         Statement::Type {
             name,
             value,
@@ -695,22 +638,17 @@ impl Parser {
 
     fn block_stmts(&mut self) -> Vec<Statement> {
         match self.block_stmt() {
-            Statement::Block { stmts } => {
-                self.consume(RBrace);
-                stmts
-            }
+            Statement::Block { stmts } => stmts,
             _ => self.throw_error(E0x105, vec!["a block statement".to_string()]),
         }
     }
 
     fn block_stmt(&mut self) -> Statement {
-        self.start("block statement");
         let mut stmts = vec![];
-        while !self.is_token(RBrace) && !self.is_token(Eof) {
+        while !self.if_token_consume(RBrace) && !self.is_token(Eof) {
             let stmt = self.stmt();
             stmts.push(stmt);
         }
-        self.log("block statement");
         Statement::Block { stmts }
     }
 }

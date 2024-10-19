@@ -2,7 +2,7 @@
 name = "absurd"
 description = "Absurd programming language"
 license = "MIT"
-version = "0.25.0"
+version = "1.0.0"
 edition = "2021"
 
 [profile.release]
@@ -11,5 +11,4 @@ lto = true
 [dependencies]
 abs-cli = "0.2.0"
 coloredpp = "0.3.0"
-toml = "0.8.19"
 unicode-xid = "0.2.5"

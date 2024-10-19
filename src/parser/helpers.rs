@@ -5,7 +5,6 @@ use crate::ast::{
     TokenType::{self, *},
 };
 use crate::errors::ErrorCode::{self, E0x104, E0x106};
-use coloredpp::Colorize;
 use std::process::exit;
 
 impl Parser {
@@ -170,20 +169,6 @@ impl Parser {
     pub fn id(&mut self) -> usize {
         self.id += 1;
         self.id - 1
-    }
-
-    #[inline]
-    pub fn start(&self, msg: &str) {
-        if self.log {
-            println!("      {}{}...", "parsing ".yellow(), msg.blue())
-        }
-    }
-
-    #[inline]
-    pub fn log(&self, msg: &str) {
-        if self.log {
-            println!("      {}{}", "completed parsing ".green(), msg.blue())
-        }
     }
 
     pub fn throw_error(&mut self, code: ErrorCode, args: Vec<String>) -> ! {

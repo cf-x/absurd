@@ -18,11 +18,10 @@ pub struct Scanner<'a> {
     start: usize,
     crnt: usize,
     err: Error,
-    log: bool,
 }
 
 impl<'a> Scanner<'a> {
-    pub fn new(src: &'a str, err: Error, log: bool) -> Self {
+    pub fn new(src: &'a str, err: Error) -> Self {
         Self {
             src,
             err,
@@ -42,7 +41,6 @@ impl<'a> Scanner<'a> {
                 ("for", For),
                 ("in", In),
                 ("while", While),
-                ("loop", Loop),
                 ("break", Break),
                 ("match", Match),
                 ("mod", Mod),
@@ -73,15 +71,11 @@ impl<'a> Scanner<'a> {
             pos: 1,
             start: 0,
             crnt: 0,
-            log,
         }
     }
 
     /// main scanner function
     pub fn scan(&mut self) -> &Vec<Token> {
-        if self.log {
-            println!("  {}", "collecting tokens...".yellow())
-        }
         // advance until the end of the file
         while !self.is_eof() {
             self.start = self.crnt;
@@ -95,12 +89,6 @@ impl<'a> Scanner<'a> {
             line: self.line,
             pos: (0, 0),
         });
-        if self.log {
-            println!(
-                "  {}",
-                format!("completed collecting {} tokens", self.tokens.len()).green()
-            )
-        }
         // return collected tokens
         &self.tokens
     }

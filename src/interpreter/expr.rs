@@ -4,9 +4,8 @@ use crate::ast::{LiteralKind, Statement};
 use crate::bundler::parse_expr;
 use crate::errors::{Error, ErrorCode::*};
 use crate::interpreter::types::{type_check, typekind_to_literaltype};
-use crate::manifest::Project;
 use crate::{
-    ast::{CallType, FuncBody, FuncImpl, LiteralType, Token, TokenType::*},
+    ast::{CallType, FuncImpl, LiteralType, Token, TokenType::*},
     interpreter::run_func,
 };
 use core::cmp::Eq;
@@ -81,7 +80,7 @@ pub enum Expression {
         id: usize,
         name: Token,
         value_type: Token,
-        body: FuncBody,
+        body: Box<Statement>,
         params: Vec<(Token, Token)>,
         is_async: bool,
         is_pub: bool,
@@ -100,7 +99,7 @@ pub enum Expression {
 impl Eq for Expression {}
 impl Expression {
     fn err(&self) -> Error {
-        Error::new("", Project::new())
+        Error::new("")
     }
 
     pub fn id(&self) -> usize {
@@ -438,10 +437,9 @@ impl Expression {
                 let call = FuncImpl {
                     name: name.lexeme.clone(),
                     value_type: value_type.clone(),
-                    body: FuncBody::Statements(match body {
-                        FuncBody::Statements(stmts) => stmts
-                            .iter()
-                            .map(|stmt| {
+                    body: Box::new(match *body.clone() {
+                        Statement::Block { stmts } => {
+                            stmts.iter().for_each(|stmt| {
                                 if let Statement::Return { expr } = stmt {
                                     let v = &(*expr).eval(Rc::clone(&env));
                                     if !type_check(value_type, v, &env) {
@@ -453,11 +451,11 @@ impl Expression {
                                         );
                                     }
                                 }
-                                stmt.clone()
-                            })
-                            .collect(),
-                        FuncBody::Expression(e) => {
-                            let v = &(*e).eval(Rc::clone(&env));
+                            });
+                            *body.clone()
+                        }
+                        Statement::Expression { expr } => {
+                            let v = &(expr).eval(Rc::clone(&env));
                             if !type_check(value_type, v, &env) {
                                 self.err().throw(
                                     E0x301,
@@ -466,8 +464,9 @@ impl Expression {
                                     vec![value_type.clone().lexeme, v.to_string()],
                                 );
                             }
-                            vec![Statement::Expression { expr: *e.clone() }]
+                            *body.clone()
                         }
+                        _ => Statement::Break {},
                     }),
                     params: params
                         .iter()

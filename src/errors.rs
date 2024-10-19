@@ -1,5 +1,4 @@
 // handles Absurd errors
-use super::manifest::Project;
 use coloredpp::Colorize;
 use std::process::exit;
 use ErrorCode::*;
@@ -62,8 +61,6 @@ pub enum ErrorCode {
     E0x413,
     /// `runtime error (E0x414): failed to assign a value`
     E0x414,
-    /// `runtime error (E0x415): side effects are disabled`
-    E0x415,
     /// `runtime error (E0x416): failed to get values from {0}`
     /// - {0}: source
     E0x416,
@@ -73,17 +70,15 @@ pub enum ErrorCode {
     E0x502,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Error {
     source: String,
-    project: Project,
 }
 
 impl Error {
-    pub fn new(src: &str, project: Project) -> Self {
+    pub fn new(src: &str) -> Self {
         Error {
             source: src.to_string(),
-            project,
         }
     }
 
@@ -239,13 +234,6 @@ impl Error {
                 line,
                 pos,
             ),
-            E0x415 => self.error(
-                415,
-                "runtime",
-                "side effects are disabled".to_string(),
-                line,
-                pos,
-            ),
             E0x416 => self.error(
                 416,
                 "runtime",
@@ -288,19 +276,11 @@ impl Error {
     pub fn print_lines(&self, line: usize, pos: (usize, usize)) {
         let lines: Vec<&str> = self.source.lines().collect();
 
-        let snippet = self.project.snippet as isize;
+        let snippet = 2;
 
-        if snippet < 0 {
-            return;
-        }
-
-        let start = if line as isize > snippet {
-            line - snippet as usize
-        } else {
-            1
-        };
-        let end = if line + snippet as usize <= lines.len() {
-            line + snippet as usize
+        let start = if line > snippet { line - snippet } else { 1 };
+        let end = if line + snippet <= lines.len() {
+            line + snippet
         } else {
             lines.len()
         };
@@ -316,7 +296,7 @@ impl Error {
                     i.to_string().yellow(),
                     before.red().bold(),
                     to_underscore.red().bold().underline(),
-                    after.red().bold()
+                    after.red().bold().underline()
                 );
             } else {
                 eprintln!("{} | {}", i.to_string().yellow(), &lines[i - 1].red());
@@ -355,4 +335,8 @@ impl Error {
 pub fn raw(msg: &str) {
     eprintln!("{}", msg.red());
     exit(0);
+}
+
+pub fn log(msg: &str) {
+    eprintln!("{}", msg.red());
 }

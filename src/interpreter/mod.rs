@@ -2,15 +2,15 @@ pub mod env;
 pub mod expr;
 pub mod types;
 use crate::ast::{
-    Destruct, FuncBody, FuncImpl, LiteralKind, LiteralType,
+    Destruct, FuncImpl, LiteralKind, LiteralType,
     Statement::{self, *},
     Token, TokenType,
 };
 use crate::bundler::interpreter_mod;
 use crate::errors::{raw, Error, ErrorCode::*};
 use crate::interpreter::types::type_check;
-use crate::manifest::Project;
 use crate::std::StdFunc;
+use crate::Config;
 use env::{Env, FuncKind, ValueKind, VarKind};
 use expr::Expression;
 use std::cell::RefCell;
@@ -27,7 +27,7 @@ pub struct Interpreter {
     /// interpreter envrironment
     pub env: Rc<RefCell<Env>>,
     /// project settings, will be moved to the env
-    pub project: Project,
+    pub project: Config,
     /// specials like "return" and "breal"
     specs: Rc<RefCell<HashMap<String, LiteralType>>>,
     /// if interpreter is a module
@@ -42,7 +42,7 @@ pub struct Interpreter {
 
 impl Interpreter {
     /// initialize the Interpreter
-    pub fn new(project: Project, error: Error) -> Self {
+    pub fn new(project: Config, error: Error) -> Self {
         let int = Self {
             env: Rc::new(RefCell::new(Env::new(HashMap::new()))),
             project: project.clone(),
@@ -52,11 +52,11 @@ impl Interpreter {
             error,
             order: 0,
         };
+
         // load std::core::io
-        if !project.clone().disable_std && project.clone().load_std {
-            let mut std_core_io = StdFunc::new(Rc::clone(&int.env), int.project.test);
-            std_core_io.load_core_io();
-        }
+        let mut std_core_io = StdFunc::new(Rc::clone(&int.env), int.project.test);
+        std_core_io.load_core_io();
+
         int
     }
 
@@ -72,8 +72,8 @@ impl Interpreter {
             specs: Rc::new(RefCell::new(HashMap::new())),
             is_mod,
             mod_src,
-            error: Error::new(src, Project::new()),
-            project: Project::new(),
+            error: Error::new(src),
+            project: Config::new(),
             order,
         };
         // load std::core::io if interpreter runs in the module
@@ -89,49 +89,49 @@ impl Interpreter {
     /// set order to 1 if statement is inside the block
     pub fn interpret(&mut self, stmts: Vec<&Statement>, order: usize) -> Rc<RefCell<Env>> {
         self.order = order;
-        for stmt in stmts {
-            match stmt {
-                Statement::Expression { expr } => {
-                    expr.eval(Rc::clone(&self.env));
-                }
-                Block { stmts } => self.block(stmts.clone()),
-                Var { .. } => self.variable(stmt),
-                Func { .. } => self.func(stmt),
-                Return { expr } => {
-                    let value = expr.eval(Rc::clone(&self.env));
-                    self.specs.borrow_mut().insert("return".to_string(), value);
-                }
-                If { .. } => self.ifs(stmt),
-                Loop { iter, body } => self.loops(iter.clone(), body.clone()),
-                While { cond, body } => self.whiles(cond, body.clone()),
-                For { .. } => self.fors(stmt),
-                Break {} => {
-                    self.specs
-                        .borrow_mut()
-                        .insert("break".to_string(), LiteralType::Null);
-                }
-                Match {
-                    cond,
-                    cases,
-                    def_case,
-                } => self.matchs(cond, cases.clone(), def_case),
-                Enum {
-                    name,
-                    is_pub,
-                    items,
-                } => self.enums(name, *is_pub, items),
-                Type {
-                    name,
-                    value,
-                    is_pub,
-                } => self.types(name, value, *is_pub),
-                Statement::Record { .. } => self.record(stmt),
-                Mod { src, name } => self.mods(src, name.clone()),
-                Use { src, names, all } => self.uses(src, names.clone(), *all),
-                Sh { cmd } => self.sh(cmd),
-            }
-        }
+        stmts.iter().for_each(|s| self.stmt(s));
         Rc::clone(&self.env)
+    }
+    fn stmt(&mut self, stmt: &Statement) {
+        match stmt {
+            Statement::Expression { expr } => {
+                expr.eval(Rc::clone(&self.env));
+            }
+            Block { stmts } => self.block(stmts.clone()),
+            Var { .. } => self.variable(stmt),
+            Func { .. } => self.func(stmt),
+            Return { expr } => {
+                let value = expr.eval(Rc::clone(&self.env));
+                self.specs.borrow_mut().insert("return".to_string(), value);
+            }
+            If { .. } => self.ifs(stmt),
+            While { cond, body } => self.whiles(cond, *body.clone()),
+            For { .. } => self.fors(stmt),
+            Break {} => {
+                self.specs
+                    .borrow_mut()
+                    .insert("break".to_string(), LiteralType::Null);
+            }
+            Match {
+                cond,
+                cases,
+                def_case,
+            } => self.matchs(cond, cases.clone(), def_case),
+            Enum {
+                name,
+                is_pub,
+                items,
+            } => self.enums(name, *is_pub, items),
+            Type {
+                name,
+                value,
+                is_pub,
+            } => self.types(name, value, *is_pub),
+            Statement::Record { .. } => self.record(stmt),
+            Mod { src, name } => self.mods(src, name.clone()),
+            Use { src, names, all } => self.uses(src, names.clone(), *all),
+            Sh { cmd } => self.sh(cmd),
+        }
     }
 
     fn block(&mut self, stmts: Vec<Statement>) {
@@ -155,29 +155,14 @@ impl Interpreter {
         } = stmt
         {
             if value.is_some() {
-                // disable mutability in side effects
-                if is_mut.clone() && !self.project.side_effects {
-                    self.error
-                        .throw(E0x415, names[0].line, names[0].pos, vec![]);
-                } else
-                // disable publicity in side effects
-                if is_pub.clone() && !self.project.side_effects {
-                    self.error
-                        .throw(E0x415, names[0].line, names[0].pos, vec![]);
-                }
-
                 let vl = value.clone().unwrap().eval(Rc::clone(&self.env));
-                // @todo replace value_type with option<Token>
-                // don't type check during type inference
-                if value_type.token != TokenType::Null {
-                    if !type_check(&value_type, &vl, &self.env) {
-                        self.error.throw(
-                            E0x301,
-                            names[0].line,
-                            names[0].pos,
-                            vec![value_type.clone().lexeme, vl.to_string()],
-                        );
-                    }
+                if !type_check(&value_type, &vl, &self.env) {
+                    self.error.throw(
+                        E0x301,
+                        names[0].line,
+                        names[0].pos,
+                        vec![value_type.clone().lexeme, vl.to_string()],
+                    );
                 }
 
                 // hande variables in modules
@@ -387,23 +372,16 @@ impl Interpreter {
             let is_pub = *is_pub;
 
             // evaluate return statement
-            match body {
-                FuncBody::Statements(statements) => {
-                    for statement in statements {
-                        if let Statement::Return { expr } = statement {
-                            expr.eval(Rc::clone(&self.env));
-                        }
+            match *body.clone() {
+                Statement::Expression { expr } => {
+                    expr.eval(Rc::clone(&self.env));
+                }
+                Statement::Block { stmts } => stmts.iter().for_each(|stmt| {
+                    if let Statement::Return { expr } = stmt {
+                        expr.eval(Rc::clone(&self.env));
                     }
-                }
-                // for short functions
-                FuncBody::Expression(expression) => {
-                    expression.eval(Rc::clone(&self.env));
-                }
-            }
-
-            // publicity is disabled in side effects
-            if is_pub && !self.project.side_effects {
-                self.error.throw(E0x415, name.line, name.pos, vec![]);
+                }),
+                _ => {}
             }
 
             // create a function
@@ -451,7 +429,6 @@ impl Interpreter {
         if let Statement::If {
             cond,
             body,
-            else_if_branches,
             else_branch,
         } = stmt
         {
@@ -459,59 +436,22 @@ impl Interpreter {
                 let val = cond.eval(Rc::clone(&self.env));
                 // if condition is true, execute the body
                 if val.is_truthy() {
-                    self.interpret(body.iter().map(|x| x).collect(), 1);
+                    self.stmt(body);
                 } else {
-                    let mut executed = false;
-                    // check elif branches
-                    for (cond, body) in else_if_branches {
-                        let val = cond.eval(Rc::clone(&self.env));
-                        if val.is_truthy() {
-                            executed = true;
-                            self.interpret(body.iter().map(|x| x).collect(), 1);
-                            break;
-                        }
-                    }
                     // if non of the elif branches were executed, execute else branch if there
                     if let Some(body) = else_branch {
-                        if !executed {
-                            self.interpret(body.iter().map(|x| x).collect(), 1);
-                        }
+                        self.stmt(body);
                     }
                 }
             }
         }
     }
 
-    fn loops(&mut self, iter: Option<usize>, body: Vec<Statement>) {
-        if !self.is_mod {
-            match iter {
-                // explicit iterations
-                Some(i) => {
-                    for _ in 0..i.clone() {
-                        self.interpret(body.iter().map(|x| x).collect(), 1);
-                        if self.specs.borrow_mut().get("break").is_some() {
-                            self.specs.borrow_mut().remove("break");
-                            break;
-                        }
-                    }
-                }
-                // infinite loop
-                None => loop {
-                    self.interpret(body.iter().map(|x| x).collect(), 1);
-                    if self.specs.borrow_mut().get("break").is_some() {
-                        self.specs.borrow_mut().remove("break");
-                        break;
-                    }
-                },
-            }
-        }
-    }
-
-    fn whiles(&mut self, cond: &Expression, body: Vec<Statement>) {
+    fn whiles(&mut self, cond: &Expression, body: Statement) {
         if !self.is_mod {
             // execute code while the condition is truthy
             while cond.eval(Rc::clone(&self.env)).is_truthy() {
-                self.interpret(body.iter().map(|x| x).collect(), 1);
+                self.stmt(&body);
                 if self.specs.borrow_mut().get("break").is_some() {
                     self.specs.borrow_mut().remove("break");
                     break;
@@ -564,7 +504,7 @@ impl Interpreter {
                         },
                     );
 
-                    self.interpret(body.iter().map(|x| x).collect(), 1);
+                    self.stmt(body);
                     if self.specs.borrow_mut().get("break").is_some() {
                         self.specs.borrow_mut().remove("break");
                         break;
@@ -582,8 +522,8 @@ impl Interpreter {
     fn matchs(
         &mut self,
         cond: &Expression,
-        cases: Vec<(Expression, FuncBody)>,
-        def_case: &FuncBody,
+        cases: Vec<(Expression, Statement)>,
+        def_case: &Statement,
     ) {
         if !self.is_mod {
             // if case has been executed
@@ -613,13 +553,11 @@ impl Interpreter {
 
                     for (expr, body) in cases {
                         let body = match body {
-                            FuncBody::Expression(ref expr) => {
-                                vec![Statement::Expression {
-                                    expr: *expr.clone(),
-                                }]
+                            Statement::Expression { expr } => {
+                                vec![Statement::Expression { expr }]
                             }
-
-                            FuncBody::Statements(ref stmts) => stmts.clone(),
+                            Statement::Block { stmts } => stmts.clone(),
+                            _ => vec![],
                         };
                         let body = body.iter().collect();
                         let expr_lit = expr.eval(Rc::clone(&self.env));
@@ -646,14 +584,7 @@ impl Interpreter {
             }
 
             if !exec {
-                match def_case.clone() {
-                    FuncBody::Statements(s) => {
-                        self.interpret(s.iter().map(|x| x).collect(), 1);
-                    }
-                    FuncBody::Expression(e) => {
-                        self.interpret(vec![&Statement::Expression { expr: *e }], 1);
-                    }
-                }
+                self.stmt(def_case);
             }
         }
     }
@@ -816,17 +747,10 @@ impl Interpreter {
                 .iter()
                 .map(|(name, value_type)| (name.clone(), value_type.clone()))
                 .collect();
-            let body: FuncBody = match body {
-                FuncBody::Statements(stmts) => {
-                    FuncBody::Statements(stmts.iter().map(|x| x.clone()).collect())
-                }
-                FuncBody::Expression(e) => FuncBody::Expression(e.clone()),
-            };
-
             FuncImpl {
                 name: name.lexeme.clone(),
                 value_type: value_type.clone(),
-                body,
+                body: body.clone(),
                 params,
                 is_async: *is_async,
                 is_pub: *is_pub,
@@ -852,15 +776,11 @@ impl Interpreter {
                     .iter()
                     .map(|(name, value_type)| (name.clone(), value_type.clone()))
                     .collect();
-                let body: Vec<Statement> = match body {
-                    FuncBody::Statements(stmts) => stmts.iter().map(|x| x.clone()).collect(),
-                    FuncBody::Expression(e) => vec![Statement::Expression { expr: *e.clone() }],
-                };
 
                 return FuncImpl {
                     name: name.lexeme.clone(),
                     value_type: value_type.clone(),
-                    body: FuncBody::Statements(body),
+                    body,
                     params,
                     is_async,
                     is_pub,
@@ -876,9 +796,6 @@ impl Interpreter {
     }
 
     fn mods(&mut self, src: &String, name: Option<String>) {
-        if !self.project.side_effects {
-            self.error.throw(E0x415, 0, (0, 0), vec![]);
-        }
         let mut path = current_dir().expect("failed to get current directory");
         path.push(src.trim_matches('"'));
         let mut file = match File::open(path) {
@@ -896,19 +813,10 @@ impl Interpreter {
         } else {
             src.to_string()
         };
-        interpreter_mod(
-            contents.as_str(),
-            Some(name),
-            Rc::clone(&self.env),
-            self.project.clone(),
-        );
+        interpreter_mod(contents.as_str(), Some(name), Rc::clone(&self.env));
     }
 
     fn uses(&mut self, src: &String, names: Vec<(Token, Option<Token>)>, all: bool) {
-        if !self.project.side_effects {
-            self.error.throw(E0x415, 0, (0, 0), vec![]);
-        }
-
         if src.clone().contains("::") {
             self.load_std(src.trim_matches('"').to_string().clone(), names.clone());
         } else {
@@ -960,7 +868,7 @@ impl Interpreter {
 }
 
 pub fn run_func(func: FuncImpl, args: &[Expression], env: Rc<RefCell<Env>>) -> LiteralType {
-    let error = Error::new("", Project::new());
+    let error = Error::new("");
     if args.len() != func.params.len() {
         error.throw(E0x405, 0, (0, 0), vec![]);
     }
@@ -1014,15 +922,15 @@ pub fn run_func(func: FuncImpl, args: &[Expression], env: Rc<RefCell<Env>>) -> L
     }
 
     let mut int = Interpreter::new_with_env(Rc::clone(&func_env), false, "", None, 1);
-    match func.body {
-        FuncBody::Statements(body) => {
-            for stmt in body.clone() {
-                int.interpret(vec![&stmt], 1);
+    match *func.body {
+        Statement::Block { stmts } => {
+            for stmt in stmts.clone() {
+                int.stmt(&stmt);
                 let mut val = {
                     let specs = int.specs.borrow_mut();
                     specs.get("return").cloned()
                 };
-                if let Statement::Expression { expr } = body.first().unwrap() {
+                if let Statement::Expression { expr } = stmts.first().unwrap() {
                     val = Some(expr.eval(Rc::clone(&env)));
                 }
 
@@ -1040,7 +948,7 @@ pub fn run_func(func: FuncImpl, args: &[Expression], env: Rc<RefCell<Env>>) -> L
                 }
             }
         }
-        FuncBody::Expression(expr) => {
+        Statement::Expression { expr } => {
             let val = expr.eval(Rc::clone(&func_env));
             if !type_check(&func.value_type, &val, &env) {
                 error.throw(
@@ -1052,6 +960,7 @@ pub fn run_func(func: FuncImpl, args: &[Expression], env: Rc<RefCell<Env>>) -> L
             }
             return val;
         }
+        _ => {}
     }
     if func.value_type.lexeme != "void" {
         error.throw(E0x406, 0, (0, 0), vec![]);

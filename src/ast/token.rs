@@ -75,7 +75,6 @@ impl TokenType {
             Self::Elif => "elif keyword",
             Self::Return => "return keyword",
             Self::While => "while keyword",
-            Self::Loop => "loop keyword",
             Self::Break => "break keyword",
             Self::Match => "match keyword",
             Self::Mod => "mod keyword",
