@@ -12,7 +12,6 @@
 - fixed: no emit problem
 - fixed: windows compatibility issues
 - fixed: CLI error handling
-- chore: started commenting the code
 
 ### Internal
 

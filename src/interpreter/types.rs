@@ -7,6 +7,13 @@ use std::{cell::RefCell, collections::HashMap, fmt, rc::Rc};
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum TypeKind {
+/*
+TODO:
+- Tuple<(T, T)> -> Tuple<T, T>
+- Record<{id: T, id: T}> -> RecordName
+*/
+
+
     Vec {
         // Vec<type>
         kind: Box<TypeKind>,

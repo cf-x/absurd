@@ -14,12 +14,12 @@ use errors::log;
 pub const VERSION: &str = "1.0.0";
 
 /// `Config` struct is for managing configuration across the interpreter.
-/// Struct has following fields:
+/// Struct has the following fields:
 ///
 /// * `test`: true if Absurd is running in `test mode`. `[stable]`
 /// * `unsafe_mode`: true if unsafe features are enabled. `[planned]`
 /// * `diagnostics`: true if diagnostic are enabled. `[planned]`
-/// * `emit`: type of emit the interpeter should emit. `[planned]`
+/// * `emit`: type of emit the interpreter should emit. `[planned]`
 #[derive(Debug, Clone)]
 pub struct Config {
     pub test: bool,

@@ -6,6 +6,7 @@ use crate::ast::{
     Statement::{self, *},
     Token, TokenType,
 };
+pub mod texp;
 use crate::bundler::interpreter_mod;
 use crate::errors::{raw, Error, ErrorCode::*};
 use crate::interpreter::types::type_check;

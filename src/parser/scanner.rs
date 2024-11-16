@@ -1,4 +1,3 @@
-// Absurd Scanner, collects tokens from the source.
 use crate::ast::{
     Base, LiteralKind, Token,
     TokenType::{self, *},

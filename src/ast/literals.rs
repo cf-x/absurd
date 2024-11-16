@@ -65,6 +65,12 @@ impl LiteralType {
     pub fn is_truthy_literal(&self) -> LiteralType {
         Self::Boolean(self.is_truthy())
     }
+    pub fn is_null(&self) -> bool {
+        if let Self::Null = *self {
+            return true;
+        }
+        false
+    }
 }
 
 impl fmt::Display for LiteralType {
